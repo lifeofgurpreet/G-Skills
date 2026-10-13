@@ -51,3 +51,27 @@ needs an actual user-input check. Verify keyboard, phone-size layout, empty,
 dense, malformed and disconnected states—not only a screenshot with three good
 nodes. The repository's browser suite starts the real server with synthetic
 workspaces; its developer dependencies are not required by skill users.
+
+
+## Chart investigation in 0.4
+
+The upper uPlot pane compares accounted CPU time with recorded CPU execution.
+The lower pane shows CPU pressure and throttled-period fractions on their own
+explicit axes. Cursor time and horizontal range are synchronized. These series
+are context for an investigation, not interchangeable measures of lost CPU.
+
+Use 6h, 24h, 72h or All history; drag horizontally for a custom view. Refresh
+preserves the selected view and subject. The full-window mean and decision do
+not change when zooming. This prevents a convenient crop from silently clearing
+a HOLD or presenting a short bad period as the whole retained window.
+
+Use the sample slider with keyboard arrows/Home/End, or open the displayed-data
+table. A value that was not measured stays unknown. Independent gaps and extrema
+are retained in the bounded display; a chart alignment placeholder is not a
+sample and is never exported as one. Small histories are not reduced.
+
+PNG captures the rendered chart panes. CSV exports only displayed observations
+inside the selected view. Both are explicit local actions; neither is a provider
+submission or an independently signed evidence bundle. Retain the private
+workspace and normal export for deeper replay. The pinned MIT library, CSS and
+license are bundled; there is no browser CDN or third-party Python dependency.

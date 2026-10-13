@@ -1,0 +1,132 @@
+{
+  "schema": "g-skills.improvement-receipt.v1",
+  "release": "0.4.0",
+  "additional_jsm_sources": [
+    {
+      "skill": "codebase-pattern-extraction",
+      "installed_version": 2,
+      "source_sha256": "316943171503a00b3ca2597443fc11da393f9ac59fc2eda155b56ee85bd4396f",
+      "read_scope": "full entry",
+      "original_takeaway": "Separate invariant evidence preparation from chart and profile choices.",
+      "applied_change": "One chart adapter and one bounded history projection, not four competing calculation paths.",
+      "check": "skills/vps-health/tests/test_chart_context.py",
+      "scope": "selected applicable guidance, not claimed full-framework completion"
+    },
+    {
+      "skill": "planning-workflow",
+      "installed_version": 7,
+      "source_sha256": "4d4d826393141b1ecc0a80bccdd7052918a0bb0150c1b9b639e4571ebe24b961",
+      "read_scope": "full entry",
+      "original_takeaway": "Read dependency contracts and define the user task before changing architecture.",
+      "applied_change": "Pinned uPlot API, explicit comparison with existing SVG and ECharts, no speculative framework migration.",
+      "check": "docs/chart-investigation-design.md",
+      "scope": "selected applicable guidance, not claimed full-framework completion"
+    },
+    {
+      "skill": "testing-metamorphic",
+      "installed_version": 7,
+      "source_sha256": "cfe3b414125459a54ff7df6a59042d51594bdffcdd458513dcc5ef6ee15d6358",
+      "read_scope": "16-90;146-206;315-370",
+      "original_takeaway": "Use transformations with a real oracle, not f(x)=f(x) as a correctness claim.",
+      "applied_change": "Translate timestamps and preserve channels, gaps and weighted policy; test context extrema across deterministic seeds.",
+      "check": "skills/vps-health/tests/test_chart_context.py",
+      "scope": "selected applicable guidance, not claimed full-framework completion"
+    },
+    {
+      "skill": "testing-golden-artifacts",
+      "installed_version": 4,
+      "source_sha256": "a4b9807e26a13e0af0cbe82c2a64f8fa3f81b3ebcc812f9e117c683daf3a04cb",
+      "read_scope": "21-79;448-477",
+      "original_takeaway": "Pin meaningful artifacts and review changes rather than accepting fresh output blindly.",
+      "applied_change": "Vendor hashes, deterministic ZIP bytes and synthetic browser artifacts; no pixel-perfect cross-platform screenshot claim.",
+      "check": "tools/test_vendor.py",
+      "scope": "selected applicable guidance, not claimed full-framework completion"
+    },
+    {
+      "skill": "testing-conformance-harnesses",
+      "installed_version": 4,
+      "source_sha256": "3811725b6bffe4a76a406532fb78f14c714e9334617f4de20cbbf395b5caf8a5",
+      "read_scope": "20-85;379-433",
+      "original_takeaway": "Map each changed contract to a repeatable check and keep discrepancies visible.",
+      "applied_change": "Null gaps versus alignment-only undefined placeholders, CSV bounds, exact runtime asset checks.",
+      "check": "tools/test_chart_adapter.cjs",
+      "scope": "selected applicable guidance, not claimed full-framework completion"
+    },
+    {
+      "skill": "testing-real-service-e2e-no-mocks",
+      "installed_version": 2,
+      "source_sha256": "ec089aa0a5d5c7bd4a047e19ee2d9498d8ab29da6403a40f3646cd751a303263",
+      "read_scope": "21-89;303-340;396-452",
+      "original_takeaway": "Verify the real integration, including failures, without using private production as a test fixture.",
+      "applied_change": "Real loopback server and SQLite workspace, actual clicks/drag/downloads/touch; synthetic fault injection only for negative cases.",
+      "check": "tools/test_dashboard.py",
+      "scope": "selected applicable guidance, not claimed full-framework completion"
+    },
+    {
+      "skill": "profiling-software-performance",
+      "installed_version": 8,
+      "source_sha256": "78d9d00766d137804169b12e1d31f89ee131f50a38b7d2f1c657be9acf95045a",
+      "read_scope": "19-67;96-147;247-273",
+      "original_takeaway": "Separate correctness and instrumentation from a performance conclusion.",
+      "applied_change": "Keep projection bounded, reuse two chart instances and check 100 subjects. No comparative speedup or upstream benchmark copied as our measurement.",
+      "check": "tools/test_dashboard.py",
+      "scope": "selected applicable guidance, not claimed full-framework completion"
+    },
+    {
+      "skill": "release-preparations",
+      "installed_version": 7,
+      "source_sha256": "78fb1c6ad38680e651f05303ece451ac4c7d5bceb2ce68f862e404d8e1d004dd",
+      "read_scope": "17-55;114-192;378-393;504-529;540-581",
+      "original_takeaway": "Inspect the actual shipped artifact, not only the repository tree.",
+      "applied_change": "Immutable-source ZIP builder with license, root-shape, deterministic bytes, actual extraction and standalone bootstrap/export.",
+      "check": "tools/package_release.py",
+      "scope": "selected applicable guidance, not claimed full-framework completion"
+    },
+    {
+      "skill": "reality-check-for-project",
+      "installed_version": 4,
+      "source_sha256": "7124699c661b7caeb2835f7e6331784e5b508f98cf469f790e301210daa4df62",
+      "read_scope": "22-49;307-332;360-446",
+      "original_takeaway": "Distinguish implemented source, usable workflows and verified real-world outcomes.",
+      "applied_change": "Release waits for browser and exported-package proof; synthetic dashboards are not VPS or service-health qualification.",
+      "check": "docs/chart-investigation-design.md",
+      "scope": "selected applicable guidance, not claimed full-framework completion"
+    }
+  ],
+  "emil": {
+    "source": "https://github.com/emilkowalski/skills/tree/main/skills/emil-design-eng",
+    "article": "https://emilkowal.ski/ui/you-dont-need-animations",
+    "source_type": "author public documentation; no local installation claimed",
+    "applications": [
+      "instant frequent inspection",
+      "purposeful press feedback",
+      "reduced-motion handling",
+      "44px touch targets",
+      "visual verification separate from assertions"
+    ]
+  },
+  "pstack": {
+    "source_release": "997ffc7fe26bdaa6478a14e7f5b8d5f9ed747102",
+    "leaves": [
+      "prove-it-works",
+      "subtract-before-you-add",
+      "encode-lessons-in-structure",
+      "exhaust-the-design-space",
+      "benchmark-checklist"
+    ],
+    "applications": [
+      "existing SVG removed instead of stacking chart renderers",
+      "same synthetic input and explicit missingness oracle",
+      "actual browser and final ZIP checks",
+      "no unmeasured library speedup claim"
+    ]
+  },
+  "not_claimed": [
+    "all local skills read",
+    "independent model triangulation",
+    "full external audit score or mutation coverage target",
+    "real multi-day VPS field trial",
+    "physical-device or complete accessibility certification"
+  ],
+  "privacy": "No paid skill bodies, subscription catalogue, local paths or private fleet data are included."
+}

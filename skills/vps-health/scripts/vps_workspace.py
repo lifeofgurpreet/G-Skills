@@ -28,7 +28,7 @@ import uuid
 
 import vps_health as core
 
-VERSION = '0.3.0'
+VERSION = '0.4.0'
 SCHEMA = 'g-skills.workspace.v1'
 SELF_HASH = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
 MAX_STORE_BYTES = 256 * 1024 * 1024

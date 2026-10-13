@@ -48,6 +48,14 @@ Defaults are **within tolerance at 90% or above**, **watch at 80–90%**, and **
 
 The neutral workbench puts a selected node’s accounting history next to its next useful check. Search or filter the inventory, inspect samples by pointer or keyboard, and switch to daily evidence or collection activity. Save summary downloads the current JSON locally. Each subject retains observed time versus elapsed time, coverage, freshness, workload context and evidence limitations. High contention can reflect demand, reduced supply, or both. A low ratio does not establish who caused it; an above-threshold ratio does not certify your application's latency or error rate.
 
+### Inspect changes, not just a score
+
+Two locally bundled **uPlot** charts align accounting/execution with pressure and
+CPU-limit context. Choose a time window, drag to zoom, inspect the same timestamp
+by keyboard or pointer, and export a chart PNG or bounded display CSV. Missing
+intervals stay gaps. Zoom changes the view, **not** the retained-window assessment.
+The viewer makes no chart-CDN request and still needs no frontend build step.
+
 ## Give it to an agent
 
 > Read `skills/vps-health/SKILL.md`. Discover my existing monitoring and expected nodes. Show the demo, then bootstrap the smallest useful private workspace. Ask for approval before recurring collection or installing generated timer files. Account for every configured node; show gaps, workload context and multi-day evidence. Keep reports local and explain uncertainty. Draft correspondence only when I explicitly ask; never send it or change a server automatically.
@@ -104,3 +112,10 @@ multi-day operational result are different kinds of evidence; none substitutes
 for the others.
 
 Release evidence: [v0.3.0 verification receipt](docs/verification-v0.3.0.md).
+
+
+The [0.4.0 study receipt](docs/improvement-v0.4.0.json) adds nine more installed
+JSM sources and Emil's public design guidance, with original application decisions
+and test mappings. The [chart design](docs/chart-investigation-design.md) records
+why one pinned library was selected and what remains outside the evidence claim.
+`tools/package_release.py` tests the actual downloadable skill ZIP before release.

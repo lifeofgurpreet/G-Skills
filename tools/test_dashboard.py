@@ -217,6 +217,8 @@ def main():
             page.get_by_label('Search nodes').focus()
             page.keyboard.press('Tab');expect(page.get_by_label('Filter by evidence state')).to_be_focused()
             assert page.get_by_label('Filter by evidence state').evaluate('e=>getComputedStyle(e).outlineStyle')!='none'
+            assert page.locator('#history-chart .u-cursor-x').evaluate("e => getComputedStyle(e).borderLeftWidth")=='0px'
+            assert page.locator('#history-chart .u-cursor-x').evaluate("e => getComputedStyle(e).borderRightWidth")=='1px'
             passed('keyboard order and visible focus')
             colors=page.evaluate("Object.fromEntries(['--ink','--muted','--paper','--canvas','--soft','--strong'].map(k=>[k,getComputedStyle(document.documentElement).getPropertyValue(k).trim()]))")
             def luminance(value):
