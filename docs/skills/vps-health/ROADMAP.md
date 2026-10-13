@@ -15,8 +15,8 @@ This is one skill within G-Skills. Its work does not define the whole collection
 | `gs-2uh.5` Bind external actions to reviewed content and verified results | open | 1 | `gs-2uh.4` |
 | `gs-2uh.6` Qualify cold Codex and Claude Code user journeys | open | 1 | `gs-2uh.2`, `gs-2uh.3`, `gs-2uh.4` |
 | `gs-2uh.8` Validate multi-day operation and measurement usefulness | open | 1 | `gs-2uh.2`, `gs-2uh.3` |
-| `gs-8cq.1` Retain aligned passive storage, memory and network context | open | 1 | — |
-| `gs-8cq.2` Compare guest traits without false physical-migration proof | open | 1 | `gs-8cq.1` |
+| `gs-8cq.1` Retain aligned passive storage, memory and network context | closed | 1 | — |
+| `gs-8cq.2` Compare guest traits without false physical-migration proof | closed | 1 | `gs-8cq.1` |
 | `gs-2uh.7` Cover heterogeneous estates and non-Linux agent hosts | open | 2 | `gs-2uh.1` |
 | `gs-2uh.9` Make self-improvement a reviewed evidence-to-regression loop | open | 2 | `gs-2uh.6`, `gs-2uh.8` |
 | `gs-8cq.3` Design approved active CPU, memory and storage experiments | open | 2 | `gs-8cq.1` |
@@ -42,8 +42,8 @@ flowchart LR
   gs_2uh_8["gs-2uh.8: open"]
   gs_2uh_2 --> gs_2uh_8
   gs_2uh_3 --> gs_2uh_8
-  gs_8cq_1["gs-8cq.1: open"]
-  gs_8cq_2["gs-8cq.2: open"]
+  gs_8cq_1["gs-8cq.1: closed"]
+  gs_8cq_2["gs-8cq.2: closed"]
   gs_8cq_1 --> gs_8cq_2
   gs_2uh_7["gs-2uh.7: open"]
   gs_2uh_1 --> gs_2uh_7
@@ -124,11 +124,15 @@ Add bounded proc/sys reads, correct hex softnet parsing, per-device request mean
 
 **Acceptance:** Unknown idle latency, reset counters, NVMe/mapper/overlay identity, independent acquisition brackets and layered-device non-aggregation are tested; raw sources and dashboard context are retained without changing CPU verdicts.
 
+**Receipt:** Source accepted: collection/selected-skill validation passes 255 Python tests, 12 chart contracts and 29 real-loopback browser groups. Two unrelated temporary skills prove independent version/check/package ownership, including a failing-before large-unrelated-skill budget regression. Actual selected VPS ZIP extracted and exercised; passive Linux context/retention/compare smoke completed without active tests. See docs/collection-design.md and docs/skills/vps-health/verification-v0.7.0.md. Hosted exact-source CI remains the release gate.
+
 ### gs-8cq.2 — Compare guest traits without false physical-migration proof
 
 Add private snapshot/observe/compare routes using guest-visible CPU, clock and DMI traits. Equal traits do not prove same physical host; changed traits cannot attest a move.
 
 **Acceptance:** Replays preserve source/time/boot boundaries and explicitly refuse physical-host verification. Same/mixed subject, changed/identical/missing traits and private output boundaries have regressions.
+
+**Receipt:** Source accepted: collection/selected-skill validation passes 255 Python tests, 12 chart contracts and 29 real-loopback browser groups. Two unrelated temporary skills prove independent version/check/package ownership, including a failing-before large-unrelated-skill budget regression. Actual selected VPS ZIP extracted and exercised; passive Linux context/retention/compare smoke completed without active tests. See docs/collection-design.md and docs/skills/vps-health/verification-v0.7.0.md. Hosted exact-source CI remains the release gate.
 
 ### gs-2uh.7 — Cover heterogeneous estates and non-Linux agent hosts
 
