@@ -106,6 +106,7 @@ def main():
             assert page.evaluate('chartEngine.getWindow()[1]-chartEngine.getWindow()[0]')<86400*.75
             page.get_by_role('button',name='All history',exact=True).click()
             assert page.evaluate('chartEngine.getWindow()[1]-chartEngine.getWindow()[0]')>86400*2
+            assert page.evaluate('JSON.stringify(chartEngine.getScales()[0])===JSON.stringify(chartEngine.getScales()[1])')
             passed('drag zoom and reset inspect history without altering assessment')
 
             with page.expect_download() as event:page.get_by_role('button',name='Save chart image').click()
@@ -168,6 +169,15 @@ def main():
             expect(page.locator('#transport-error')).to_be_hidden()
             passed('disconnect freezes last known values and recovery clears the warning')
 
+            empty=copy.deepcopy(initial);empty['assets']=[];empty['expected_assets']=0
+            page.route('**/api/status',lambda route:route.fulfill(json=empty))
+            page.get_by_role('button',name='Refresh live readings').click()
+            expect(page.locator('#action-title')).to_have_text('Configure your first node')
+            expect(page.locator('.chart-wrap canvas')).to_have_count(0)
+            page.unroute('**/api/status');page.get_by_role('button',name='Refresh live readings').click()
+            expect(page.locator('.chart-wrap canvas')).to_have_count(2)
+            passed('zero-subject refresh removes prior charts and clean recovery rebuilds only two')
+
             payload=workspace.status(root)
             payload['assets'][0]['history']=[{'t':None,'value':.98,'quality':False}]
             page.route('**/api/status',lambda route:route.fulfill(status=200,content_type='application/json',body=json.dumps(payload)))
@@ -187,6 +197,12 @@ def main():
             for width in (1440,768,390,320):
                 page.set_viewport_size({'width':width,'height':900 if width>400 else 844})
                 expect(page.locator('#history-chart canvas')).to_be_visible()
+                # Canvas sizes settle on a rendering cycle. Verify the actual
+                # stable view, not an observation made before resize delivery.
+                try:page.wait_for_function('document.documentElement.scrollWidth <= innerWidth',timeout=2000)
+                except Exception:
+                    print('OVERFLOW',page.evaluate("[...document.querySelectorAll('body *')].map(e=>({tag:e.tagName,cls:e.className,id:e.id,r:e.getBoundingClientRect()})).filter(e=>e.r.height>0&&e.r.right>innerWidth+.5).map(e=>({tag:e.tag,cls:typeof e.cls==='string'?e.cls:'svg',id:e.id,left:e.r.left,width:e.r.width,right:e.r.right})).slice(0,20)"))
+                    raise
                 assert not page.evaluate('document.documentElement.scrollWidth > innerWidth'),str(width)
                 assert page.locator('#node-selector').bounding_box()['width']>80
                 if width<=390:
@@ -227,6 +243,16 @@ def main():
             assert not page.evaluate('document.documentElement.scrollWidth > innerWidth')
             page.unroute('**/api/status');page.get_by_label('Search nodes').fill('')
             passed('100-subject fixture keeps search and selection usable')
+            touch=browser.new_context(viewport={'width':390,'height':844},is_mobile=True,has_touch=True,reduced_motion='reduce')
+            touch_page=touch.new_page();touch_page.goto(base,wait_until='networkidle')
+            touch_page.get_by_role('button',name='24h',exact=True).tap()
+            expect(touch_page.get_by_role('button',name='24h',exact=True)).to_have_attribute('aria-pressed','true')
+            touch_page.get_by_role('button',name='Execution',exact=True).tap()
+            expect(touch_page.get_by_role('button',name='Execution',exact=True)).to_have_attribute('aria-pressed','false')
+            touch_page.get_by_role('button',name='Execution',exact=True).tap()
+            touch_page.get_by_role('button',name='All history',exact=True).tap()
+            touch_page.screenshot(path=str(out/'touch-mobile.png'),full_page=True)
+            touch.close();passed('touch-context time controls and channel toggles against the actual viewer')
             expect(page.locator('.chart-wrap .uplot')).to_have_count(2)
             assert not errors,errors
             assert all(url.startswith(base) or url.startswith('blob:') for url in requests),requests
