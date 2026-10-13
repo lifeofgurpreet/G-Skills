@@ -56,7 +56,10 @@ def main():
             expect(page.locator('#node-selector')).to_have_value('example-contended')
             assert page.locator('#history-chart polyline').count()>0
             passed('actual server, three subjects, derived counts and selected history')
-            if args.out:page.screenshot(path=str(args.out/'desktop.png'))
+            if args.out:
+                page.screenshot(path=str(args.out/'desktop.png'))
+                (args.out/'demo.html').write_bytes(workspace.page(workspace.status(root)))
+                (args.out/'status.json').write_text(json.dumps(workspace.status(root),indent=2)+'\n')
 
             page.get_by_role('button',name='Inspect example-stable',exact=True).click()
             expect(page.locator('#node-selector')).to_have_value('example-stable')
@@ -127,6 +130,12 @@ def main():
             page.get_by_role('button',name='Refresh live readings').click()
             expect(page.locator('#transport-error')).to_be_visible()
             expect(page.locator('#selected-mean')).to_have_text(previous)
+            page.unroute('**/api/status')
+            payload=workspace.status(root);payload['as_of']=1e200
+            page.route('**/api/status',lambda route:route.fulfill(status=200,content_type='application/json',body=json.dumps(payload)))
+            page.get_by_role('button',name='Refresh live readings').click()
+            expect(page.locator('#transport-error')).to_be_visible()
+            expect(page.locator('#selected-mean')).to_have_text(previous)
             page.unroute('**/api/status');page.get_by_role('button',name='Refresh live readings').click()
             expect(page.locator('#transport-error')).to_be_hidden()
             passed('malformed history does not partially replace the last valid view')
@@ -150,6 +159,7 @@ def main():
             passed('keyboard order and visible focus')
             colors=page.evaluate("Object.fromEntries(['--ink','--muted','--paper','--canvas','--soft','--strong'].map(k=>[k,getComputedStyle(document.documentElement).getPropertyValue(k).trim()]))")
             def luminance(value):
+                if len(value)==4:value='#'+''.join(char*2 for char in value[1:])
                 channels=[int(value[i:i+2],16)/255 for i in (1,3,5)]
                 linear=[x/12.92 if x<=.04045 else ((x+.055)/1.055)**2.4 for x in channels]
                 return sum(x*y for x,y in zip(linear,(.2126,.7152,.0722)))

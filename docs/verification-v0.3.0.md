@@ -81,3 +81,7 @@ Phone-size browser checks are not physical-phone testing. Colour-contrast and
 keyboard assertions are not a complete accessibility certification. Synthetic
 multi-day examples are not real multi-day performance qualification. A clean
 chart or passed software test cannot establish provider responsibility.
+
+The final contrast verifier initially assumed six-digit CSS hex values and
+failed on valid shorthand `#fff`. The harness now expands shorthand before
+computing contrast; no colour or acceptance threshold was relaxed to pass it.

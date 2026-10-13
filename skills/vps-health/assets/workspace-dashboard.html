@@ -140,7 +140,8 @@ $('save-summary').addEventListener('click',()=>{const blob=new Blob([JSON.string
 function validStatus(next){
  const object=x=>x!==null&&typeof x==='object'&&!Array.isArray(x);
  const ratio=x=>x===null||number(x)&&x>=0&&x<=1.02;
- if(!object(next)||next.schema!=='g-skills.workspace-status.v1'||!Array.isArray(next.assets)||next.assets.length>100||next.expected_assets!==next.assets.length||!number(next.as_of)||typeof next.generated_at!=='string'||typeof next.synthetic!=='boolean')return false;
+ const timestamp=x=>number(x)&&Number.isFinite(new Date(x*1000).getTime());
+ if(!object(next)||next.schema!=='g-skills.workspace-status.v1'||!Array.isArray(next.assets)||next.assets.length>100||next.expected_assets!==next.assets.length||!timestamp(next.as_of)||typeof next.generated_at!=='string'||typeof next.synthetic!=='boolean')return false;
  if(!object(next.policy)||!number(next.policy.acceptable_ratio)||!number(next.policy.investigate_below)||next.policy.investigate_below>=next.policy.acceptable_ratio||next.contact_provider!==false)return false;
  if(!Number.isInteger(next.window_days)||next.window_days<1||next.window_days>14||!number(next.stored_captures)||!number(next.stored_bytes)||!Array.isArray(next.collection_attempts))return false;
  const ids=new Set();
@@ -150,10 +151,10 @@ function validStatus(next){
   if(!['mean','execution','pressure','cfs','coverage'].every(k=>ratio(n[k]))||!number(n.observed_hours)||!number(n.elapsed_hours)||!number(n.age_seconds)&&n.age_seconds!==null||typeof n.stale!=='boolean'||typeof n.recommendation!=='string')return false;
   if(!Array.isArray(n.holds)||!n.holds.every(h=>typeof h==='string')||!Array.isArray(n.history)||n.history.length>600||!Array.isArray(n.daily))return false;
   let prior=-Infinity;
-  for(const p of n.history){if(!object(p)||!number(p.t)||p.t<=prior||!ratio(p.value)||typeof p.quality!=='boolean'||p.break_before!==undefined&&typeof p.break_before!=='boolean')return false;prior=p.t}
+  for(const p of n.history){if(!object(p)||!timestamp(p.t)||p.t<=prior||!ratio(p.value)||typeof p.quality!=='boolean'||p.break_before!==undefined&&typeof p.break_before!=='boolean')return false;prior=p.t}
   if(!n.daily.every(d=>object(d)&&typeof d.date==='string'&&ratio(d.accounted_mean)&&ratio(d.coverage)&&typeof d.complete_utc_day==='boolean'))return false;
  }
- return next.collection_attempts.every(a=>object(a)&&number(a.observed)&&typeof a.outcome==='string'&&typeof a.detail==='string');
+ return next.collection_attempts.every(a=>object(a)&&timestamp(a.observed)&&typeof a.outcome==='string'&&typeof a.detail==='string');
 }
 let inflight=false,poller=null;
 async function refresh(){if(!live||inflight||document.hidden)return;inflight=true;const controller=new AbortController(),deadline=setTimeout(()=>controller.abort(),8000);try{const response=await fetch('/api/status',{cache:'no-store',credentials:'omit',redirect:'error',signal:controller.signal});if(!response.ok)throw new Error('unavailable');const next=await response.json();if(!validStatus(next))throw new Error('invalid');state=next;ui.disconnected=false;$('transport-error').hidden=true;render()}catch(e){ui.disconnected=true;$('transport-error').textContent='Viewer disconnected. Values are frozen at '+utc(state.as_of)+'. Check the local collector and viewer; old values are not fresh evidence.';$('transport-error').hidden=false;$('connection').textContent='Disconnected'}finally{clearTimeout(deadline);inflight=false}}
