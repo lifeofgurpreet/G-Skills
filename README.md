@@ -42,11 +42,11 @@ The default is **864 cycles at a five-minute cadence**, approximately 72 planned
 
 For unattended collection, `schedule` generates inspectable **systemd user** timer files. It does not install or enable them. Use that option only after approving the files, or invoke `collect` from an existing scheduler. Do not run both a timer and `watch` against the same workspace. See [the bootstrap recipes](skills/vps-health/references/bootstrap.md).
 
-## What the dashboard tells you
+## The operator workbench
 
 Defaults are **within tolerance at 90% or above**, **watch at 80–90%**, and **investigate below 80%**. These are configurable accounting-screen thresholds, not a hosting contract or automatic support trigger. **HOLD overrides them** when collection is stale, too short, incomplete, conflicted, or tied to a changed host/measurement identity.
 
-Each subject shows observed time versus elapsed time, coverage, freshness, CPU accounting and workload-pressure context, UTC daily rollups and the next useful check. High contention can reflect demand, reduced supply, or both. A low ratio does not establish who caused it; an above-threshold ratio does not certify your application's latency or error rate.
+The neutral workbench puts a selected node’s accounting history next to its next useful check. Search or filter the inventory, inspect samples by pointer or keyboard, and switch to daily evidence or collection activity. Save summary downloads the current JSON locally. Each subject retains observed time versus elapsed time, coverage, freshness, workload context and evidence limitations. High contention can reflect demand, reduced supply, or both. A low ratio does not establish who caused it; an above-threshold ratio does not certify your application's latency or error rate.
 
 ## Give it to an agent
 
@@ -87,3 +87,20 @@ This is a **local investigation workspace**, not an internet-facing hosted dashb
 Provider references cover Contabo, Hetzner, DigitalOcean, Akamai/Linode and AWS; read the actual product terms rather than treating provider names as equivalent CPU guarantees. Those references are not integrations that provision or migrate instances.
 
 Inspired by the public progressive-disclosure and self-testing principles at [Jeffrey's Skills](https://www.jeffreys-skills.md/) and the verification discipline in [pstack](https://github.com/cursor/plugins/tree/main/pstack). Original MIT-licensed implementation and prose; no paid skill content or private operational data is redistributed.
+
+
+## How we improve the skill
+
+The [improvement method](docs/skill-improvement-method.md) connects local skill
+research to concrete changes and tests. A private indexing tool distinguishes
+finding a skill from reading or applying it. The [0.3.0 applicability receipt](docs/improvement-v0.3.0.json)
+records the seven selected local JSM skills, their versions/hashes, which guidance
+fit, and which assumptions were rejected. Their licensed text is not redistributed.
+
+Dashboard changes now have an actual-loopback browser suite in CI in addition to
+the Python and exported-folder checks. The user runtime still has no browser-test
+or third-party Python dependencies. A browser assertion, a screenshot, and a real
+multi-day operational result are different kinds of evidence; none substitutes
+for the others.
+
+Release evidence: [v0.3.0 verification receipt](docs/verification-v0.3.0.md).

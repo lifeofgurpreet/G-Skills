@@ -4,7 +4,7 @@ description: Bootstrap repeatable VPS investigation for one Linux host or an exi
 license: MIT
 compatibility: Python 3.10+ with standard-library SQLite. Passive local collection requires Linux. Demo and offline reports are portable. Optional metrics collection requires explicit trusted endpoints. The viewer is loopback-only.
 metadata:
-  version: "0.2.0"
+  version: "0.3.0"
   author: lifeofgurpreet
 ---
 
@@ -147,3 +147,22 @@ collection/coverage state, a short evidence summary and next action. Separate
 source tests, live process, collected days and causal certainty. Include how to
 stop collection and how to archive its history. Do not call a configured system
 multi-day validated until those days have actually been observed.
+
+
+## Dashboard and maintenance quality
+
+The workbench places the selected node's history beside its next useful check.
+Use search and evidence-state filters for a fleet; use the sample inspector by
+pointer or keyboard for one node. Evidence and Collection are real views, and
+Save summary creates a local JSON download, not a provider message.
+
+Do not equate a visually smooth graph with good evidence. The bounded display
+keeps interval extrema and explicit unknown-span breaks; all calculations still
+use the retained original measurements. A failed or malformed refresh keeps the
+last valid view and identifies it as disconnected. [Dashboard guide](references/dashboard.md).
+
+For changes to this skill, consult locally available guidance deliberately:
+select relevant entries, read their actual instructions, note what does not fit,
+reproduce a concrete defect, implement, and verify the real user path. Copying a
+large library into the skill or claiming every entry was applied is not research.
+No paid skill body or private catalogue belongs in the public package.

@@ -7,3 +7,5 @@ Read the skill you change and its safety contract. Use the installed pstack benc
 Run `python3 tools/validate.py`. New observation-derived behavior needs a failing regression first. Keep runtime data separate from policy. No self-updating hooks, automatic provider contact, deployment, stress, credentials discovery or unreviewed safety weakening. A learning proposal never authorizes code changes, a public push or a host action.
 
 Use short human-facing summaries with links to reproducible artifacts. Keep unknown and mixed findings visible. Existing workload/provider-specific deployment belongs to its owning private repository. No new infrastructure is required to run this skill.
+
+Before a substantial skill change, use `docs/skill-improvement-method.md`. Index approved local guidance, select and read the relevant entries, and record applicability rather than invoking every installed skill. Keep the private index outside Git. Dashboard changes also require `python3 tools/test_dashboard.py` and separate screenshot inspection; source tests alone do not verify browser interaction. Never publish licensed skill bodies.

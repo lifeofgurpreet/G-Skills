@@ -39,6 +39,7 @@ def main():
             assert safe,'non-example IP address in public source: '+str(p)
     assert 'PROPOSED_NOT_APPLIED' in (SKILL/'scripts/vps_health.py').read_text()
     assert 'human-decision-only' in (SKILL/'scripts/vps_health.py').read_text()
+    subprocess.run([sys.executable,str(ROOT/'tools/test_skill_study.py')],check=True)
     subprocess.run([sys.executable,str(SKILL/'tests/test_vps_health.py')],check=True)
     subprocess.run([sys.executable,str(SKILL/'tests/test_workspace.py')],check=True)
     with tempfile.TemporaryDirectory() as directory:

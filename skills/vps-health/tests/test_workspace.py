@@ -45,6 +45,20 @@ class WorkspaceTest(unittest.TestCase):
         w.bootstrap(args(self.root,mode))
         return w.config_load(self.root)[1]
 
+    def test_status_chart_retains_a_narrow_dip(self):
+        cfg=self.setup_real();cap=capture(start=NOW-1200*300,ratio=.95)
+        cap['samples'][37]['cpu_accounted_ratio']=.42
+        w.ingest(self.root,cfg,[cap],NOW)
+        row=w.status(self.root,NOW,days=14)['assets'][0]
+        self.assertIn(.42,[p['value'] for p in row['history']])
+
+    def test_status_chart_retains_invalid_interval(self):
+        cfg=self.setup_real();cap=capture(start=NOW-1200*300,ratio=.95)
+        cap['samples'][43]['quality']=['counter_decreased']
+        w.ingest(self.root,cfg,[cap],NOW)
+        row=w.status(self.root,NOW,days=14)['assets'][0]
+        self.assertTrue(any(p['quality'] and p['value'] is None for p in row['history']))
+
     def test_bootstrap_defaults_to_demo_without_network(self):
         with mock.patch.object(c,'get_json') as net,mock.patch.object(c,'cpu_snapshot') as cpu:
             w.bootstrap(args(self.root))
@@ -353,6 +367,58 @@ class WorkspaceTest(unittest.TestCase):
         w.bootstrap(args(self.root));files=list((self.root/'daily').glob('*.json'));self.assertGreaterEqual(len(files),3)
         for p in files:
             d=c.read_json(p);self.assertTrue(d['synthetic']);self.assertNotIn('raw',d)
+
+
+class ChartEvidenceTest(unittest.TestCase):
+    def points(self,count=1200):
+        return [{'timestamp':1800000000+i*300,'duration_seconds':300,'cpu_accounted_ratio':.95,'quality':[], 'conflict':False} for i in range(count)]
+
+    def test_single_sample_drop_survives_bounded_chart_projection(self):
+        points=self.points();points[37]['cpu_accounted_ratio']=.42
+        result=w.chart_history(points,300)
+        self.assertIn(.42,[p['value'] for p in result])
+        self.assertLessEqual(len(result),600)
+        self.assertEqual(result[0]['t'],points[0]['timestamp'])
+        self.assertEqual(result[-1]['t'],points[-1]['timestamp'])
+
+    def test_quality_hole_cannot_be_drawn_as_a_continuous_line(self):
+        points=self.points();points[43]['quality']=['counter_decreased']
+        result=w.chart_history(points,300)
+        self.assertTrue(any(p['quality'] and p['value'] is None for p in result))
+        after=next(p for p in result if p['t']>points[43]['timestamp'])
+        self.assertTrue(after['break_before'])
+
+    def test_one_missing_interval_is_not_connected(self):
+        points=self.points(100);del points[40]
+        result=w.chart_history(points,300)
+        after=next(p for p in result if p['t']==1800000000+41*300)
+        self.assertTrue(after['break_before'])
+
+    def test_absent_intervals_get_an_explicit_line_break(self):
+        points=self.points();del points[40:400]
+        result=w.chart_history(points,300)
+        after=next(p for p in result if p['t']>=1800000000+400*300)
+        self.assertTrue(after['break_before'])
+
+    def test_projection_does_not_change_or_impute_raw_measurements(self):
+        import copy
+        points=self.points();before=copy.deepcopy(points);result=w.chart_history(points,300)
+        self.assertEqual(points,before)
+        raw={p['timestamp']:p['cpu_accounted_ratio'] for p in points}
+        self.assertTrue(all(raw[p['t']]==p['value'] for p in result if not p['quality']))
+
+    def test_extrema_and_invalid_spans_survive_large_capture(self):
+        points=self.points(100000)
+        for i in (831,8001,77013):points[i]['cpu_accounted_ratio']=.2
+        for i in range(80000,80500):points[i]['quality']=['unknown']
+        result=w.chart_history(points,300)
+        self.assertLessEqual(len(result),600)
+        self.assertEqual(min(p['value'] for p in result if p['value'] is not None),.2)
+        self.assertTrue(any(p['value'] is None for p in result))
+
+    def test_empty_history_and_invalid_limits(self):
+        self.assertEqual(w.chart_history([],300),[])
+        with self.assertRaises(c.InvalidEvidence):w.chart_history(self.points(),300,limit=2)
 
 
 if __name__=='__main__':unittest.main()

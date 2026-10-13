@@ -28,7 +28,7 @@ import uuid
 
 import vps_health as core
 
-VERSION = '0.2.0'
+VERSION = '0.3.0'
 SCHEMA = 'g-skills.workspace.v1'
 SELF_HASH = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
 MAX_STORE_BYTES = 256 * 1024 * 1024
@@ -320,6 +320,46 @@ def weighted(points,start,end):
     return result
 
 
+def chart_history(points, cadence, limit=600):
+    """Bound display data without erasing extrema or connecting unknown spans.
+
+    Each bucket keeps its boundaries, minimum, maximum and first invalid point.
+    Breaks are derived from every original interval, not from reduced point gaps.
+    Statistics and retained evidence continue to use the full original sequence.
+    """
+    integer(limit, 10, 10000, 'chart point limit')
+    core.finite(cadence, minimum=.2, maximum=3600)
+    if not points:
+        return []
+    invalid = [bool(p.get('quality') or p.get('conflict') or p.get('cpu_accounted_ratio') is None) for p in points]
+    breaks = [0]
+    for index, point in enumerate(points):
+        interval_start = point['timestamp'] - point.get('duration_seconds', cadence)
+        gap = index > 0 and interval_start > points[index - 1]['timestamp'] + max(.001, cadence * .001)
+        breaks.append(breaks[-1] + int(invalid[index] or gap))
+    width = max(1, math.ceil(len(points) / (limit // 5)))
+    selected = set()
+    for first in range(0, len(points), width):
+        last = min(first + width, len(points))
+        selected.update((first, last - 1))
+        valid = [i for i in range(first, last) if not invalid[i]]
+        if valid:
+            selected.add(min(valid, key=lambda i: points[i]['cpu_accounted_ratio']))
+            selected.add(max(valid, key=lambda i: points[i]['cpu_accounted_ratio']))
+        bad = next((i for i in range(first, last) if invalid[i]), None)
+        if bad is not None:
+            selected.add(bad)
+    result, previous = [], -1
+    for index in sorted(selected):
+        point = points[index]
+        result.append({'t': point['timestamp'],
+                       'value': None if invalid[index] else point['cpu_accounted_ratio'],
+                       'quality': invalid[index],
+                       'break_before': previous >= 0 and (invalid[previous] or breaks[index + 1] > breaks[previous + 1])})
+        previous = index
+    return result
+
+
 def status(root,now=None,days=None):
     root,cfg=config_load(root);now=time.time() if now is None else now
     days=integer(days if days is not None else cfg['history_days'],1,14,'history days')
@@ -369,8 +409,7 @@ def status(root,now=None,days=None):
                 daily.append({'date':core.iso(day)[:10],'accounted_mean':d['means'].get('cpu_accounted_ratio'),
                               'coverage':d['represented']/max(1,end-max(day,start)),'complete_utc_day':day>=start and day+86400<=now})
                 day+=86400
-            stride=max(1,math.ceil(len(points)/600))
-            history=[{'t':p['timestamp'],'value':p.get('cpu_accounted_ratio') if not p.get('quality') and not p['conflict'] else None,'quality':bool(p.get('quality') or p['conflict'])} for p in points[::stride]]
+            history=chart_history(points,cfg['interval_seconds'])
             assets.append({'id':node,'observed':observed,'decision':decision,'context':context,'mean':mean,
                            'execution':means.get('executing_ratio'),'pressure':pressure,'cfs':cfs,'coverage':coverage,
                            'elapsed_hours':span/3600,'observed_hours':w['represented']/3600,'window_start':core.iso(start),'window_end':core.iso(now),'last_sample':last_sample,'last_capture_end':latest.get('end'),

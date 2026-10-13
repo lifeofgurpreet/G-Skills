@@ -1,0 +1,90 @@
+{
+  "schema": "g-skills.improvement-receipt.v1",
+  "baseline": "v0.2.0",
+  "proposed_release": "v0.3.0",
+  "inventory": {
+    "local_entrypoints_indexed": 352,
+    "jsm_entries_indexed": 125,
+    "selected_jsm_skills_studied": 7,
+    "all_entries_read": false,
+    "remote_catalog_refresh": false
+  },
+  "sources": [
+    {
+      "name": "ux-audit",
+      "installed_version": 2,
+      "entry_sha256": "a0c655861d406213fbe750cb35c7509c1c26cd0da594de9f1562705d2a59e21c",
+      "read_state": "SELECTED_ENTRY_AND_RELEVANT_REFERENCES_READ",
+      "application": "Recognition and recovery before visual polish",
+      "proof": "Search, explicit states and actual failure/recovery browser checks."
+    },
+    {
+      "name": "ui-polish",
+      "installed_version": 2,
+      "entry_sha256": "60debbc2299a0bd94b700cd5075f13fba0385e42595e13bb45a929900196d798",
+      "read_state": "SELECTED_ENTRY_AND_RELEVANT_REFERENCES_READ",
+      "application": "Rejected as the primary method for a fundamentally weak design; used only after layout replacement",
+      "proof": "Desktop and mobile are inspected separately after interaction correctness."
+    },
+    {
+      "name": "e2e-testing-for-webapps",
+      "installed_version": 4,
+      "entry_sha256": "50f208e2cc9619f081538a7b60a1f6b1d3bb55f6aaf3c7dd59e3d53283b70a87",
+      "read_state": "SELECTED_ENTRY_AND_RELEVANT_REFERENCES_READ",
+      "application": "Separate functional assertions from visual inspection; drive actual controls",
+      "proof": "tools/test_dashboard.py starts the real local HTTP handler and exercises every visible control."
+    },
+    {
+      "name": "operationalizing-expertise",
+      "installed_version": 9,
+      "entry_sha256": "fdb7f8ba4d42f2d8bbab48c11302bc000e21c75565684aadb4117da0659b5197",
+      "read_state": "SELECTED_ENTRY_AND_RELEVANT_REFERENCES_READ",
+      "application": "Tie each observed failure to an executable acceptance boundary",
+      "proof": "ChartEvidenceTest retains dips and invalid intervals; study metadata never claims a skill was applied."
+    },
+    {
+      "name": "repeatedly-apply-skill",
+      "installed_version": 4,
+      "entry_sha256": "607523a4fad34ce612279d2cd802a6e01a86739b33c95d466ecbc30ee46e2c22",
+      "read_state": "SELECTED_ENTRY_AND_RELEVANT_REFERENCES_READ",
+      "application": "Serial focused passes, baseline preserved, commits between useful changes",
+      "proof": "Evidence projection, layout and interaction, then cold-start/failure checks; no independent subagent claim."
+    },
+    {
+      "name": "interactive-visualization-creator",
+      "installed_version": 2,
+      "entry_sha256": "1d8b5db15fb038e0c7fd24b13d7fbc842a0551a5c57674dc52999bbfc9296adb",
+      "read_state": "SELECTED_ENTRY_AND_RELEVANT_REFERENCES_READ",
+      "application": "Applicability-limited: reject its cinematic stack and decorative motion for this operations dashboard",
+      "proof": "Plain SVG, one selected-node history, exact sample inspection and visible missing spans."
+    },
+    {
+      "name": "agent-ergonomics-and-intuitiveness-maximization-for-cli-tools",
+      "installed_version": 17,
+      "entry_sha256": "68614bc857d292e78a809e3d6287a707691460bfdf5a774a9416adaaaa74408a",
+      "read_state": "SELECTED_ENTRY_AND_RELEVANT_REFERENCES_READ",
+      "application": "Use discoverable, machine-readable steps; not an unperformed whole-CLI scoring exercise",
+      "proof": "Private study-plan helper and the existing bootstrap/capabilities commands; no invented quality score."
+    }
+  ],
+  "pstack_release": "997ffc7fe26bdaa6478a14e7f5b8d5f9ed747102",
+  "prototypes": [
+    {
+      "name": "table-first",
+      "decision": "rejected",
+      "reason": "Better dense inventory but moves the explanation and evidence history below the first viewport."
+    },
+    {
+      "name": "chart-first workbench",
+      "decision": "selected",
+      "reason": "Observation, next check and workload context are adjacent; inventory search remains one scroll away."
+    }
+  ],
+  "execution": "single-agent sequential review; not independent multi-model scoring",
+  "private_source_text_published": false,
+  "proof_entrypoints": [
+    "tools/validate.py",
+    "tools/test_dashboard.py",
+    "tools/test_skill_study.py"
+  ]
+}
