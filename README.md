@@ -20,6 +20,40 @@ Open **http://127.0.0.1:8765/**. The synthetic three-day example shows a stable 
 
 The generated `dashboard.html` can also be opened offline. Live view polls derived state every five seconds; it does **not** invent new observations when collection stops.
 
+## Give the work to your coding agent
+
+Install the complete `vps-health` skill folder in your terminal agent's supported
+skill location, or give it the explicit `SKILL.md` path. Then say:
+
+> Set up and manage a private VPS investigation for the targets I authorize.
+> Inspect what we already have, scaffold the workspace, start bounded monitoring,
+> and show me the live dashboard. Ask me only for missing scope, authentication
+> or consequential approvals—not to write config files or keep a terminal open.
+> Do not contact a provider or change server settings without a new request.
+
+The agent plans and executes; the human is not the shell operator. Version 0.6
+adds `agent-plan`, `agent-start`, `agent-status` and `agent-stop`, plus a private
+`HANDOFF.md` and visible Agent activity in the dashboard. The Linux worker survives
+the launching terminal session, has a bounded lifetime and cannot renew a completed
+run using its old approval hash. Matching starts reuse the same process and deadline.
+Process liveness is checked independently from observation quality.
+
+A Gmail or other service is connected only when the requested task actually needs
+it. The agent should inspect its live tools, reuse a connection or use its host's
+trusted discovery/OAuth flow. The capability request/result is recorded privately
+for handoff, not mistaken for authentication or permission to send. The scripts
+contain no mail sender; real external writes belong to the host's reviewed tools.
+
+[Agent workflow](skills/vps-health/references/agent-workflow.md) ·
+[Connector contract](skills/vps-health/references/agent-connectors.md) ·
+[Dependency-aware roadmap](ROADMAP.md)
+
+Managed execution currently qualifies Linux; it is not automatic reboot recovery
+or universal Codex/Claude/OAuth compatibility. Those real-client and multi-day
+acceptance gates remain visible in the new Beads epic `gs-2uh`. The user does not
+need Beads or GitHub to use the installed skill. The command recipes below are
+fallback/debugging instructions for an agent to execute, not homework for the user.
+
 ## From a chart to a useful next action
 
 The workbench separates three questions: **is collection trustworthy, what changed,
@@ -102,6 +136,9 @@ Copy or install the **entire** skill folder, not just `SKILL.md`. Automatic disc
 | Command | Purpose | Side effect |
 |---|---|---|
 | `bootstrap` | Private workspace, policy and demo/configuration | New local directory only |
+| `agent-plan` / `agent-start` | Read-only scoped plan / apply one approved bounded runtime | The host agent obtains scope approval; no external writes |
+| `agent-status` / `agent-stop` | Verified process/readback / cooperative owned-run stop | No arbitrary PID signals or deletion |
+| `agent-request` / `agent-resolve` | Private capability handoff and host-reported results | Not OAuth or send permission |
 | `doctor` / `brief` | Read-only setup diagnosis / prioritized local action list | No network, repairs or notifications |
 | `providers` | Dated plan-class references and official source links | Offline; no policy changes |
 | `collect` / `watch` | One tick / bounded foreground recurrence | Passive reads or bounded approved API GETs |

@@ -28,11 +28,11 @@ import uuid
 
 import vps_health as core
 
-VERSION = '0.5.0'
+VERSION = '0.6.0'
 SCHEMA = 'g-skills.workspace.v1'
 SELF_HASH = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
 MAX_STORE_BYTES = 256 * 1024 * 1024
-COMMANDS = ('bootstrap','collect','watch','dashboard','serve','export','schedule','draft-email','capabilities','doctor','brief','providers')
+COMMANDS = ('bootstrap','collect','watch','dashboard','serve','export','schedule','draft-email','capabilities','doctor','brief','providers','agent-plan','agent-start','agent-status','agent-stop','agent-request','agent-resolve','_agent-worker')
 SQL = '''
 CREATE TABLE IF NOT EXISTS state (key TEXT PRIMARY KEY, value TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS captures (
@@ -84,6 +84,10 @@ def config_load(path):
     root=public_path(path)
     if not root.is_dir() or (root/'workspace.json').is_symlink(): fail('workspace not found; run bootstrap first')
     cfg=core.read_json(root/'workspace.json')
+    return root,validate_config(cfg)
+
+
+def validate_config(cfg):
     if not isinstance(cfg,dict) or cfg.get('schema')!=SCHEMA: fail('unsupported workspace schema')
     if cfg.get('mode') not in ('local','prometheus','demo'): fail('unknown workspace mode')
     integer(cfg.get('interval_seconds'),60,3600,'interval_seconds')
@@ -111,7 +115,7 @@ def config_load(path):
     for name in ('token_env','loki_token_env'):
         if cfg.get(name) and not re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]{0,100}',cfg[name]):fail('credentials must be named environment variables, never values')
     if cfg.get('provider_contact')!='manual_only':fail('workspace cannot authorize automatic provider contact')
-    return root,cfg
+    return cfg
 
 
 @contextlib.contextmanager
@@ -217,9 +221,7 @@ def demo_seed(cfg,now):
     return result
 
 
-def bootstrap(args):
-    root=public_path(args.workspace)
-    if root.exists():fail('workspace exists; use dashboard or collect, or choose a new private path')
+def bootstrap_config(args):
     interval=integer(args.interval,60,3600,'--interval')
     assets=[{'id':core.alias(args.node),'epoch':'initial','provider':getattr(args,'provider','unknown'),'plan':getattr(args,'plan',None)}]
     if args.mode=='demo':assets=[{'id':n,'epoch':'demo'} for n in ('example-stable','example-contended','example-offline')]
@@ -235,6 +237,13 @@ def bootstrap(args):
     # Validate a prospective configuration before creating persistent state.
     core.finite(args.acceptable,minimum=.5,maximum=1);core.finite(args.investigate_below,minimum=.1,maximum=1)
     if args.investigate_below>=args.acceptable:fail('--investigate-below must be lower than --acceptable')
+    return validate_config(cfg)
+
+
+def bootstrap(args):
+    root=public_path(args.workspace)
+    if root.exists():fail('workspace exists; use dashboard or collect, or choose a new private path')
+    cfg=bootstrap_config(args)
     root.mkdir(parents=True,mode=0o700)
     try:
         atomic(root/'workspace.json',core.canonical(cfg));config_load(root)
@@ -254,8 +263,17 @@ def bootstrap(args):
             'notes':'No service installed. Demo data is synthetic. Real collection requires the explicit next command.'}
 
 
-def collect(root, lookback_hours=1):
+def collect(root, lookback_hours=1, *, runtime_id=None):
+    import vps_agent as agent
+    root,cfg=config_load(root)
+    with agent.collection_lock(root):
+        return _collect(root,lookback_hours,runtime_id=runtime_id)
+
+
+def _collect(root, lookback_hours=1, *, runtime_id=None):
     root,cfg=config_load(root);now=time.time()
+    import vps_agent as agent
+    agent._guard_config(root,cfg,runtime_id)
     integer(lookback_hours,1,168,'lookback_hours')
     # A database write lock serializes snapshots and prevents overlapping collectors.
     with database(root) as db:
@@ -449,6 +467,9 @@ def status(root,now=None,days=None):
     value['provider_reference']=ops.providers(now=now)
     value['cadence_seconds']=cfg['interval_seconds']
     value['code_hashes']['operations']=ops.SOURCE_SHA256
+    import vps_agent as agent
+    value['agent_runtime']=agent.runtime_status(root)
+    value['code_hashes']['agent']=agent.SOURCE_SHA256
     return value
 
 
@@ -673,6 +694,8 @@ def learning_proposal(root,out):
 
 
 def register(sub):
+    import vps_agent as agent
+    agent.register(sub)
     a=sub.add_parser('bootstrap',help='Create a private workspace; no service install or real collection')
     a.add_argument('--workspace',required=True,type=Path);a.add_argument('--mode',choices=('demo','local','prometheus'),default='demo')
     a.add_argument('--provider',choices=('unknown','other','contabo','hetzner','digitalocean','akamai','aws'),default='unknown');a.add_argument('--plan',help='Exact owner-provided plan label; never inferred from hardware')
@@ -698,13 +721,16 @@ def register(sub):
 
 
 def dispatch(args):
+    if args.cmd.startswith('agent-') or args.cmd=='_agent-worker':
+        import vps_agent as agent
+        return agent.dispatch(args)
     if args.cmd in ('doctor','brief','providers'):
         import vps_ops as ops
         if args.cmd=='doctor':return ops.doctor(args.workspace)
         if args.cmd=='providers':return ops.providers(args.provider)
         return ops.brief(status(args.workspace))
     if args.cmd=='bootstrap':return bootstrap(args)
-    if args.cmd=='capabilities':return {'version':VERSION,'commands':sorted(set(COMMANDS)|{'demo','collect-local','collect-prometheus','report','verify','compare','learn'}),'default_mode':'synthetic demo','privacy':'local workspace only','can_send_email':False,'can_install_services':False,'can_stress_test':False,'exit_codes':{'0':'command completed; doctor checks ready, not a service-health verdict','1':'doctor findings or workspace unavailable','2':'invalid input, safety refusal or operation error'},'next':'bootstrap --workspace PRIVATE_NEW_DIRECTORY --mode demo'}
+    if args.cmd=='capabilities':return {'version':VERSION,'commands':sorted((set(COMMANDS)-{'_agent-worker'})|{'demo','collect-local','collect-prometheus','report','verify','compare','learn'}),'default_mode':'synthetic demo','privacy':'local workspace only','can_send_email':False,'can_install_services':False,'can_stress_test':False,'agent_runtime':'bounded managed Linux worker; no boot persistence','connectors':'host-agent discovery and OAuth, never assumed from a skill install','exit_codes':{'0':'command completed; doctor checks ready, not a service-health verdict','1':'doctor findings, unresolved plan, failed start or cooperative stop still pending','2':'invalid input, safety refusal or operation error'},'next':'bootstrap --workspace PRIVATE_NEW_DIRECTORY --mode demo'}
     if args.cmd=='collect':return collect(args.workspace,args.lookback_hours)
     if args.cmd=='dashboard':return render(config_load(args.workspace)[0])
     if args.cmd=='watch':return watch(args)

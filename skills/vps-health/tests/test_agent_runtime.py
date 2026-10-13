@@ -115,6 +115,21 @@ class RuntimeTest(unittest.TestCase):
         self.assertTrue((self.root/'HANDOFF.md').is_file())
         self.assertNotIn('NOT_MANAGED',(self.root/'HANDOFF.md').read_text())
 
+    def test_concurrent_same_plan_starts_attach_to_one_worker(self):
+        import concurrent.futures
+        ws.bootstrap(args(self.root))
+        a=args(self.root,mode='auto');a.approve_plan=agent.plan(a)['plan_sha256']
+        results=[]
+        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
+            futures=[pool.submit(agent.start,copy.copy(a)) for _ in range(2)]
+            for future in futures:
+                try:
+                    item=future.result(timeout=15);self.runs.append(item['run_id']);results.append(item)
+                except Exception as exc:results.append(exc)
+        self.assertTrue(all(isinstance(item,dict) for item in results),repr(results))
+        self.assertEqual(results[0]['run_id'],results[1]['run_id'])
+        self.assertEqual(results[0]['pid'],results[1]['pid'])
+
     def test_repeat_start_attaches_without_duplicate_or_new_budget(self):
         a=self.begin();b=self.begin(mode='auto')
         self.assertEqual(a['run_id'],b['run_id']);self.assertEqual(a['pid'],b['pid'])
@@ -125,6 +140,16 @@ class RuntimeTest(unittest.TestCase):
         a=args(self.root,mode='auto',duration_seconds=30);a.approve_plan=agent.plan(a)['plan_sha256']
         with self.assertRaises(core.InvalidEvidence):agent.start(a)
         self.assertEqual(agent.runtime_status(self.root)['run_id'],original['run_id'])
+
+    def test_stopped_run_cannot_silently_renew_the_old_approval(self):
+        original_args=args(self.root);old=agent.plan(original_args)['plan_sha256']
+        d=self.begin();agent.stop(self.root,d['run_id'],wait=8)
+        original_args.approve_plan=old
+        with self.assertRaises(core.InvalidEvidence):
+            again=agent.start(original_args);self.runs.append(again['run_id'])
+        new=agent.plan(args(self.root,mode='auto'))
+        self.assertNotEqual(new['plan_sha256'],old)
+        self.assertEqual(new['intent']['predecessor_run'],d['run_id'])
 
     def test_stop_is_scoped_and_preserves_observations(self):
         d=self.begin();before=ws.status(self.root)['stored_captures']
@@ -167,6 +192,32 @@ class RuntimeTest(unittest.TestCase):
         for p in (self.root/'.agent').glob('*'):
             if p.is_file():self.assertNotIn('do-not-store-actual-value',p.read_text(errors='replace'))
 
+    def test_an_existing_collector_lock_cannot_be_bypassed_by_an_expired_lease(self):
+        ws.bootstrap(args(self.root,mode='local'))
+        with agent.collection_lock(self.root):
+            a=args(self.root,mode='auto');a.approve_plan=agent.plan(a)['plan_sha256']
+            with self.assertRaises(core.InvalidEvidence):agent.start(a)
+        self.assertFalse(agent.runtime_status(self.root)['process_verified'])
+
+    def test_actual_launching_cli_exits_while_its_worker_remains_owned(self):
+        cli=[sys.executable,str(Path(agent.__file__).with_name('vps_health.py'))]
+        options=['--workspace',str(self.root),'--mode','demo','--duration-seconds','15']
+        p=json.loads(subprocess.check_output([*cli,'agent-plan',*options],text=True,timeout=10))
+        d=json.loads(subprocess.check_output([*cli,'agent-start',*options,'--approve-plan',p['plan_sha256']],text=True,timeout=12))
+        self.runs.append(d['run_id'])
+        self.assertEqual(d['state'],'RUNNING')
+        self.assertTrue(agent.runtime_status(self.root)['process_verified'])
+        with urllib.request.urlopen(d['dashboard_url'],timeout=5) as response:
+            self.assertIn('Agent',response.read().decode())
+        self.assertEqual(agent.stop(self.root,d['run_id'],wait=8)['state'],'STOPPED')
+
+    def test_new_agent_can_resume_using_cli_without_restarting_the_worker(self):
+        d=self.begin()
+        command=[sys.executable,str(Path(agent.__file__).with_name('vps_health.py')),'agent-status','--workspace',str(self.root)]
+        new=json.loads(subprocess.check_output(command,text=True,timeout=10))
+        self.assertEqual(new['run_id'],d['run_id']);self.assertTrue(new['process_verified'])
+        self.assertEqual(new['cycles'],0)  # demo viewer is not a collector
+
     def test_real_local_first_tick_and_manual_overlap_guard(self):
         d=self.begin(mode='local')
         deadline=time.monotonic()+8
@@ -199,6 +250,30 @@ class ConnectorRequestTest(unittest.TestCase):
         self.assertEqual(d['required_capability'],'mail.draft')
         self.assertIn('tool',d['agent_next_step'].lower())
         self.assertTrue((self.root/'HANDOFF.md').is_file())
+
+    def test_pending_request_is_visible_without_a_worker(self):
+        request=agent.connection_request(self.root,'mail.read','Find only the approved ticket','generic')
+        state=agent.runtime_status(self.root)
+        self.assertEqual(state['state'],'NOT_MANAGED')
+        self.assertEqual(state['requests'][0]['id'],request['id'])
+        self.assertEqual(state['agent_next_action'],'resolve_host_capability')
+
+    def test_host_capability_receipt_is_not_send_approval(self):
+        request=agent.connection_request(self.root,'mail.send','User asks to inspect a send operation','codex')
+        d=agent.resolve_request(self.root,request['id'],'available','gmail.send_email','tool-result-42')
+        self.assertEqual(d['state'],'HOST_REPORTED_AVAILABLE')
+        self.assertFalse(d['send_authorized']);self.assertTrue(d['recheck_in_current_session'])
+        self.assertEqual(agent.runtime_status(self.root)['requests'][0]['state'],d['state'])
+
+    def test_connection_decline_is_recorded_not_retried_as_approval(self):
+        r=agent.connection_request(self.root,'mail.read','Approved thread investigation','claude-code')
+        d=agent.resolve_request(self.root,r['id'],'declined',None,None)
+        self.assertEqual(d['state'],'DECLINED');self.assertFalse(d['connected'])
+        self.assertEqual(agent.connection_request(self.root,'mail.read','Approved thread investigation','claude-code')['state'],'DECLINED')
+
+    def test_connector_receipt_rejects_secret_bearing_urls(self):
+        r=agent.connection_request(self.root,'mail.draft','Approved local draft','generic')
+        with self.assertRaises(core.InvalidEvidence):agent.resolve_request(self.root,r['id'],'available','gmail.draft','https://example.invalid/?token=secret')
 
     def test_repeated_request_is_idempotent_and_distinct_from_send(self):
         a=agent.connection_request(self.root,'mail.draft','User approved a draft','codex')

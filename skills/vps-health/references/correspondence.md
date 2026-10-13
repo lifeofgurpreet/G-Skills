@@ -64,3 +64,14 @@ One affected scope, one UTC range, verified observations and one concise questio
 Separate observed facts from inference. Do not attach raw captures, instance
 identifiers or endpoint information unless the user specifically approves that
 material. A generated file is not a sent message; report that distinction clearly.
+
+
+## The terminal agent handles connector work
+
+For mailbox reads or an explicitly requested external action, use
+[agent-connectors.md](agent-connectors.md). The agent inspects actual available
+tools and, only when necessary, discovers a trusted connector and guides its
+native authentication. Do not send the user to hand-build OAuth JSON or paste a
+token. Record a pending need for resumption rather than silently abandoning it.
+A local draft or capability record is not a sent message. External send identity,
+final content and the returned result must be checked in the actual host client.

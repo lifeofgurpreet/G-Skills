@@ -1,0 +1,4 @@
+interface:
+  display_name: "VPS Health"
+  short_description: "Agent-owned VPS monitoring, evidence and safe handoff"
+  default_prompt: "Use $vps-health to inspect the authorized targets, scaffold or resume a private workspace, plan bounded monitoring and run the approved workflow. Ask me only for missing scope, authentication or consequential approvals. Verify the actual worker and dashboard, retain evidence and do not contact a provider without a fresh request."

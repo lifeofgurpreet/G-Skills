@@ -16,6 +16,11 @@ const VpsOperator=(()=>{
   if(!b.items.every(i=>/^[a-f0-9]{24}$/.test(i.id)&&value.assets.some(n=>n.id===i.node)&&['urgent','review','info'].includes(i.priority)&&typeof i.title==='string'&&typeof i.reason==='string'&&typeof i.next_action==='string'&&i.contact_authorized===false&&i.provider_cause_proven===false&&object(i.evidence)&&['mean','coverage','pressure','cfs'].every(k=>ratio(i.evidence[k]))&&['elapsed_hours','observed_hours'].every(k=>finite(i.evidence[k])&&i.evidence[k]>=0)&&typeof i.draft_eligible==='boolean'))return false;
   if(!p||typeof p.reviewed_on!=='string'||!['DATED_REFERENCE','RECHECK_REQUIRED'].includes(p.review_state)||p.schema!=='g-skills.provider-reference.v1'||!Array.isArray(p.providers)||p.providers.length!==6||p.establishes_contract!==false)return false;
   if(!p.providers.every(provider=>knownProviders.has(provider.id)&&typeof provider.name==='string'&&typeof provider.summary==='string'&&typeof provider.not_a_promise==='string'&&Array.isArray(provider.classes)&&provider.classes.every(c=>typeof c==='string')&&Array.isArray(provider.facts)&&provider.facts.every(f=>typeof f.text==='string'&&typeof f.scope==='string'&&typeof f.kind==='string'&&safeLink(f.source))&&Array.isArray(provider.check_next)&&provider.check_next.every(c=>typeof c==='string')))return false;
+  const r=value.agent_runtime;
+  if(!r||r.schema!=='g-skills.agent-runtime.v1'||!['NOT_MANAGED','STARTING','RUNNING','STOP_REQUESTED','STOPPED','COMPLETED','FAILED','NEEDS_REVIEW','ORPHANED'].includes(r.state)||typeof r.process_verified!=='boolean'||r.evidence_ready!==false)return false;
+  if(r.dashboard_url&&!/^http:\/\/127\.0\.0\.1:\d{1,5}\/$/.test(r.dashboard_url))return false;
+  if(!Array.isArray(r.requests)||r.requests.length>8||!r.requests.every(q=>object(q)&&typeof q.purpose==='string'&&typeof q.required_capability==='string'&&['NEEDS_CONNECTION','HOST_REPORTED_AVAILABLE','DECLINED'].includes(q.state)&&q.send_authorized===false))return false;
+  if(r.events&&(!Array.isArray(r.events)||r.events.length>32||!r.events.every(e=>object(e)&&typeof e.at==='string'&&typeof e.code==='string')))return false;
   return value.assets.every(n=>n.timeline===undefined||Array.isArray(n.timeline)&&n.timeline.length<=96&&n.timeline.every(c=>finite(c.start)&&finite(c.end)&&c.end>c.start&&finite(c.coverage)&&c.coverage>=0&&c.coverage<=1&&['unknown','partial','within','watch','investigate'].includes(c.state)));
  }
  function syncStorage(value){
@@ -118,13 +123,30 @@ const VpsOperator=(()=>{
    byId('notification-status').textContent=desktopEnabled?'Enabled for new findings while this viewer is open. Closing it stops notifications.':'Permission not granted. Use the inbox; this skill does not install a background notifier.';
   }catch{byId('notification-status').textContent='This browser cannot display desktop notifications. Use the local inbox.'}
  }
+ function renderAgent(value){
+  const r=value.agent_runtime;
+  byId('agent-state').textContent=r.state.replaceAll('_',' ');
+  byId('agent-title').textContent=r.process_verified?'The owned worker is present.':r.state==='NOT_MANAGED'?'Ready for your coding agent.':'Read the recorded state before resuming.';
+  byId('agent-summary').textContent=r.process_verified?'The process identity matches its recorded boot and start time. This is not proof of service health, complete history or an active chat session.':'No live owned worker is verified. Do not infer continued monitoring from a dashboard file or an old timestamp. Your agent should read agent-status and doctor, then resume only the approved plan.';
+  const box=byId('agent-facts');box.replaceChildren();
+  const facts=[['Run identity',r.run_id||'Not started'],['Configured deadline',r.deadline_utc||'No active budget'],['Completed collection cycles',String(r.cycles||0)],['Failed or partial cycles',String(r.failed_cycles||0)],['Next agent operation',(r.agent_next_action||'plan_workspace').replaceAll('_',' ')]];
+  for(const [title,text]of facts){const node=make('div',title,'check-item');node.append(make('span',text));box.append(node)}
+  byId('agent-stop-note').textContent='The agent stops only the current run identity through agent-stop. It does not kill arbitrary processes. The managed Linux worker can outlive the launching terminal session, but not a reboot or an execution platform terminating it. Private HANDOFF.md preserves the next steps.';
+  const requests=byId('agent-requests');requests.replaceChildren();
+  if(!r.requests.length)requests.append(make('p','No capability requests. Do not connect email or cloud services just because they exist.'));
+  for(const request of r.requests){const item=make('div',request.required_capability+' · '+request.state.replaceAll('_',' '),'check-item');item.append(make('span',request.purpose));item.append(make('span',request.state==='NEEDS_CONNECTION'?'Your agent should discover a suitable current tool, then request native OAuth only if needed.':request.state==='DECLINED'?'Connection declined; do not repeatedly prompt or treat it as permission.':'Availability was reported by the host agent. Recheck it in the current session before use. Read/draft access never authorizes sending.'));requests.append(item)}
+  const events=byId('agent-events');events.replaceChildren();
+  if(!r.events?.length)events.append(make('p','No managed runtime events recorded.'));
+  for(const event of [...(r.events||[])].reverse()){const row=make('div',event.code.replaceAll('_',' '),'check-item');row.append(make('span',event.at));events.append(row)}
+ }
+
  function render(value){
   if(!valid(value))return;
   const active=document.activeElement?.id;syncStorage(value);lastState=value;
   const activeIds=new Set(value.operator.items.map(i=>i.id));
   acknowledged=new Set([...acknowledged].filter(id=>activeIds.has(id)));
   try{sessionStorage.setItem(storageKey,JSON.stringify([...acknowledged]))}catch{}
-  renderInbox(value);renderSetup(value);renderProviders(value);renderRibbon(value);notifyNew(value);
+  renderInbox(value);renderSetup(value);renderProviders(value);renderRibbon(value);renderAgent(value);notifyNew(value);
   if(active&&byId(active)&&!byId(active).disabled)byId(active).focus({preventScroll:true});
  }
  byId('open-inbox').onclick=()=>{setView('attention');location.hash='attention'};
