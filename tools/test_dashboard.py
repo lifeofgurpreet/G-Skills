@@ -169,7 +169,7 @@ def main():
             expect(page.locator('#transport-error')).to_be_hidden()
             passed('disconnect freezes last known values and recovery clears the warning')
 
-            empty=copy.deepcopy(initial);empty['assets']=[];empty['expected_assets']=0
+            empty=workspace.status(root);empty['assets']=[];empty['expected_assets']=0
             page.route('**/api/status',lambda route:route.fulfill(json=empty))
             page.get_by_role('button',name='Refresh live readings').click()
             expect(page.locator('#action-title')).to_have_text('Configure your first node')
@@ -251,7 +251,7 @@ def main():
             expect(touch_page.get_by_role('button',name='Execution',exact=True)).to_have_attribute('aria-pressed','false')
             touch_page.get_by_role('button',name='Execution',exact=True).tap()
             touch_page.get_by_role('button',name='All history',exact=True).tap()
-            touch_page.screenshot(path=str(out/'touch-mobile.png'),full_page=True)
+            if args.out:touch_page.screenshot(path=str(args.out/'touch-mobile.png'),full_page=True)
             touch.close();passed('touch-context time controls and channel toggles against the actual viewer')
             expect(page.locator('.chart-wrap .uplot')).to_have_count(2)
             assert not errors,errors
