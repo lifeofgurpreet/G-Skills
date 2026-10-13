@@ -1,0 +1,70 @@
+{
+  "schema": "g-skills.improvement-receipt.v1",
+  "release": "0.5.0",
+  "scope": "selected applicable guidance, not full-framework certification",
+  "additional_sources": [
+    {
+      "skill": "world-class-doctor-mode-for-cli-tools",
+      "source_sha256": "c6cbc6cb351a028f02ecdbb08e4a238c6ddec0064aa27dc10f97124c4ab1f804",
+      "read_scope": "1-210;390-475",
+      "takeaway": "Diagnose before prescribing; expose stable findings and safe next actions.",
+      "applied_change": "Read-only doctor with real SQLite, no network/repair and explicit exit semantics.",
+      "check": "skills/vps-health/tests/test_operations.py"
+    },
+    {
+      "skill": "documentation-website-for-software-project",
+      "source_sha256": "6f73f6188b109d905e02a5b248937688696c6bf328bba80b881a0027e49fe4e4",
+      "read_scope": "1-155",
+      "takeaway": "Teach the user journey before dumping parameters.",
+      "applied_change": "First-hour and operator guides plus in-view setup; no new hosted docs stack.",
+      "check": "skills/vps-health/references/operator-playbook.md"
+    },
+    {
+      "skill": "readme-writing",
+      "source_sha256": "9e37dacc25a206f7b70f7d60a92bf87ad893f5bf13b87273aaf33d95b3ec3655",
+      "read_scope": "1-177",
+      "takeaway": "Show a runnable benefit and concrete troubleshooting route.",
+      "applied_change": "README routes to demo, doctor and brief; exact commands exercised from the release ZIP.",
+      "check": "tools/package_release.py"
+    },
+    {
+      "skill": "research-software",
+      "source_sha256": "1b6aed7d5ccc2231e681820bc5274f68acce73c17cc793eed912ec44aaae0562",
+      "read_scope": "1-155",
+      "takeaway": "Check actual public primary sources rather than invent product contracts.",
+      "applied_change": "Typed, dated provider facts and explicit stale-reference status.",
+      "check": "skills/vps-health/assets/provider-catalog.json"
+    },
+    {
+      "skill": "rust-cli-with-sqlite",
+      "source_sha256": "f5d9a19ce2f3cbae597a47ddde3bdf95a9bca12c6a5c81e0e4697671f82e42df",
+      "read_scope": "1-150",
+      "takeaway": "Keep one authority and make derived views unambiguous.",
+      "applied_change": "Existing SQLite evidence remains primary; attention and acknowledgment cannot rewrite observations.",
+      "check": "skills/vps-health/tests/test_operations.py"
+    }
+  ],
+  "rejected": [
+    "Automatic doctor repair is outside this tool authority; diagnose only.",
+    "No hosted Nextra/Vercel dependency for a private offline workspace.",
+    "Do not copy another author contribution policy or paid prompt bodies.",
+    "No Rust rewrite or second synchronized database just because the reference uses them.",
+    "A repository-specific research archive workflow was inspected but is not applicable to the public skill."
+  ],
+  "pstack": {
+    "source_release": "997ffc7fe26bdaa6478a14e7f5b8d5f9ed747102",
+    "applied": [
+      "One existing evidence authority; no duplicate monitoring stack.",
+      "Reproduce missing/incorrect user outcomes in tests.",
+      "Actual read-only database, real browser actions and exported-folder verification.",
+      "Encode recurring findings and acknowledgment behavior in tests, not repeated instructions."
+    ]
+  },
+  "not_claimed": [
+    "Every indexed local skill was read.",
+    "Independent model review or complete external rubric was executed.",
+    "Desktop notifications work on every physical device.",
+    "A multi-day VPS field trial or provider blame was established."
+  ],
+  "privacy": "Original code and summaries only; no paid source bodies, local paths, subscription inventory or private fleet data."
+}

@@ -2,7 +2,7 @@
 
 **Runnable skills that take a coding agent from a question to a working, inspectable system.**
 
-The first package, [vps-health](skills/vps-health/SKILL.md), bootstraps a private VPS-health workspace: persistent observations, a live local dashboard, daily rollups, explicit evidence gaps and useful next actions. Use one Linux host or your existing Prometheus/Loki stack. No new hosted account, AI API key, Python dependencies or monitoring stack is required.
+The first package, [vps-health](skills/vps-health/SKILL.md), turns a VPS concern into a private operating loop: setup diagnostics, retained observations, linked charts, a prioritized attention inbox, dated provider guidance and reviewed reports. Use one Linux host or your existing Prometheus/Loki stack. No new hosted account, AI API key, Python dependencies or monitoring stack is required.
 
 ## See the complete workflow first
 
@@ -19,6 +19,41 @@ python3 skills/vps-health/scripts/vps_health.py serve --workspace /tmp/vps-demo
 Open **http://127.0.0.1:8765/**. The synthetic three-day example shows a stable node, a contended node, and a node with a collection gap. Try the attention filter, inspect the evidence limitations and compare daily coverage. It is a demonstration, not data from somebody else's servers. Stop the server with Ctrl-C.
 
 The generated `dashboard.html` can also be opened offline. Live view polls derived state every five seconds; it does **not** invent new observations when collection stops.
+
+## From a chart to a useful next action
+
+The workbench separates three questions: **is collection trustworthy, what changed,
+and what should we inspect next?** Its evidence ribbon preserves short dips and
+missing intervals. Linked uPlot panes align accounting with workload pressure.
+The Attention inbox puts stale collection and identity conflicts before performance
+claims; good accounting does not hide high workload pressure.
+
+The Setup view provides single-host, existing-monitoring and demo recipes. The
+Providers view explains allocation, usage allowances and credit models using dated
+primary-source references. No screenshot, colour or selected time range certifies
+a provider fault. The full retained evidence window owns the assessment.
+
+```bash
+python3 skills/vps-health/scripts/vps_health.py doctor --workspace /private/vps-health
+python3 skills/vps-health/scripts/vps_health.py brief --workspace /private/vps-health
+python3 skills/vps-health/scripts/vps_health.py providers --provider hetzner
+```
+
+Replace the example workspace path. **Doctor is read-only and offline**: it checks
+local configuration, chart integrity, database readability, credential-variable
+presence and evidence/retention gaps. It does not repair a machine or claim that
+a process is running. Exit 0 means its checks are ready; 1 means findings; 2 is an
+invalid/refused operation. The brief is the same action model as the dashboard.
+
+Optional desktop alerts require a click and browser permission. Only new findings
+are announced while the viewer is open; unchanged readings do not create an alarm
+storm. Acknowledgment changes local unread state, never a HOLD. Recovery resets
+that acknowledgment so a returning problem is visible again. The inbox works even
+when desktop notification APIs are unavailable. No background notifier is installed.
+
+[First-hour guide](skills/vps-health/references/first-hour.md) ·
+[Operator playbook](skills/vps-health/references/operator-playbook.md) ·
+[Provider reference](skills/vps-health/references/providers.md)
 
 ## Then choose your setup
 
@@ -67,6 +102,8 @@ Copy or install the **entire** skill folder, not just `SKILL.md`. Automatic disc
 | Command | Purpose | Side effect |
 |---|---|---|
 | `bootstrap` | Private workspace, policy and demo/configuration | New local directory only |
+| `doctor` / `brief` | Read-only setup diagnosis / prioritized local action list | No network, repairs or notifications |
+| `providers` | Dated plan-class references and official source links | Offline; no policy changes |
 | `collect` / `watch` | One tick / bounded foreground recurrence | Passive reads or bounded approved API GETs |
 | `dashboard` / `serve` | Refresh snapshot / live loopback view | Derived local files / read-only local port |
 | `export` | Immutable summary package | New local directory; no raw database or credentials |
@@ -76,7 +113,7 @@ Copy or install the **entire** skill folder, not just `SKILL.md`. Automatic disc
 | `learn` | Sanitized proposal from a workspace or verified report | Local proposal; no code change or upload |
 | `capabilities` | Machine-readable workflow and safety contract | None |
 
-A real review draft requires explicit approval, a stated service impact and sufficiently covered, fresh, at least 48-hour sub-threshold observations. It includes the actual UTC window and uncertainty. A template can be generated earlier with `--example`, visibly marked **DO NOT SEND**. **85–87% alone is not a reason to message support.** No bundled command sends email, migrates a host or runs stress tests. See [correspondence examples](skills/vps-health/references/correspondence.md).
+A performance-review draft requires explicit approval, a stated service impact and sufficiently covered, fresh, at least 48-hour sub-threshold observations. The separate `--purpose plan-question` asks about the exact owner-provided plan without inventing a performance claim; it also requires explicit drafting approval. It includes the actual UTC window and uncertainty. A template can be generated earlier with `--example`, visibly marked **DO NOT SEND**. **85–87% alone is not a reason to message support.** No bundled command sends email, migrates a host or runs stress tests. See [correspondence examples](skills/vps-health/references/correspondence.md).
 
 ## Improvements that survive the next run
 

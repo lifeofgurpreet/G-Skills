@@ -1,41 +1,66 @@
-# Correspondence: useful drafts, no automatic sending
+# Correspondence: a question is not a verdict
 
-The monitoring loop does not contact providers. A percentage is not an instruction to send a message, and provider guidance is not a contractual guarantee unless the applicable terms actually say so. This package has no SMTP, Gmail or provider-ticket sender.
+No monitor, percentage, log, provider reply or historic approval authorizes a new
+message. These commands only create a local text file after an explicit drafting
+request. They have no sender. Review identifiers, claims and attachments before
+a human decides whether to send. Existing files are never overwritten.
 
-## Try a clearly labelled template
+## Ask what the plan provides
 
-```bash
-python3 skills/vps-health/scripts/vps_health.py draft-email \
-  --workspace /tmp/vps-demo --node example-contended \
-  --impact "slower synthetic build completion in the demo" \
-  --approve-draft --example --out /tmp/vps-example-email.txt
-```
-
-This produces **EXAMPLE ONLY — SYNTHETIC OR INCOMPLETE; DO NOT SEND**. It helps the agent and owner inspect the communication shape without misrepresenting the demo as a real incident.
-
-## A real private review draft
-
-The user must explicitly request the draft. The command also requires their observed service impact, a known configured alias, at least 48 hours of sufficiently covered fresh observations, and the current `INVESTIGATE` decision. The default means below 80%, not 85–87%. These are drafting safeguards, not a proof that contacting the provider is appropriate.
+Use a plan question when the allocation model or sustained-use policy is unclear.
+This purpose makes no performance allegation and needs no fabricated measurements.
+The exact plan must be supplied by the owner or already recorded in the workspace.
 
 ```bash
-python3 skills/vps-health/scripts/vps_health.py draft-email \
-  --workspace "$HOME/vps-health" --node my-vps \
-  --impact "higher measured request latency during the reviewed period" \
-  --approve-draft --out "$HOME/vps-review-draft.txt"
+python3 scripts/vps_health.py draft-email --workspace /private/vps-health \
+  --node my-vps --purpose plan-question --plan 'Exact purchased plan' \
+  --approve-draft --out /private/plan-question.txt
 ```
 
-The private output names the actual UTC range, accounted mean, coverage and whether contention is present or context is incomplete. It states that these are guest-accounting observations, not physical-host attribution or a contractual floor. It asks for host-side review and explicitly withholds reboot/migration consent. It leaves the provider VM reference as a human-reviewed placeholder.
+The short template asks for allocation, sustained-use/burst limits and the primary
+product documentation. It explicitly requests no reboot, migration or other change.
+Do not substitute a CPU count, hostname or competitor's policy for the plan name.
 
-A draft is never sent by these tools. Check that the symptoms in `--impact` were actually observed, not filled in by an agent. Review all identities, plan terms, other workload changes and evidence limitations. Missing, short, stale or contradictory data blocks the real template; an earlier example remains non-sendable.
+## Request a performance review
 
-## Compact message structure
+The default performance-review purpose requires an INVESTIGATE accounting result,
+current sufficiently covered history of at least 48 hours, and a concrete service
+impact supplied by the user. These gates permit a review draft, not a proven fault
+claim. Workload confounds and provider responsibility remain separate questions.
 
-A useful message has four parts: verified symptom; measured range with uncertainty; relevant workload/limit context; one requested provider investigation. Avoid a long node dump, unsupported “full CPU owed” statements or repeated requests driven only by80–90% readings. Attach only the reviewed evidence needed for the affected VM, not account-wide credentials or private logs.
+```bash
+python3 scripts/vps_health.py draft-email --workspace /private/vps-health \
+  --node my-vps --purpose performance-review \
+  --impact 'our measured build completion time increased during the recorded interval' \
+  --approve-draft --out /private/performance-review.txt
+```
 
-Different situations can need different human communication. An active outage may warrant support without waiting 48 hours; this measurement template is not an incident-response gate and does not authorize or forbid the owner's independent decision.
+Replace the example impact with something actually observed and quantified in
+the user's monitoring. The draft states the UTC window, accounting mean, observed
+coverage, workload context and uncertainty. It asks one host-side question and
+withholds reboot/migration authorization. It does not invent a contractual floor.
 
-## Replies and learning
+An 85–87% result alone is not a reason to complain. A shared plan's permitted
+utilization is not a delivered-CPU minimum. A good accounting number also does
+not prove that the application is healthy.
 
-Privately classify replies as request for evidence, offer, scheduling acknowledgment, start notice or completion notice. Only the latter can support a conservative completion upper bound; it does not establish the exact hypervisor transition time. Do not let quoted old approval authorize a new host action.
+## Demonstrate safely
 
-Reusable lessons should describe the failure pattern with synthetic examples—for example, “a scheduling acknowledgment must not end settling”—not copy a customer's message, name, ticket, VM identifier or support-agent details into the public repository. The learning proposal still needs review and regression tests before publication.
+Synthetic or earlier incomplete examples need `--example` and are marked
+**EXAMPLE ONLY — DO NOT SEND**. No real performance draft is generated from a demo
+without that conspicuous label. Plan questions against a demo are examples too.
+
+## Receiving replies
+
+Keep correspondence in the owner's private workflow. Record the provider's claim,
+time and target scope. An offer, scheduling acknowledgment, start notice and
+completion notice are distinct events. Do not update a host epoch from an offer
+or infer restart authority from a recommendation. A new action needs new explicit
+authorization from the user.
+
+## Communication checklist
+
+One affected scope, one UTC range, verified observations and one concise question.
+Separate observed facts from inference. Do not attach raw captures, instance
+identifiers or endpoint information unless the user specifically approves that
+material. A generated file is not a sent message; report that distinction clearly.

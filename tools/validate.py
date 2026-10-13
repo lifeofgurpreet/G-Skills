@@ -45,12 +45,17 @@ def main():
         assert entry['read_scope'] and entry['applied_change']
         target=(ROOT/entry['check']).resolve()
         assert ROOT.resolve() in target.parents and target.is_file(),'unresolved study-to-check mapping'
+    study=json.loads((ROOT/'docs/improvement-v0.5.0.json').read_text())
+    for entry in study['additional_sources']:
+        assert re.fullmatch('[0-9a-f]{64}',entry['source_sha256'])
+        assert entry['read_scope'] and (ROOT/entry['check']).is_file()
     assert 'PROPOSED_NOT_APPLIED' in (SKILL/'scripts/vps_health.py').read_text()
     assert 'human-decision-only' in (SKILL/'scripts/vps_health.py').read_text()
     subprocess.run([sys.executable,str(ROOT/'tools/test_skill_study.py')],check=True)
     subprocess.run([sys.executable,str(SKILL/'tests/test_vps_health.py')],check=True)
     subprocess.run([sys.executable,str(SKILL/'tests/test_workspace.py')],check=True)
     subprocess.run([sys.executable,str(SKILL/'tests/test_chart_context.py')],check=True)
+    subprocess.run([sys.executable,str(SKILL/'tests/test_operations.py')],check=True)
     subprocess.run([sys.executable,str(ROOT/'tools/test_vendor.py')],check=True)
     subprocess.run([sys.executable,str(ROOT/'tools/test_release_package.py')],check=True)
     with tempfile.TemporaryDirectory() as directory:

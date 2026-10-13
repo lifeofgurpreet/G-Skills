@@ -53,7 +53,9 @@ def zip_payload(files,prefix):
 
 def validate_skill(files):
     required={'SKILL.md','scripts/vps_health.py','scripts/vps_workspace.py','assets/chart-adapter.js',
-              'assets/workspace-dashboard.html','assets/vendor/uplot/manifest.json','assets/vendor/uplot/LICENSE','LICENSE'}
+              'assets/workspace-dashboard.html','assets/vendor/uplot/manifest.json','assets/vendor/uplot/LICENSE','LICENSE',
+              'scripts/vps_ops.py','assets/operator.js','assets/operator.css','assets/provider-catalog.json',
+              'references/first-hour.md','references/operator-playbook.md'}
     if not required<=set(files):raise ValueError('installable skill is missing required runtime/license files')
     if any(name.startswith(('skills/','.github/','tools/')) for name in files):
         raise ValueError('repository content incorrectly nested inside the skill ZIP')
@@ -83,6 +85,11 @@ def verify_zip(raw):
             html=(workspace/'dashboard.html').read_text()
             if 'VpsCharts.mount' not in html or 'var uPlot=' not in html or '/*UPLOT_JS*/' in html:raise ValueError('exported chart runtime missing')
             subprocess.run([sys.executable,entry,'export','--workspace',str(workspace),'--out',str(Path(temp)/'report')],check=True,stdout=subprocess.DEVNULL,timeout=60)
+            doctor=subprocess.run([sys.executable,entry,'doctor','--workspace',str(workspace)],capture_output=True,text=True,timeout=30)
+            if doctor.returncode!=1 or not json.loads(doctor.stdout)['read_only']:raise ValueError('exported doctor did not preserve diagnosis semantics')
+            brief=json.loads(subprocess.check_output([sys.executable,entry,'brief','--workspace',str(workspace)],text=True,timeout=30))
+            if len(brief['items'])!=2 or brief['automatic_actions']:raise ValueError('exported brief contract failed')
+            subprocess.run([sys.executable,entry,'providers','--provider','aws'],check=True,stdout=subprocess.DEVNULL,timeout=30)
     return len(files)
 
 
@@ -101,7 +108,7 @@ def build(ref,out):
     out=Path(out);out.mkdir(parents=False,exist_ok=False)
     for name,raw in artifacts.items():(out/name).write_bytes(raw)
     manifest={'schema':'g-skills.release-artifacts.v1','version':version,'commit':sha,'skill_files':count,
-              'verification':'actual ZIP extraction -> standalone synthetic bootstrap -> HTML -> export',
+              'verification':'actual ZIP extraction -> standalone bootstrap/export -> read-only doctor/brief/providers',
               'files':{name:{'bytes':len(raw),'sha256':hashlib.sha256(raw).hexdigest()} for name,raw in artifacts.items()}}
     (out/'manifest.json').write_text(json.dumps(manifest,sort_keys=True,indent=2)+'\n')
     return manifest

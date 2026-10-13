@@ -28,11 +28,11 @@ import uuid
 
 import vps_health as core
 
-VERSION = '0.4.0'
+VERSION = '0.5.0'
 SCHEMA = 'g-skills.workspace.v1'
 SELF_HASH = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
 MAX_STORE_BYTES = 256 * 1024 * 1024
-COMMANDS = ('bootstrap','collect','watch','dashboard','serve','export','schedule','draft-email','capabilities')
+COMMANDS = ('bootstrap','collect','watch','dashboard','serve','export','schedule','draft-email','capabilities','doctor','brief','providers')
 SQL = '''
 CREATE TABLE IF NOT EXISTS state (key TEXT PRIMARY KEY, value TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS captures (
@@ -98,6 +98,7 @@ def config_load(path):
     if len(ids)!=len(set(ids)): fail('duplicate expected asset identity')
     for item in assets:
         core.alias(item.get('epoch','initial'))
+        core.plan_metadata(item)
     if cfg['mode']=='local' and len(assets)!=1: fail('local mode supports one host; use existing Prometheus for a fleet')
     if cfg['mode']=='prometheus':
         core.endpoint(cfg.get('prometheus_url',''),cfg.get('allow_http') is True)
@@ -201,9 +202,15 @@ def demo_seed(cfg,now):
         for i in range(1,865):
             if index==2 and i>560:continue
             value=(.96 if index==0 else .85 if i<400 else .74)+.015*math.sin(i/17)
+            # Deliberately synthetic activity: useful context is not a flat
+            # decoration or a proof that demand caused the accounting deficit.
+            pulse=(1+math.sin(i/19))/2
+            execution=.25+.15*pulse if index==0 else min(value*.96,.35+.32*pulse+.06*(i%103<15))
+            pressure=.01 if index==0 else .07+.19*pulse
+            limited=0. if index==0 else .025+.19*(i%91<34)
             c['samples'].append({'timestamp':start+i*300,'duration_seconds':300,'quality':[],
-                'cpu_accounted_ratio':value,'executing_ratio':.45 if index==0 else .72,
-                'steal_ratio':0.,'cpu_pressure_ratio':.01 if index==0 else .18,'cfs_throttled_periods_ratio':0. if index==0 else .12})
+                'cpu_accounted_ratio':value,'executing_ratio':execution,
+                'steal_ratio':0.,'cpu_pressure_ratio':pressure,'cfs_throttled_periods_ratio':limited})
         result.append(c)
     return result
 
@@ -212,7 +219,7 @@ def bootstrap(args):
     root=public_path(args.workspace)
     if root.exists():fail('workspace exists; use dashboard or collect, or choose a new private path')
     interval=integer(args.interval,60,3600,'--interval')
-    assets=[{'id':core.alias(args.node),'epoch':'initial'}]
+    assets=[{'id':core.alias(args.node),'epoch':'initial','provider':getattr(args,'provider','unknown'),'plan':getattr(args,'plan',None)}]
     if args.mode=='demo':assets=[{'id':n,'epoch':'demo'} for n in ('example-stable','example-contended','example-offline')]
     if args.mode=='prometheus':
         if not args.profile or not args.url:fail('Prometheus bootstrap requires --profile and --url')
@@ -372,6 +379,7 @@ def chart_history(points, cadence, limit=600):
 
 
 def status(root,now=None,days=None):
+    import vps_ops as ops
     root,cfg=config_load(root);now=time.time() if now is None else now
     days=integer(days if days is not None else cfg['history_days'],1,14,'history days')
     begin=now-days*86400;assets=[]
@@ -426,12 +434,20 @@ def status(root,now=None,days=None):
                            'elapsed_hours':span/3600,'observed_hours':w['represented']/3600,'window_start':core.iso(start),'window_end':core.iso(now),'last_sample':last_sample,'last_capture_end':latest.get('end'),
                            'age_seconds':age,'stale':stale,'points':len(points),'holds':holds,
                            'recommendation':action,'daily':daily,'history':history,'epoch':latest.get('epoch'),
+                           'timeline':ops.timeline(points,start,now,cfg['policy']),
+                           'provider':asset.get('provider','unknown'),'plan':asset.get('plan'),
                            'provider_cause_proven':False,'send_authorized':False})
-    return {'schema':'g-skills.workspace-status.v1','version':VERSION,'generated_at':core.iso(now),'as_of':now,
+    value={'schema':'g-skills.workspace-status.v1','version':VERSION,'generated_at':core.iso(now),'as_of':now,
             'synthetic':cfg['mode']=='demo','mode':cfg['mode'],'policy':cfg['policy'],'window_days':days,
             'expected_assets':len(cfg['assets']),'scope':'configured subjects only; not a verified provider-account census',
             'assets':assets,'collection_attempts':attempts,'stored_captures':batch_stats[0],'stored_bytes':batch_stats[1],
             'configuration_sha256':core.digest(cfg),'code_hashes':{'workspace':SELF_HASH,'collector':core.SOURCE_SHA256},'contact_provider':False}
+    import vps_ops as ops
+    value['operator']=ops.brief(value)
+    value['provider_reference']=ops.providers(now=now)
+    value['cadence_seconds']=cfg['interval_seconds']
+    value['code_hashes']['operations']=ops.SOURCE_SHA256
+    return value
 
 
 def chart_assets():
@@ -459,6 +475,8 @@ def page(value,live=False):
     template=template.replace('/*UPLOT_CSS*/',vendor['uPlot.min.css'])
     template=template.replace('/*UPLOT_JS*/',vendor['uPlot.iife.min.js'].replace('</script','<\\/script'))
     template=template.replace('/*CHART_ADAPTER*/',(core.ROOT/'assets/chart-adapter.js').read_text())
+    template=template.replace('/*OPERATOR_CSS*/',(core.ROOT/'assets/operator.css').read_text())
+    template=template.replace('/*OPERATOR_JS*/',(core.ROOT/'assets/operator.js').read_text())
     return template.replace('/*STATUS_JSON*/',data).replace('/*LIVE_MODE*/','true' if live else 'false').encode()
 
 
@@ -591,17 +609,45 @@ def draft_email(args):
     if value['synthetic'] and not args.example:fail('demo data cannot become a real provider draft; add --example for a clearly labelled template')
     node=next((n for n in value['assets'] if n['id']==args.node),None)
     if node is None:fail('unknown --node; use dashboard to list configured identities')
-    if not args.example and (node['decision']!='INVESTIGATE' or node['coverage']<.75 or node['elapsed_hours']<48):
-        fail('insufficient sustained sub-threshold evidence for this template; keep investigating, or use --example for a non-sendable example')
-    if not args.impact or len(args.impact)>500 or any(c in args.impact for c in ('\r','\x00')):fail('--impact must describe observed service impact in at most 500 characters')
-    mean='not measured' if node['mean'] is None else f"{node['mean']:.1%}"
+    purpose=getattr(args,'purpose','performance-review')
+    if purpose not in ('performance-review','plan-question'):fail('unsupported correspondence purpose')
     text=('EXAMPLE ONLY — SYNTHETIC OR INCOMPLETE; DO NOT SEND\n\n' if args.example else 'DRAFT FOR HUMAN REVIEW — NOT SENT\n\n')
-    text+=f'''Subject: Review request for [provider VM reference]\n\nHello,\n\nWe observed {args.impact.strip()}\nFor our internal alias {args.node}, the guest CPU-accounting screen averaged {mean} over {node['window_start']} to {node['window_end']} ({node['elapsed_hours']:.1f} hours; {node['coverage']:.0%} observed coverage). This is an accounting estimate, not a contractual entitlement or proof of a host fault. Workload context: {node['context'].lower().replace('_',' ')}.\n\nPlease review the host-side scheduling/resource evidence for the attached UTC window. Do not reboot or migrate without our separate agreement. We can supply the private measurements and confound checks.\n\nThank you.\n'''
+    if purpose=='plan-question':
+        asset=next(a for a in cfg['assets'] if a['id']==args.node)
+        plan=getattr(args,'plan',None) or asset.get('plan')
+        if not plan:fail('plan-question needs the exact owner-provided --plan or recorded plan label')
+        core.plan_metadata({'plan':plan})
+        text+=f"""Subject: CPU allocation question for [provider VM reference]
+
+Hello,
+
+Please confirm the CPU allocation model and sustained-use or burst limits for our plan, {plan}, and link the applicable product documentation. Does this plan use shared resources, reserved resources or CPU credits?
+
+This is a plan clarification, not a performance or contractual-breach claim. Please do not change, reboot or migrate the instance without our separate agreement.
+
+Thank you.
+"""
+    else:
+        if not args.example and (node['decision']!='INVESTIGATE' or node['coverage']<.75 or node['elapsed_hours']<48):
+            fail('insufficient sustained sub-threshold evidence for this template; keep investigating, or use --example for a non-sendable example')
+        if not args.impact or len(args.impact)>500 or any(c in args.impact for c in ('\r','\x00')):fail('--impact must describe observed service impact in at most 500 characters')
+        mean='not measured' if node['mean'] is None else f"{node['mean']:.1%}"
+        text+=f"""Subject: Review request for [provider VM reference]
+
+Hello,
+
+We observed {args.impact.strip()}
+For our internal alias {args.node}, the guest CPU-accounting screen averaged {mean} over {node['window_start']} to {node['window_end']} ({node['elapsed_hours']:.1f} hours; {node['coverage']:.0%} observed coverage). This is an accounting estimate, not a contractual entitlement or proof of a host fault. Workload context: {node['context'].lower().replace('_',' ')}.
+
+Please review the host-side scheduling/resource evidence for the attached UTC window. Do not reboot or migrate without our separate agreement. We can supply the private measurements and confound checks.
+
+Thank you.
+"""
     out=Path(args.out)
     if out.exists() or out.is_symlink():fail('draft output exists; choose a new private file')
     fd=os.open(out,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
     with os.fdopen(fd,'w') as f:f.write(text)
-    return {'draft':str(out),'sent':False,'approved_to_send':False,'example':args.example,'words':len(text.split()),'caveat':'Review identities, time range, context and contract before deciding to send.'}
+    return {'draft':str(out),'sent':False,'approved_to_send':False,'example':args.example,'purpose':purpose,'words':len(text.split()),'caveat':'Review identities, time range, context and contract before deciding to send.'}
 
 
 def learning_proposal(root,out):
@@ -627,6 +673,7 @@ def learning_proposal(root,out):
 def register(sub):
     a=sub.add_parser('bootstrap',help='Create a private workspace; no service install or real collection')
     a.add_argument('--workspace',required=True,type=Path);a.add_argument('--mode',choices=('demo','local','prometheus'),default='demo')
+    a.add_argument('--provider',choices=('unknown','other','contabo','hetzner','digitalocean','akamai','aws'),default='unknown');a.add_argument('--plan',help='Exact owner-provided plan label; never inferred from hardware')
     a.add_argument('--node',default='my-vps');a.add_argument('--profile',type=Path);a.add_argument('--url');a.add_argument('--loki-url')
     a.add_argument('--token-env');a.add_argument('--loki-token-env');a.add_argument('--allow-http',action='store_true')
     a.add_argument('--interval',type=int,default=300);a.add_argument('--acceptable',type=float,default=.9);a.add_argument('--investigate-below',type=float,default=.8)
@@ -639,13 +686,23 @@ def register(sub):
             a.add_argument('--cycles',type=int,default=864);a.add_argument('--approve-collection',action='store_true');a.add_argument('--serve',action='store_true')
         if name in ('export','schedule','draft-email'):a.add_argument('--out',type=Path,required=True)
         if name=='draft-email':
-            a.add_argument('--node',required=True);a.add_argument('--impact',required=True);a.add_argument('--approve-draft',action='store_true');a.add_argument('--example',action='store_true')
+            a.add_argument('--node',required=True);a.add_argument('--purpose',choices=('performance-review','plan-question'),default='performance-review');a.add_argument('--plan');a.add_argument('--impact');a.add_argument('--approve-draft',action='store_true');a.add_argument('--example',action='store_true')
+    for name in ('doctor','brief'):
+        a=sub.add_parser(name,help='Read-only offline setup diagnosis' if name=='doctor' else 'Derived attention briefing; no notifications sent')
+        a.add_argument('--workspace',required=True,type=Path)
+    a=sub.add_parser('providers',help='Dated provider-plan references; offline, not a contract verdict')
+    a.add_argument('--provider',choices=('unknown','other','contabo','hetzner','digitalocean','akamai','aws'))
     sub.add_parser('capabilities',help='Machine-readable command/safety contract')
 
 
 def dispatch(args):
+    if args.cmd in ('doctor','brief','providers'):
+        import vps_ops as ops
+        if args.cmd=='doctor':return ops.doctor(args.workspace)
+        if args.cmd=='providers':return ops.providers(args.provider)
+        return ops.brief(status(args.workspace))
     if args.cmd=='bootstrap':return bootstrap(args)
-    if args.cmd=='capabilities':return {'version':VERSION,'commands':sorted(set(COMMANDS)|{'demo','collect-local','collect-prometheus','report','verify','compare','learn'}),'default_mode':'synthetic demo','privacy':'local workspace only','can_send_email':False,'can_install_services':False,'can_stress_test':False,'exit_codes':{'0':'command completed; not a healthy/causal verdict','2':'invalid input, safety refusal or operation error'},'next':'bootstrap --workspace PRIVATE_NEW_DIRECTORY --mode demo'}
+    if args.cmd=='capabilities':return {'version':VERSION,'commands':sorted(set(COMMANDS)|{'demo','collect-local','collect-prometheus','report','verify','compare','learn'}),'default_mode':'synthetic demo','privacy':'local workspace only','can_send_email':False,'can_install_services':False,'can_stress_test':False,'exit_codes':{'0':'command completed; doctor checks ready, not a service-health verdict','1':'doctor findings or workspace unavailable','2':'invalid input, safety refusal or operation error'},'next':'bootstrap --workspace PRIVATE_NEW_DIRECTORY --mode demo'}
     if args.cmd=='collect':return collect(args.workspace,args.lookback_hours)
     if args.cmd=='dashboard':return render(config_load(args.workspace)[0])
     if args.cmd=='watch':return watch(args)
