@@ -199,7 +199,8 @@ def main():
                 expect(page.locator('#history-chart canvas')).to_be_visible()
                 # Canvas sizes settle on a rendering cycle. Verify the actual
                 # stable view, not an observation made before resize delivery.
-                try:page.wait_for_function('document.documentElement.scrollWidth <= innerWidth',timeout=2000)
+                # Do not weaken CSP or evaluate a polling string inside the page.
+                try:page.evaluate('() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))')
                 except Exception:
                     print('OVERFLOW',page.evaluate("[...document.querySelectorAll('body *')].map(e=>({tag:e.tagName,cls:e.className,id:e.id,r:e.getBoundingClientRect()})).filter(e=>e.r.height>0&&e.r.right>innerWidth+.5).map(e=>({tag:e.tag,cls:typeof e.cls==='string'?e.cls:'svg',id:e.id,left:e.r.left,width:e.r.width,right:e.r.right})).slice(0,20)"))
                     raise
