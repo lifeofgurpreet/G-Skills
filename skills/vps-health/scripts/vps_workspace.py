@@ -178,11 +178,15 @@ def ingest(root,cfg,captures,observed=None):
                         'kind':capture['source']['kind'],'samples':len(capture['samples']),'binding':subject_binding(cfg,node), 'owner_epoch':next(a.get('epoch','initial') for a in cfg['assets'] if a['id']==node)})
             for point in capture['samples']:
                 ts=point['timestamp'];body=core.canonical(point).decode();h=core.digest(point)
+                capture_start=core.stamp(capture['start'])
+                observed_duration=min(point['duration_seconds'],max(0,min(ts,end)-capture_start))
                 prior=db.execute('SELECT hash FROM points WHERE subject=? AND epoch=? AND ts=?',(node,epoch,ts)).fetchone()
                 if prior and prior[0]!=h:
                     db.execute('INSERT OR IGNORE INTO conflicts VALUES (?,?,?)',(node,epoch,ts))
                 elif not prior:
-                    db.execute('INSERT INTO points VALUES (?,?,?,?,?,?)',(node,epoch,ts,point['duration_seconds'],h,body))
+                    db.execute('INSERT INTO points VALUES (?,?,?,?,?,?)',(node,epoch,ts,observed_duration,h,body))
+                else:
+                    db.execute('UPDATE points SET duration=MAX(duration,?) WHERE subject=? AND epoch=? AND ts=?',(observed_duration,node,epoch,ts))
         errors=sum(bool(c['errors']) for c in captures)
         db.execute('INSERT INTO attempts VALUES (?,?,?,?)',(uuid.uuid4().hex,now,'PARTIAL' if errors else 'RECORDED',f'{len(captures)} subjects; {errors} source-error records'))
     return {'imported':True,'hash':digest,'subjects':len(captures)}
@@ -326,16 +330,16 @@ def status(root,now=None,days=None):
         for asset in cfg['assets']:
             node=asset['id'];latest=get_state(db,'latest:'+node,{})
             epoch_changed=bool(latest) and (latest.get('owner_epoch','initial')!=asset.get('epoch','initial') or latest.get('binding')!=subject_binding(cfg,node))
-            sql='''SELECT p.body,CASE WHEN c.ts IS NULL THEN 0 ELSE 1 END AS conflict FROM points p
+            sql='''SELECT p.body,p.duration,CASE WHEN c.ts IS NULL THEN 0 ELSE 1 END AS conflict FROM points p
             LEFT JOIN conflicts c ON c.subject=p.subject AND c.epoch=p.epoch AND c.ts=p.ts
             WHERE p.subject=? AND p.epoch=? AND p.ts>=? AND p.ts<=? ORDER BY p.ts LIMIT 100001'''
             rows=db.execute(sql,(node,'' if epoch_changed else latest.get('epoch',''),begin,now)).fetchall()
             if len(rows)>100000:fail('too many points for dashboard window; reduce history_days')
-            points=[dict(core.decode(r['body']),conflict=bool(r['conflict'])) for r in rows]
+            points=[dict(core.decode(r['body']),duration_seconds=r['duration'],conflict=bool(r['conflict'])) for r in rows]
             start=max(begin,min((p['timestamp']-p['duration_seconds'] for p in points),default=now))
             w=weighted(points,start,now);means=w['means'];mean=means.get('cpu_accounted_ratio');span=now-start
             coverage=w['represented']/span if span>0 else 0
-            last_sample=max((p['timestamp'] for p in points if p.get('cpu_accounted_ratio') is not None and not p.get('quality') and not p['conflict']),default=None)
+            last_sample=max((p['timestamp'] for p in points if p['duration_seconds']>0 and p.get('cpu_accounted_ratio') is not None and not p.get('quality') and not p['conflict']),default=None)
             age=None if last_sample is None else now-last_sample
             stale=last_sample is not None and age>max(120,cfg['interval_seconds']*2.5)
             no_latest_samples=bool(latest) and not latest.get('samples')
@@ -377,7 +381,7 @@ def status(root,now=None,days=None):
             'synthetic':cfg['mode']=='demo','mode':cfg['mode'],'policy':cfg['policy'],'window_days':days,
             'expected_assets':len(cfg['assets']),'scope':'configured subjects only; not a verified provider-account census',
             'assets':assets,'collection_attempts':attempts,'stored_captures':batch_stats[0],'stored_bytes':batch_stats[1],
-            'code_hashes':{'workspace':SELF_HASH,'collector':core.SOURCE_SHA256},'contact_provider':False}
+            'configuration_sha256':core.digest(cfg),'code_hashes':{'workspace':SELF_HASH,'collector':core.SOURCE_SHA256},'contact_provider':False}
 
 
 def page(value,live=False):
@@ -402,22 +406,45 @@ def render(root):
     return value
 
 
+def markdown_summary(value):
+    def pct(number):
+        return 'unmeasured' if number is None else f'{number:.1%}'
+    lines=['# VPS health workspace', '',
+           'SYNTHETIC DEMO — not real server observations.' if value['synthetic'] else 'Private measured-accounting summary; not provider attribution.',
+           'As of: '+value['generated_at'], '',
+           '| Subject | Decision | Accounted mean | Coverage | Observed / elapsed hours | Context |',
+           '|---|---|---:|---:|---:|---|']
+    for node in value['assets']:
+        lines.append(f"| {node['id']} | {node['decision']} | {pct(node['mean'])} | {pct(node['coverage'])} | {node['observed_hours']:.1f} / {node['elapsed_hours']:.1f} | {node['context']} |")
+    lines += ['', 'Policy: '+str(round(value['policy']['acceptable_ratio']*100))+'% acceptable; investigate below '+str(round(value['policy']['investigate_below']*100))+'%. These are not contract guarantees.']
+    for node in value['assets']:
+        lines += ['', '## '+node['id'], node['recommendation'],
+                  'UTC range: '+node['window_start']+' to '+node['window_end'],
+                  'Evidence limitations: '+', '.join(node['holds'])]
+    lines += ['', 'This is not a full raw replay archive. Keep the private workspace database and source version.',
+              'No provider contact, service-health certificate or host action is authorized by this report.']
+    return ('\n'.join(lines)+'\n').encode()
+
+
 def export(root,out):
     root,cfg=config_load(root);value=status(root);out=Path(out)
     if out.exists():fail('export destination exists; choose a new directory to preserve evidence')
     out.mkdir(parents=True,mode=0o700)
-    atomic(out/'status.json',core.canonical(value));atomic(out/'dashboard.html',page(value))
+    atomic(out/'status.json',core.canonical(value));atomic(out/'dashboard.html',page(value));atomic(out/'report.md',markdown_summary(value))
     with database(root,True) as db:
         refs=[dict(r) for r in db.execute('SELECT hash,observed,bytes FROM captures ORDER BY observed,hash')]
     atomic(out/'capture-index.json',core.canonical(refs))
     atomic(out/'manifest.json',core.canonical({'schema':'g-skills.workspace-export.v1','files':{p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in out.iterdir() if p.is_file()},
                         'note':'summary export; full replay requires the private workspace database. Hashes are not independent attestation.'}))
-    return {'out':str(out),'files':4,'contains_credentials':False,'private':True}
+    return {'out':str(out),'files':5,'contains_credentials':False,'private':True}
 
 
 def make_server(root,port=8765):
     root,cfg=config_load(root);integer(port,0,65535,'port')
     class Handler(http.server.BaseHTTPRequestHandler):
+        def setup(self):
+            super().setup()
+            self.connection.settimeout(5)
         def log_message(self,*args):pass
         def do_GET(self):
             self.connection.settimeout(5)
@@ -439,7 +466,7 @@ def make_server(root,port=8765):
             self.send_header('Content-Security-Policy',"default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'")
             self.send_header('Content-Length',str(len(data)));self.end_headers();self.wfile.write(data)
     # Loopback-only, read-only convenience server, not an internet-facing service.
-    server=http.server.HTTPServer(('127.0.0.1',port),Handler)
+    server=http.server.ThreadingHTTPServer(('127.0.0.1',port),Handler)
     server.timeout=5
     return server
 
@@ -546,7 +573,7 @@ def register(sub):
 
 def dispatch(args):
     if args.cmd=='bootstrap':return bootstrap(args)
-    if args.cmd=='capabilities':return {'version':VERSION,'commands':COMMANDS,'default_mode':'synthetic demo','privacy':'local workspace only','can_send_email':False,'can_install_services':False,'can_stress_test':False,'exit_codes':{'0':'command completed; not a healthy/causal verdict','2':'invalid input, safety refusal or operation error'},'next':'bootstrap --workspace PRIVATE_NEW_DIRECTORY --mode demo'}
+    if args.cmd=='capabilities':return {'version':VERSION,'commands':sorted(set(COMMANDS)|{'demo','collect-local','collect-prometheus','report','verify','compare','learn'}),'default_mode':'synthetic demo','privacy':'local workspace only','can_send_email':False,'can_install_services':False,'can_stress_test':False,'exit_codes':{'0':'command completed; not a healthy/causal verdict','2':'invalid input, safety refusal or operation error'},'next':'bootstrap --workspace PRIVATE_NEW_DIRECTORY --mode demo'}
     if args.cmd=='collect':return collect(args.workspace,args.lookback_hours)
     if args.cmd=='dashboard':return render(config_load(args.workspace)[0])
     if args.cmd=='watch':return watch(args)

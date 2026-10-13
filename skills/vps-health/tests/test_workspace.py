@@ -315,6 +315,40 @@ class WorkspaceTest(unittest.TestCase):
         self.assertNotIn(str(self.root),text)
         with self.assertRaises(FileExistsError):w.learning_proposal(self.root,out)
 
+    def test_real_loopback_prometheus_collection_persists_and_deduplicates(self):
+        import urllib.parse
+        from http.server import BaseHTTPRequestHandler,HTTPServer
+        seen=[]
+        class Handler(BaseHTTPRequestHandler):
+            def log_message(self,*unused):pass
+            def do_GET(self):
+                parts=urllib.parse.urlsplit(self.path);query=urllib.parse.parse_qs(parts.query)
+                if parts.path!='/api/v1/query_range':self.send_error(404);return
+                seen.append(query['query'][0]);start=float(query['start'][0]);end=float(query['end'][0]);step=int(query['step'][0])
+                body=json.dumps({'status':'success','data':{'resultType':'matrix','result':[{'metric':{},'values':[[t,'0.93'] for t in range(int(start),int(end)+1,step)]}]}}).encode()
+                self.send_response(200);self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body)
+        server=HTTPServer(('127.0.0.1',0),Handler);thread=threading.Thread(target=server.serve_forever,daemon=True);thread.start()
+        try:
+            profile=Path(self.tmp.name)/'profile.json';profile.write_text(json.dumps({'schema':'g-skills.vps-profile.v1','assets':[{'id':'example-node','instance':'192.0.2.10:9100'}]}))
+            w.bootstrap(args(self.root,'prometheus',profile=profile,url='http://127.0.0.1:'+str(server.server_port)))
+            with mock.patch.object(w.time,'time',return_value=NOW):first=w.collect(self.root);second=w.collect(self.root)
+            self.assertEqual(first['source_errors'],0);self.assertTrue(first['imported']);self.assertFalse(second['imported'])
+            self.assertEqual(len(seen),14)
+            row=w.status(self.root,NOW)['assets'][0];self.assertEqual(row['points'],13);self.assertEqual(row['observed_hours'],1)
+            self.assertEqual(row['decision'],'HOLD');self.assertAlmostEqual(row['mean'],.93)
+        finally:server.shutdown();server.server_close();thread.join(5)
+
+    def test_first_range_boundary_is_not_observation_before_capture(self):
+        cfg=self.setup_real();cap=capture();cap['samples'].insert(0,dict(cap['samples'][0],timestamp=NOW-86400))
+        w.ingest(self.root,cfg,[cap],NOW);row=w.status(self.root,NOW)['assets'][0]
+        self.assertEqual(row['elapsed_hours'],24);self.assertEqual(row['observed_hours'],24)
+
+    def test_export_includes_readable_markdown_with_limits(self):
+        w.bootstrap(args(self.root));out=Path(self.tmp.name)/'export';w.export(self.root,out)
+        text=(out/'report.md').read_text();self.assertIn('SYNTHETIC',text);self.assertIn('Coverage',text)
+        self.assertIn('example-offline',text);self.assertIn('HOLD',text)
+        self.assertIn('not a full raw replay archive',text)
+
     def test_daily_report_outputs_are_derived_not_raw_log_exports(self):
         w.bootstrap(args(self.root));files=list((self.root/'daily').glob('*.json'));self.assertGreaterEqual(len(files),3)
         for p in files:
