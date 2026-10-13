@@ -170,6 +170,33 @@ class RuntimeTest(unittest.TestCase):
         self.assertEqual(d['state'],'COMPLETED');self.assertFalse(d['process_verified'])
         self.assertFalse(d['evidence_ready'])
 
+    def test_abrupt_owned_worker_exit_is_detected_and_recovery_preserves_history(self):
+        import signal
+        d=self.begin();saved=core.read_json(self.root/'.agent/status.json')
+        self.assertEqual(agent.process_identity(d['pid']),saved['process_identity'])
+        before=ws.status(self.root)['stored_captures']
+        # Test fixture fault only: this PID was just spawned by this test and
+        # its kernel identity was verified. Product stop never sends a signal.
+        os.kill(d['pid'],signal.SIGKILL)
+        deadline=time.monotonic()+8
+        while time.monotonic()<deadline:
+            state=agent.runtime_status(self.root)
+            if state['state']=='ORPHANED':break
+            time.sleep(.05)
+        self.assertEqual(state['state'],'ORPHANED');self.assertFalse(state['process_verified'])
+        resumed=self.begin(mode='auto')
+        self.assertNotEqual(resumed['run_id'],d['run_id'])
+        self.assertEqual(ws.status(self.root)['stored_captures'],before)
+
+    def test_occupied_requested_port_fails_without_claiming_a_running_viewer(self):
+        import socket
+        with socket.socket() as occupied:
+            occupied.bind(('127.0.0.1',0));occupied.listen()
+            d=self.begin(port=occupied.getsockname()[1])
+            self.assertEqual(d['state'],'FAILED')
+            self.assertIsNone(d['dashboard_url'])
+            self.assertEqual(d['last_event'],'runtime_failed')
+
     def test_foreign_pid_is_never_signalled(self):
         d=self.begin();agent.stop(self.root,d['run_id'],wait=8)
         path=self.root/'.agent/status.json';doc=core.read_json(path)

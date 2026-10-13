@@ -8,11 +8,11 @@ The human provides a goal, approved targets and required consent. The terminal a
 
 | Task | State | Priority | Blocking prerequisites |
 |---|---|---:|---|
-| `gs-2uh` Agent-owned VPS investigation with minimal human work | open | 1 | — |
-| `gs-2uh.1` Discover explicit scope and produce an idempotent executable plan | in_progress | 1 | — |
-| `gs-2uh.2` Manage collector and viewer beyond a terminal-agent session | open | 1 | `gs-2uh.1` |
-| `gs-2uh.3` Expose agent progress and recovery in the dashboard | open | 1 | `gs-2uh.2` |
-| `gs-2uh.4` Discover host-native connector capabilities only when needed | open | 1 | `gs-2uh.1` |
+| `gs-2uh` Agent-owned VPS investigation with minimal human work | in_progress | 1 | — |
+| `gs-2uh.1` Discover explicit scope and produce an idempotent executable plan | closed | 1 | — |
+| `gs-2uh.2` Manage collector and viewer beyond a terminal-agent session | closed | 1 | `gs-2uh.1` |
+| `gs-2uh.3` Expose agent progress and recovery in the dashboard | closed | 1 | `gs-2uh.2` |
+| `gs-2uh.4` Discover host-native connector capabilities only when needed | in_progress | 1 | `gs-2uh.1` |
 | `gs-2uh.5` Bind external actions to reviewed content and verified results | open | 1 | `gs-2uh.4` |
 | `gs-2uh.6` Qualify cold Codex and Claude Code user journeys | open | 1 | `gs-2uh.2`, `gs-2uh.3`, `gs-2uh.4` |
 | `gs-2uh.8` Validate multi-day operation and measurement usefulness | open | 1 | `gs-2uh.2`, `gs-2uh.3` |
@@ -21,12 +21,12 @@ The human provides a goal, approved targets and required consent. The terminal a
 
 ```mermaid
 flowchart LR
-  gs_2uh_1["gs-2uh.1: in_progress"]
-  gs_2uh_2["gs-2uh.2: open"]
+  gs_2uh_1["gs-2uh.1: closed"]
+  gs_2uh_2["gs-2uh.2: closed"]
   gs_2uh_1 --> gs_2uh_2
-  gs_2uh_3["gs-2uh.3: open"]
+  gs_2uh_3["gs-2uh.3: closed"]
   gs_2uh_2 --> gs_2uh_3
-  gs_2uh_4["gs-2uh.4: open"]
+  gs_2uh_4["gs-2uh.4: in_progress"]
   gs_2uh_1 --> gs_2uh_4
   gs_2uh_5["gs-2uh.5: open"]
   gs_2uh_4 --> gs_2uh_5
@@ -48,7 +48,7 @@ flowchart LR
 
 ### gs-2uh — Agent-owned VPS investigation with minimal human work
 
-The human supplies goals, authorized targets and approvals; their coding agent scaffolds, starts, verifies, resumes and reports. Skill scripts own deterministic local state, not model reasoning or external OAuth. Keep existing measurement/report authority, private data boundaries and explicit external-action permissions. No supplied Gemini review content has been received; it is not a design input yet.
+The human supplies goals, authorized targets and approvals; their terminal coding agent scaffolds, verifies, runs, resumes and reports. Local scripts own deterministic state, not model reasoning or external OAuth. Keep one measurement authority, private data boundaries and scoped external actions. Source implementation and real client/connector/field qualification are separate gates.
 
 **Acceptance:** A fresh user can hand this skill to a supported terminal agent, approve a bounded plan once, obtain a functioning dashboard and retained evidence, resume after session loss, and handle a connector need without copying secrets or executing setup by hand. Actual client/OAuth and multi-day outcomes are separately qualified; unit tests do not close the epic.
 
@@ -58,17 +58,23 @@ Agent determines the authorized target/environment first, reuses a matching work
 
 **Acceptance:** Read-only plan; one approval applies to the reviewed bounded operations; wrong hash, changed target/config/source or mismatched existing workspace refused. Existing identical runtime returns its identity without duplication.
 
+**Receipt:** Source contract delivered in v0.6: 35 agent runtime tests include actual detached CLI/HTTP, simultaneous start, bounded completion, abrupt owned-child exit/recovery, safe stop and private handoff; browser source verifies the Agent view and capability distinction. The old approval cannot renew a completed run. See docs/verification-v0.6.0.md. This is Linux source/runtime qualification, not real Codex/Claude/OAuth or multi-day field acceptance.
+
 ### gs-2uh.2 — Manage collector and viewer beyond a terminal-agent session
 
 One owned Linux worker launches detached with bounded lifetime, loopback dashboard, private progress and cooperative stop. Never kill arbitrary/reused PIDs or compete with manual collection. No root/system service, silent restart or reboot-survival claim.
 
 **Acceptance:** Test actual cold CLI start, exact URL/port, idempotent concurrent start, source/config change, direct process identity, natural budget completion, stop, crash/stale record and preserved history. End tests with no workers left.
 
+**Receipt:** Source contract delivered in v0.6: 35 agent runtime tests include actual detached CLI/HTTP, simultaneous start, bounded completion, abrupt owned-child exit/recovery, safe stop and private handoff; browser source verifies the Agent view and capability distinction. The old approval cannot renew a completed run. See docs/verification-v0.6.0.md. This is Linux source/runtime qualification, not real Codex/Claude/OAuth or multi-day field acceptance.
+
 ### gs-2uh.3 — Expose agent progress and recovery in the dashboard
 
 Human sees actual managed state and blocking questions in the existing viewer; a new agent reads private HANDOFF.md plus machine status and continues instead of repeating manual instructions. No browser terminal or hidden mutation API.
 
 **Acceptance:** CLI and HTML agree on running/stopped/stale state. Distinguish process liveness, collector evidence and multi-day readiness. Resume preserves old data and surfaces next safe operation.
+
+**Receipt:** Source contract delivered in v0.6: 35 agent runtime tests include actual detached CLI/HTTP, simultaneous start, bounded completion, abrupt owned-child exit/recovery, safe stop and private handoff; browser source verifies the Agent view and capability distinction. The old approval cannot renew a completed run. See docs/verification-v0.6.0.md. This is Linux source/runtime qualification, not real Codex/Claude/OAuth or multi-day field acceptance.
 
 ### gs-2uh.4 — Discover host-native connector capabilities only when needed
 
