@@ -28,11 +28,11 @@ import uuid
 
 import vps_health as core
 
-VERSION = '0.6.0'
+VERSION = '0.7.0'
 SCHEMA = 'g-skills.workspace.v1'
 SELF_HASH = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
 MAX_STORE_BYTES = 256 * 1024 * 1024
-COMMANDS = ('bootstrap','collect','watch','dashboard','serve','export','schedule','draft-email','capabilities','doctor','brief','providers','agent-plan','agent-start','agent-status','agent-stop','agent-request','agent-resolve','_agent-worker')
+COMMANDS = ('bootstrap','collect','watch','dashboard','serve','export','schedule','draft-email','capabilities','doctor','brief','providers','agent-plan','agent-start','agent-status','agent-stop','agent-request','agent-resolve','_agent-worker','forensic-snapshot','forensic-observe','forensic-compare')
 SQL = '''
 CREATE TABLE IF NOT EXISTS state (key TEXT PRIMARY KEY, value TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS captures (
@@ -289,7 +289,7 @@ def _collect(root, lookback_hours=1, *, runtime_id=None):
         if cfg['mode']=='local':
             if sys.platform!='linux':fail('local collection requires Linux; use demo or Prometheus here')
             with database(root,True) as db:previous=get_state(db,'previous_snapshot')
-            current=core.cpu_snapshot();hz=os.sysconf('SC_CLK_TCK')
+            current=core.enriched_snapshot();hz=os.sysconf('SC_CLK_TCK')
             end=current['wall_end_ns']/1e9
             start=previous['wall_end_ns']/1e9 if previous else end
             c=core.new_capture(cfg['assets'][0]['id'],'passive-linux',start,end,cfg['interval_seconds'])
@@ -454,6 +454,8 @@ def status(root,now=None,days=None):
                            'elapsed_hours':span/3600,'observed_hours':w['represented']/3600,'window_start':core.iso(start),'window_end':core.iso(now),'last_sample':last_sample,'last_capture_end':latest.get('end'),
                            'age_seconds':age,'stale':stale,'points':len(points),'holds':holds,
                            'recommendation':action,'daily':daily,'history':history,'epoch':latest.get('epoch'),
+                           'guest_context':(points[-1].get('guest_context') if points else None),
+                           'guest_context_current':not(stale or failed_latest or no_latest_samples or epoch_changed),
                            'timeline':ops.timeline(points,start,now,cfg['policy']),
                            'provider':asset.get('provider','unknown'),'plan':asset.get('plan'),
                            'provider_cause_proven':False,'send_authorized':False})
@@ -694,6 +696,8 @@ def learning_proposal(root,out):
 
 
 def register(sub):
+    import vps_forensics as forensic
+    forensic.register(sub)
     import vps_agent as agent
     agent.register(sub)
     a=sub.add_parser('bootstrap',help='Create a private workspace; no service install or real collection')
@@ -721,6 +725,9 @@ def register(sub):
 
 
 def dispatch(args):
+    if args.cmd.startswith('forensic-'):
+        import vps_forensics as forensic
+        return forensic.dispatch(args)
     if args.cmd.startswith('agent-') or args.cmd=='_agent-worker':
         import vps_agent as agent
         return agent.dispatch(args)

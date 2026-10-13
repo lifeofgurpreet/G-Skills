@@ -38,7 +38,8 @@ def linux_required():
 
 
 def source_binding():
-    return {'agent':SOURCE_SHA256,'workspace':ws.SELF_HASH,'collector':core.SOURCE_SHA256}
+    import vps_forensics as forensic
+    return {'agent':SOURCE_SHA256,'workspace':ws.SELF_HASH,'collector':core.SOURCE_SHA256,'guest_context':forensic.SOURCE_SHA256}
 
 
 def config_intent(cfg):

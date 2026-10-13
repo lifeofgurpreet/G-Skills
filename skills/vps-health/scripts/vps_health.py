@@ -20,7 +20,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-VERSION = '0.6.0'
+VERSION = '0.7.0'
 SCHEMA = 'g-skills.vps-capture.v1'
 ROOT = Path(__file__).resolve().parents[1]
 MAX_BYTES = 8 * 1024 * 1024
@@ -193,7 +193,20 @@ def local_interval(first, last, hz, requested):
                 row[resource + '_pressure_ratio'] = ratio
             else:
                 reasons.append(resource + '_pressure_invalid')
+    if first.get('guest_context') and last.get('guest_context'):
+        import vps_forensics as forensic
+        try:row['guest_context']=forensic.interval(first['guest_context'],last['guest_context'])
+        except (ValueError,TypeError,KeyError):row['guest_context']={'schema':forensic.INTERVAL,'quality':['invalid_context'],'storage':[],'pressure':{},'network':{},'memory':{},'provider_cause_proven':False}
     return row
+
+
+def enriched_snapshot():
+    # Keep CPU sample timing independent of optional diagnostic reads. The context
+    # has its own acquisition bracket and is never used as physical-host proof.
+    current=cpu_snapshot()
+    import vps_forensics as forensic
+    current['guest_context']=forensic.snapshot('local-context')
+    return current
 
 
 def collect_local(node, interval=2, samples=6):
@@ -213,7 +226,7 @@ def collect_local(node, interval=2, samples=6):
         for i in range(samples):
             if i:
                 time.sleep(interval)
-            snapshots.append(cpu_snapshot())
+            snapshots.append(enriched_snapshot())
             if i:
                 capture['samples'].append(local_interval(snapshots[-2], snapshots[-1], hz, interval))
     except (OSError, ValueError, KeyboardInterrupt):

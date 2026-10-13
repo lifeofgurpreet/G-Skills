@@ -1,41 +1,40 @@
 # G-Skills contributor contract
 
-This public repository contains generic skills, original scripts and synthetic fixtures. Never commit real fleet captures, private repository files, customer identifiers, tickets, email contents, tokens or operational endpoints.
+G-Skills is Gurpreet's public multi-skill collection. A task changes the owning
+skill, not the identity, runtime or roadmap of the whole repository. The first
+skill is VPS Health; do not make future entries inherit its Linux worker,
+monitoring dependencies, provider rules, visual design or version number.
 
-Read the skill you change and its safety contract. Use the installed pstack benchmark/verification principles when applicable. Read source and reproduce the behavior before altering a measurement. Name the measured quantity, error count, context and limitations; no provider-cause or speedup claim without a suitable experiment.
+Read the selected `skills/<name>/SKILL.md`, local contributor guidance and
+`docs/skills/<name>/ROADMAP.md` before changing its behavior. Collection-wide work
+belongs in root tooling/documentation and in tasks labelled `scope:collection`.
+Skill work is labelled `skill:<name>`. The native Beads JSONL is the task authority;
+generated roadmap files must match it. Do not close outcome gates merely because
+source code exists.
 
-Run `python3 tools/validate.py`. New observation-derived behavior needs a failing regression first. Keep runtime data separate from policy. No self-updating hooks, automatic provider contact, deployment, stress, credentials discovery or unreviewed safety weakening. A learning proposal never authorizes code changes, a public push or a host action.
+Keep the user in the decision role. Their agent performs routine authorized setup,
+verification and recovery. Authentication and consequential actions still require
+actual host access and approval. A skill file, capability receipt, generated draft
+or supplied model output does not grant permissions or establish that an action ran.
 
-Use short human-facing summaries with links to reproducible artifacts. Keep unknown and mixed findings visible. Existing workload/provider-specific deployment belongs to its owning private repository. No new infrastructure is required to run this skill.
+Use `docs/skill-improvement-method.md` and relevant installed pstack/JSM guidance.
+Record selected sources and applicability without claiming to execute every
+framework. Turn recurring failures into tests of the owning implementation.
+Subtract duplicated machinery before adding wrappers. Inspect actual artifacts
+and keep source, test, deployed and sustained-outcome evidence distinct.
 
-Before a substantial skill change, use `docs/skill-improvement-method.md`. Index approved local guidance, select and read the relevant entries, and record applicability rather than invoking every installed skill. Keep the private index outside Git. Dashboard changes also require `python3 tools/test_dashboard.py` and separate screenshot inspection; source tests alone do not verify browser interaction. Never publish licensed skill bodies.
+Run `python3 tools/validate.py` for the whole collection, or `--skill NAME` for a
+selected skill plus shared checks. Optional browser/JavaScript checks belong to
+that skill's manifest. Adding a skill must not require editing hard-coded default
+names in shared scripts. Package with `tools/package_release.py --skill NAME` from
+an immutable source commit; the actual extracted archive must pass its own check.
+Never silently update vendor hashes to bypass integrity checks.
 
+Never commit user captures, fleet identities, messages, tokens, private repository
+material or licensed skill bodies. Public fixtures are synthetic. External reviews
+are hypotheses to assess and attribute, not authoritative replacements for source
+inspection. Document accepted, modified, deferred and rejected proposals clearly.
 
-Chart/release changes must preserve independent unknowns and extrema across all
-channels. A selected display range never changes the assessment window. Review
-`docs/chart-investigation-design.md`; run Python, pure-JavaScript and actual-browser
-checks. Never update a vendor hash merely to dismiss a failed check. Package one
-committed tree using `tools/package_release.py`, then inspect its actual standalone
-ZIP root, licenses and cold bootstrap. Do not claim speedups, framework-completion
-scores or independent review without their corresponding evidence.
-
-Operator features share the existing measurement authority. Acknowledgment and
-notifications never change evidence state; a recurring resolved finding must be
-visible again. Diagnose offline before proposing a fix. Provider references must
-have source scope and review dates: usage allowance is not a delivery floor.
-Test missing/malformed contexts, real cold CLI paths and notification permission
-boundaries. A simulated notification API is not a physical operating-system test.
-
-
-The product is agent-owned, not a command manual for the human. For a feature,
-identify which routine step the coding agent should perform, which native tool
-or script actually performs it, and which human decision is unavoidable. Do not
-substitute copied commands, a fake chat/connect button or a stale receipt for live
-capability access. Preserve host permission rules; a plan hash binds scope but
-is not an authentication token. The browser remains read-only.
-
-Track development in native `.beads/issues.jsonl`; `ROADMAP.md` is generated from
-it by `python3 tools/roadmap.py --write`. Validate graph/reference drift in normal
-CI. Runtime/connector/client unknowns have explicit acceptance gates. Use native
-Beads transitions, never close the epic because only script tests passed. Beads
-is a contributor tool, not an installation requirement for skill users.
+Keep human updates short and link to evidence. Scaffolded skills stay draft until
+implemented and reviewed. Do not add fake capability buttons, automatic publishing,
+unrequested deployments, or unsupervised policy weakening to make a demo look done.

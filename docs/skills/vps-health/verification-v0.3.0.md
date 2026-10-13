@@ -54,7 +54,7 @@ paths. The private study-tool test uses a temporary directory outside Git; this
 host's default temporary root was itself a Git repository, so the normal temp
 root was set explicitly rather than weakening the privacy check.
 
-`python3 tools/test_dashboard.py` runs **13 browser scenario groups** against the
+`python3 tools/skills/vps-health/test_dashboard.py` runs **13 browser scenario groups** against the
 actual read-only loopback HTTP handler, using synthetic workspaces. It covers
 state counts, selection, pointer/keyboard inspection, search/filter reset, real
 navigation, retained controls on refresh, JSON download, disconnect/recovery,

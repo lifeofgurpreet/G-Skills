@@ -121,3 +121,11 @@ There was no supplied external model review text to incorporate in this pass.
 No provider message, actual mailbox draft/send, new OAuth grant, private fleet
 modification, production experiment or unapproved service installation occurred.
 A plan, process or JSON receipt never establishes those actions by implication.
+
+
+## Correction after supplied-review reconciliation
+
+The statement above that no external model review had been supplied was wrong.
+Two Gemini attachments were present and were overlooked. Both are now explicitly
+assessed in [GEMINI-REVIEW.md](GEMINI-REVIEW.md), with accepted measurements,
+modified interpretations and deferred active probes mapped to code/tests/tasks.

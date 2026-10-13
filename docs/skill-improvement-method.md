@@ -38,17 +38,20 @@ Source tests are not visual approval. After they pass, exercise actual controls,
 
 ## 5. Verify and retain a bounded receipt
 
-For this repository:
+For any selected skill:
 
 ```bash
-python3 tools/validate.py
-# Developer-only dependency, not needed by skill users:
-python3 -m pip install playwright==1.57.0
-python3 -m playwright install chromium
-python3 tools/test_dashboard.py --out /private/new-browser-proof
+python3 tools/validate.py --skill NAME
+python3 tools/package_release.py --skill NAME --ref HEAD --out /private/new-release
 ```
 
-The browser suite runs the real loopback handler with synthetic workspaces. It covers navigation, subject selection, search, filtering, keyboard inspection, downloads, refresh, failure/recovery and desktop/mobile viewports. Screenshots remain separate from assertions: inspect both the initial viewport and the dense/error states. Simulated phone dimensions are not a physical-device test.
+A skill with a browser interface additionally declares a browser check in its own
+manifest. Run `python3 tools/validate.py --skill NAME --browser --out /private/new-browser-proof`
+with the developer dependencies required by that skill. A writing or other
+non-browser skill does not inherit VPS Health's Playwright, uPlot or Linux runtime.
+Screenshots, when applicable, are separate from functional assertions. Inspect
+initial, dense, missing and error states; simulated phone sizes are not physical
+device qualification.
 
 Keep a release receipt mapping the changed user claims to executable checks. Record exact source, what was and was not tested, and known limitations. Ship only after the actual release tree passes CI. Do not claim a multi-day field trial, universal agent activation or provider cause from a short smoke test.
 
@@ -59,7 +62,7 @@ An observed failure can produce a sanitized proposal, a synthetic regression and
 Public design influences: [Jeffrey's Skills](https://www.jeffreys-skills.md/), [pstack](https://github.com/cursor/plugins/tree/main/pstack), and [W3C table accessibility guidance](https://www.w3.org/WAI/tutorials/tables/). This document is an original project method, not a redistribution or claimed completion of another author's full audit framework.
 
 
-## Chart and release extension
+## When a selected skill has visualizations
 
 Read selected deeper testing/release guidance, not only the UI entry points.
 For a renderer change, define invariants for every channel, prove transformations
@@ -76,7 +79,7 @@ are release requirements; a copied source directory is only an earlier check.
 
 ## Operator-journey pass
 
-The [0.5 receipt](improvement-v0.5.0.json) records additional selected diagnostic,
+The [0.5 receipt](skills/vps-health/improvement-v0.5.0.json) records additional selected diagnostic,
 documentation and stateful-CLI guidance. The applied idea is not to transplant
 another tool's entire machinery: expose the missing user outcome in this tool,
 add a falsifiable contract, and retain the smallest implementation that passes.

@@ -8,7 +8,9 @@ import json
 import sys
 import unittest
 import zipfile
+sys.path.insert(0,str(Path(__file__).resolve().parents[2]))
 sys.path.insert(0,str(Path(__file__).parent))
+import package_check as check
 import package_release as package
 
 class PackageTest(unittest.TestCase):
@@ -19,7 +21,7 @@ class PackageTest(unittest.TestCase):
         return result
 
     def test_zip_root_is_installable_and_not_the_repository(self):
-        files=self.fixture();package.validate_skill(files)
+        files=self.fixture();check.validate_files(files)
         raw=package.zip_payload(files,'vps-health/')
         with zipfile.ZipFile(io.BytesIO(raw)) as archive:
             self.assertIn('vps-health/SKILL.md',archive.namelist())
@@ -29,7 +31,7 @@ class PackageTest(unittest.TestCase):
 
     def test_actual_zip_can_bootstrap_and_export_without_the_repo(self):
         files=self.fixture()
-        self.assertEqual(package.verify_zip(package.zip_payload(files,'vps-health/')),len(files))
+        self.assertEqual(package.verify_zip(package.zip_payload(files,'vps-health/'),'vps-health',checker=Path(__file__).with_name('package_check.py')),len(files))
 
     def test_archive_bytes_are_deterministic_across_input_order(self):
         files=self.fixture()
@@ -41,12 +43,12 @@ class PackageTest(unittest.TestCase):
             if mode=='root':files['skills/vps-health/SKILL.md']=files.pop('SKILL.md')
             elif mode=='license':files.pop('LICENSE')
             else:files['assets/vendor/uplot/uPlot.iife.min.js']+=b'changed'
-            with self.subTest(mode=mode),self.assertRaises(ValueError):package.validate_skill(files)
+            with self.subTest(mode=mode),self.assertRaises(ValueError):check.validate_files(files)
 
     def test_operator_files_are_required_in_the_actual_installable_archive(self):
         for name in ('scripts/vps_ops.py','assets/operator.js','assets/operator.css','assets/provider-catalog.json','scripts/vps_agent.py','references/agent-connectors.md'):
             files=self.fixture();files.pop(name)
-            with self.subTest(name=name),self.assertRaises(ValueError):package.validate_skill(files)
+            with self.subTest(name=name),self.assertRaises(ValueError):check.validate_files(files)
 
     def test_paths_cannot_escape_the_export(self):
         with self.assertRaises(ValueError):package.zip_payload({'../../escape':b'x'},'vps-health/')

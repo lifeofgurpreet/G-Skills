@@ -16,7 +16,7 @@ import tempfile
 import threading
 from types import SimpleNamespace
 
-ROOT=Path(__file__).resolve().parents[1]
+ROOT=Path(__file__).resolve().parents[3]
 sys.path.insert(0,str(ROOT/'skills/vps-health/scripts'))
 import vps_workspace as workspace
 import vps_ops as ops
@@ -64,6 +64,31 @@ def main():
             expect(page.locator('#context-chart canvas')).to_have_count(1)
             expect(page.locator('#history-chart .uplot')).to_have_attribute('data-chart-engine','uPlot')
             passed('actual server, three subjects, derived counts and selected history')
+            page.locator('#guest-context-details summary').click()
+            expect(page.locator('#guest-context-status')).to_contain_text('Not collected')
+            expect(page.locator('#guest-context-readings')).to_have_text('')
+            diagnostic=workspace.status(root)
+            subject=next(n for n in diagnostic['assets'] if n['id']=='example-contended')
+            subject['guest_context_current']=True
+            subject['guest_context']={'schema':'g-skills.guest-context-interval.v1','quality':[],'seconds':10,
+                'storage':[{'device_id':'259:0','name':'nvme0n1','state':'observed','read_await_ms':None,'write_await_ms':30,'iops':.3}],
+                'pressure':{'io':{'state':'observed','some':.2,'full':.1}},'network':{},'provider_cause_proven':False}
+            mean=page.locator('#selected-mean').inner_text()
+            page.route('**/api/status',lambda route:route.fulfill(status=200,content_type='application/json',body=json.dumps(diagnostic)))
+            page.get_by_role('button',name='Refresh live readings').click()
+            expect(page.locator('#guest-context-readings')).to_contain_text('read mean unmeasured')
+            expect(page.locator('#guest-context-readings')).to_contain_text('write mean 30.00 ms')
+            expect(page.locator('#selected-mean')).to_have_text(mean)
+            page.unroute('**/api/status')
+            broken=copy.deepcopy(diagnostic);next(n for n in broken['assets'] if n['id']=='example-contended')['guest_context']['storage']=[None]
+            page.route('**/api/status',lambda route:route.fulfill(status=200,content_type='application/json',body=json.dumps(broken)))
+            page.get_by_role('button',name='Refresh live readings').click()
+            expect(page.locator('#transport-error')).to_be_visible()
+            expect(page.locator('#guest-context-readings')).to_contain_text('write mean 30.00 ms')
+            page.unroute('**/api/status');page.get_by_role('button',name='Refresh live readings').click()
+            expect(page.locator('#transport-error')).to_be_hidden()
+            page.locator('#guest-context-details summary').click()
+            passed('guest diagnostics retain missing latency and reject malformed data without changing the CPU decision')
             expect(page.locator('#attention-banner')).to_be_visible()
             expect(page.locator('#evidence-ribbon button')).to_have_count(48)
             assert page.evaluate('window.__notificationRequests')==0

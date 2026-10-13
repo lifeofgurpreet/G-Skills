@@ -1,7 +1,7 @@
 /* Synthetic adapter contract. Node is a developer dependency, not a skill runtime. */
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict');
-const chart=require('../skills/vps-health/assets/chart-adapter.js');
+const chart=require('../../../skills/vps-health/assets/chart-adapter.js');
 function rows(){return Array.from({length:5},(_,i)=>({t:1800000000+i*300,value:.95,execution:.4,pressure:.02,cfs:0,quality:false,breaks:{value:false,execution:false,pressure:false,cfs:false}}));}
 test('aligned channels retain exact values and original indices',()=>{const p=chart.prepare(rows());assert.equal(p.data.length,5);assert.deepEqual(p.indices,[0,1,2,3,4]);assert.deepEqual(p.data[2],[.4,.4,.4,.4,.4]);});
 test('gap in one channel does not invent a measurement in others',()=>{const r=rows();r[2].breaks.pressure=true;const p=chart.prepare(r);assert.equal(p.indices[2],-1);assert.equal(p.data[3][2],null);assert.equal(p.data[1][2],undefined);assert.equal(p.data[2][2],undefined);assert.equal(p.data[0][2],1800000450);});

@@ -8,7 +8,7 @@ import sys
 import tempfile
 import unittest
 from unittest import mock
-ROOT=Path(__file__).resolve().parents[1]
+ROOT=Path(__file__).resolve().parents[3]
 sys.path.insert(0,str(ROOT/'skills/vps-health/scripts'))
 import vps_workspace as w
 

@@ -19,7 +19,7 @@
       "read_scope": "full entry",
       "original_takeaway": "Read dependency contracts and define the user task before changing architecture.",
       "applied_change": "Pinned uPlot API, explicit comparison with existing SVG and ECharts, no speculative framework migration.",
-      "check": "docs/chart-investigation-design.md",
+      "check": "docs/skills/vps-health/chart-investigation-design.md",
       "scope": "selected applicable guidance, not claimed full-framework completion"
     },
     {
@@ -39,7 +39,7 @@
       "read_scope": "21-79;448-477",
       "original_takeaway": "Pin meaningful artifacts and review changes rather than accepting fresh output blindly.",
       "applied_change": "Vendor hashes, deterministic ZIP bytes and synthetic browser artifacts; no pixel-perfect cross-platform screenshot claim.",
-      "check": "tools/test_vendor.py",
+      "check": "tools/skills/vps-health/test_vendor.py",
       "scope": "selected applicable guidance, not claimed full-framework completion"
     },
     {
@@ -49,7 +49,7 @@
       "read_scope": "20-85;379-433",
       "original_takeaway": "Map each changed contract to a repeatable check and keep discrepancies visible.",
       "applied_change": "Null gaps versus alignment-only undefined placeholders, CSV bounds, exact runtime asset checks.",
-      "check": "tools/test_chart_adapter.cjs",
+      "check": "tools/skills/vps-health/test_chart_adapter.cjs",
       "scope": "selected applicable guidance, not claimed full-framework completion"
     },
     {
@@ -59,7 +59,7 @@
       "read_scope": "21-89;303-340;396-452",
       "original_takeaway": "Verify the real integration, including failures, without using private production as a test fixture.",
       "applied_change": "Real loopback server and SQLite workspace, actual clicks/drag/downloads/touch; synthetic fault injection only for negative cases.",
-      "check": "tools/test_dashboard.py",
+      "check": "tools/skills/vps-health/test_dashboard.py",
       "scope": "selected applicable guidance, not claimed full-framework completion"
     },
     {
@@ -69,7 +69,7 @@
       "read_scope": "19-67;96-147;247-273",
       "original_takeaway": "Separate correctness and instrumentation from a performance conclusion.",
       "applied_change": "Keep projection bounded, reuse two chart instances and check 100 subjects. No comparative speedup or upstream benchmark copied as our measurement.",
-      "check": "tools/test_dashboard.py",
+      "check": "tools/skills/vps-health/test_dashboard.py",
       "scope": "selected applicable guidance, not claimed full-framework completion"
     },
     {
@@ -89,7 +89,7 @@
       "read_scope": "22-49;307-332;360-446",
       "original_takeaway": "Distinguish implemented source, usable workflows and verified real-world outcomes.",
       "applied_change": "Release waits for browser and exported-package proof; synthetic dashboards are not VPS or service-health qualification.",
-      "check": "docs/chart-investigation-design.md",
+      "check": "docs/skills/vps-health/chart-investigation-design.md",
       "scope": "selected applicable guidance, not claimed full-framework completion"
     }
   ],
