@@ -4,7 +4,7 @@ description: Bootstrap repeatable VPS investigation for one Linux host or an exi
 license: MIT
 compatibility: Python 3.10+ with standard-library SQLite. Passive local collection requires Linux. Demo and offline reports are portable. Optional metrics collection requires explicit trusted endpoints. The viewer is loopback-only.
 metadata:
-  version: "0.3.0"
+  version: "0.4.0"
   author: lifeofgurpreet
 ---
 
@@ -166,3 +166,23 @@ select relevant entries, read their actual instructions, note what does not fit,
 reproduce a concrete defect, implement, and verify the real user path. Copying a
 large library into the skill or claiming every entry was applied is not research.
 No paid skill body or private catalogue belongs in the public package.
+
+
+## Investigate a time window without changing the decision
+
+Use the bundled uPlot charts to align accounted time and recorded execution with
+CPU pressure and throttled periods. Select a node, choose a 6h/24h/72h/all-history
+view or drag a period, and inspect the same timestamp in both panes. The keyboard
+sample control and data table expose values without relying on colour or a mouse.
+
+A selected chart range is only a view: the policy decision still uses the full
+retained evidence window. Missing context is not zero, and a pressure correlation
+is not provider attribution. PNG and CSV exports are local; the CSV contains the
+bounded displayed observations, not the entire replay archive. Do not send either
+without the user's specific authorization. Read [dashboard.md](references/dashboard.md)
+for interpretation and interaction details.
+
+For contributors: retain the evidence contract when improving the visual design.
+Use the original research-to-regression method, pinned vendor integrity, actual
+browser interactions and actual exported-archive tests. Learning from a local
+licensed skill is not permission to publish its body or execute unrelated actions.

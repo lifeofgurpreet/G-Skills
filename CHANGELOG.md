@@ -28,3 +28,13 @@ workspace backups. No automatic migration or timer installation occurs.
 ## 0.1.0 — 2026-10-13
 
 First public VPS investigation skill. Includes passive Linux capture, bounded Prometheus/Loki reads, deterministic local reports, safe comparison, manifest verification and sanitized learning proposals. Includes provider documentation and explicit human-only contact/change boundaries. This is an investigation toolkit, not deployed multi-provider certification or an automatic attribution engine.
+
+
+## 0.4.0 — Linked chart investigation
+
+- Embed reviewed uPlot 1.6.32 locally with MIT attribution and integrity checks.
+- Align accounting/execution and pressure/throttling charts with range buttons,
+  drag zoom, synchronized inspection, keyboard data access and PNG/CSV export.
+- Preserve independent channel extrema/unknowns; keep assessment policy unchanged.
+- Add deeper JSM/Emil/pstack application receipts and invariant/adapter tests.
+- Validate real standalone ZIP shape, dependency licenses and cold bootstrap.

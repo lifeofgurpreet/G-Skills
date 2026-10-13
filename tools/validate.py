@@ -37,11 +37,22 @@ def main():
             except ValueError:continue
             safe=ip.is_loopback or any(ip in ipaddress.ip_network(n) for n in ('192.0.2.0/24','198.51.100.0/24','203.0.113.0/24'))
             assert safe,'non-example IP address in public source: '+str(p)
+    study=json.loads((ROOT/'docs/improvement-v0.4.0.json').read_text())
+    entries=study['additional_jsm_sources']
+    assert len(entries)==9 and len({entry['skill'] for entry in entries})==9
+    for entry in entries:
+        assert re.fullmatch('[0-9a-f]{64}',entry['source_sha256'])
+        assert entry['read_scope'] and entry['applied_change']
+        target=(ROOT/entry['check']).resolve()
+        assert ROOT.resolve() in target.parents and target.is_file(),'unresolved study-to-check mapping'
     assert 'PROPOSED_NOT_APPLIED' in (SKILL/'scripts/vps_health.py').read_text()
     assert 'human-decision-only' in (SKILL/'scripts/vps_health.py').read_text()
     subprocess.run([sys.executable,str(ROOT/'tools/test_skill_study.py')],check=True)
     subprocess.run([sys.executable,str(SKILL/'tests/test_vps_health.py')],check=True)
     subprocess.run([sys.executable,str(SKILL/'tests/test_workspace.py')],check=True)
+    subprocess.run([sys.executable,str(SKILL/'tests/test_chart_context.py')],check=True)
+    subprocess.run([sys.executable,str(ROOT/'tools/test_vendor.py')],check=True)
+    subprocess.run([sys.executable,str(ROOT/'tools/test_release_package.py')],check=True)
     with tempfile.TemporaryDirectory() as directory:
         # Test the actual exported folder, not only imports from this repository.
         dest=Path(directory)/'standalone'

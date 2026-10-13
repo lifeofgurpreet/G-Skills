@@ -57,3 +57,18 @@ Keep a release receipt mapping the changed user claims to executable checks. Rec
 An observed failure can produce a sanitized proposal, a synthetic regression and a reviewed release. It cannot authorize external messages, new monitoring, host changes, private-data publication or threshold weakening. Maintainer review is the boundary between learning from experience and silently rewriting the rules.
 
 Public design influences: [Jeffrey's Skills](https://www.jeffreys-skills.md/), [pstack](https://github.com/cursor/plugins/tree/main/pstack), and [W3C table accessibility guidance](https://www.w3.org/WAI/tutorials/tables/). This document is an original project method, not a redistribution or claimed completion of another author's full audit framework.
+
+
+## Chart and release extension
+
+Read selected deeper testing/release guidance, not only the UI entry points.
+For a renderer change, define invariants for every channel, prove transformations
+against known synthetic values, and run the actual server/browser integration.
+Test range selection, refresh, missing context, independent gap boundaries,
+keyboard/touch controls and downloads separately from visual appearance.
+
+A library is an upstream dependency: pin its source, preserve its license and
+verify bytes before embedding it. A framework's published benchmark is not our
+observed performance. Keep the smallest fitting integration rather than carrying
+multiple libraries for prestige. Actual uploaded ZIP shape and extracted startup
+are release requirements; a copied source directory is only an earlier check.
