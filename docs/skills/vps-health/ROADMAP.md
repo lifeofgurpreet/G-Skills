@@ -21,6 +21,7 @@ This is one skill within G-Skills. Its work does not define the whole collection
 | `gs-2uh.9` Make self-improvement a reviewed evidence-to-regression loop | open | 2 | `gs-2uh.6`, `gs-2uh.8` |
 | `gs-8cq.3` Design approved active CPU, memory and storage experiments | open | 2 | `gs-8cq.1` |
 | `gs-8cq.4` Qualify authorized SSH fleet and bounded path diagnostics | open | 2 | `gs-2uh.7` |
+| `gs-8cq.5` Extend provider playbooks from the supplied proposals with dated primary evidence | open | 2 | — |
 
 ```mermaid
 flowchart LR
@@ -54,6 +55,7 @@ flowchart LR
   gs_8cq_1 --> gs_8cq_3
   gs_8cq_4["gs-8cq.4: open"]
   gs_2uh_7 --> gs_8cq_4
+  gs_8cq_5["gs-8cq.5: open"]
 ```
 
 ## Acceptance and evidence
@@ -157,5 +159,11 @@ Gemini proposes hashing, page-touch and fsync distributions. They impose workloa
 Treat SSH inventory expansion and network probes as approved targets/traffic, not scan-all-config or implicit third-party lookup. Keep unmeasured and excluded assets visible.
 
 **Acceptance:** Controlled concurrency, timeouts, missing dependencies, exact authorized host/destination inventory, remote artifacts and client/tunnel limitations verified. Loss/time_squeeze never alone prove host-vswitch fault.
+
+### gs-8cq.5 — Extend provider playbooks from the supplied proposals with dated primary evidence
+
+The supplied Gemini proposals mention additional suppliers such as Vultr, OVH and Netcup. Treat these as requested coverage to research, not automatically detected brands or promises inferred from generic VPS terms. Preserve the existing unknown/other route until each exact plan distinction is supported.
+
+**Acceptance:** Add dated primary-source plan/allocation/usage references, clear missing-plan handling and an approved concise support-question route for each added provider. No unverified SLA, universal CPU floor, automatic IP lookup, migration demand or downtime consent is inferred. Tests keep supplier-specific terms separate from the chosen diagnostic thresholds.
 
 Read the owning skill and current task before acting. Source tests, a running process, client integration and sustained real-world evidence are separate gates. Do not close the programme merely because the source exists.

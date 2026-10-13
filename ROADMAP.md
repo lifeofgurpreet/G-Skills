@@ -13,7 +13,7 @@ This repository hosts independent public skills. Root work is catalog/distributi
 
 ## Skill programmes
 
-- [VPS Health](docs/skills/vps-health/ROADMAP.md): 8 open implementation/acceptance tasks; independent version 0.7.0.
+- [VPS Health](docs/skills/vps-health/ROADMAP.md): 9 open implementation/acceptance tasks; independent version 0.7.0.
 
 ## Collection acceptance
 
