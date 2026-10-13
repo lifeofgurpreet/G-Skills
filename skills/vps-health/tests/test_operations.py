@@ -167,6 +167,18 @@ class DoctorTest(unittest.TestCase):
         bootstrap(self.root);db=self.root/'history.sqlite3';copy_path=Path(self.temp.name)/'db-copy';db.rename(copy_path);db.symlink_to(copy_path)
         self.assertEqual(ops.doctor(self.root)['verdict'],'UNAVAILABLE')
 
+class DemonstrationTest(unittest.TestCase):
+    def test_activity_is_variable_bounded_and_not_a_causal_experiment(self):
+        cfg={'assets':[{'id':'example-stable'},{'id':'example-contended'},{'id':'example-offline'}]}
+        first=workspace.demo_seed(cfg,NOW);second=workspace.demo_seed(cfg,NOW)
+        self.assertEqual(first,second)
+        for capture in first:
+            self.assertEqual(capture['source']['kind'],'synthetic')
+            self.assertTrue(all(0<=s['executing_ratio']<=s['cpu_accounted_ratio'] for s in capture['samples']))
+        for key in ('executing_ratio','cpu_pressure_ratio','cfs_throttled_periods_ratio'):
+            self.assertGreater(len({s[key] for s in first[1]['samples']}),1)
+
+
 class TimelineTest(unittest.TestCase):
     policy={'acceptable_ratio':.9,'investigate_below':.8}
     def point(self,ts,value=.95,duration=60,**extra):

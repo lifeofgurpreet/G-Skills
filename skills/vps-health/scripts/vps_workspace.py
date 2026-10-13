@@ -202,9 +202,15 @@ def demo_seed(cfg,now):
         for i in range(1,865):
             if index==2 and i>560:continue
             value=(.96 if index==0 else .85 if i<400 else .74)+.015*math.sin(i/17)
+            # Deliberately synthetic activity: useful context is not a flat
+            # decoration or a proof that demand caused the accounting deficit.
+            pulse=(1+math.sin(i/19))/2
+            execution=.25+.15*pulse if index==0 else min(value*.96,.35+.32*pulse+.06*(i%103<15))
+            pressure=.01 if index==0 else .07+.19*pulse
+            limited=0. if index==0 else .025+.19*(i%91<34)
             c['samples'].append({'timestamp':start+i*300,'duration_seconds':300,'quality':[],
-                'cpu_accounted_ratio':value,'executing_ratio':.45 if index==0 else .72,
-                'steal_ratio':0.,'cpu_pressure_ratio':.01 if index==0 else .18,'cfs_throttled_periods_ratio':0. if index==0 else .12})
+                'cpu_accounted_ratio':value,'executing_ratio':execution,
+                'steal_ratio':0.,'cpu_pressure_ratio':pressure,'cfs_throttled_periods_ratio':limited})
         result.append(c)
     return result
 

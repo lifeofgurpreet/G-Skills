@@ -108,7 +108,7 @@ def build(ref,out):
     out=Path(out);out.mkdir(parents=False,exist_ok=False)
     for name,raw in artifacts.items():(out/name).write_bytes(raw)
     manifest={'schema':'g-skills.release-artifacts.v1','version':version,'commit':sha,'skill_files':count,
-              'verification':'actual ZIP extraction -> standalone synthetic bootstrap -> HTML -> export',
+              'verification':'actual ZIP extraction -> standalone bootstrap/export -> read-only doctor/brief/providers',
               'files':{name:{'bytes':len(raw),'sha256':hashlib.sha256(raw).hexdigest()} for name,raw in artifacts.items()}}
     (out/'manifest.json').write_text(json.dumps(manifest,sort_keys=True,indent=2)+'\n')
     return manifest
