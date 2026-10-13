@@ -4,7 +4,7 @@ description: Take ownership of a user's VPS investigation: discover authorized t
 license: MIT
 compatibility: Python 3.10+ and SQLite. Managed lifecycle and passive local collection currently qualify Linux; demo/offline/foreground views remain portable. Use the terminal agent's actual authorized host, browser and connector tools. No bundled OAuth service, provider sender, root service or public dashboard exposure.
 metadata:
-  version: "0.6.0"
+  version: "0.7.0"
   author: lifeofgurpreet
 ---
 
@@ -95,6 +95,27 @@ Compare the same UTC window with actual execution, workload pressure, CPU limits
 and service impact. Reduced supply and our own demand can coexist. Preserve gaps,
 failed runs and independent context. Chart selection changes only the view, not
 the full-window assessment. [Dashboard guide](references/dashboard.md).
+
+## Correlate storage, memory and network without claiming host access
+
+The local collector now retains passive guest context with its existing history:
+I/O and memory PSI, per-device disk operation counts and mean request times,
+network-interface counters, hexadecimal softnet counters, guest memory activity
+and guest-visible CPU/clock traits. Missing files and reset counters are unknown,
+not zero. Block layers are kept separate; an idle device has no measured await.
+These observations share acquisition bounds, not a universal cause threshold.
+
+`forensic-snapshot` retains a private baseline; `forensic-observe` samples a bounded
+interval; `forensic-compare` compares guest traits and valid same-boot counters.
+An identical signature cannot detect a fake migration, and a changed signature
+cannot attest physical-host identity. Preserve the provider's actual completion
+receipt and compare comparable workloads separately. [Forensic method](references/forensics.md).
+
+No hashing stress, allocation test, synchronous write, ping/MTR or third-party
+IP lookup runs implicitly. Those proposals need scoped approval and controlled
+experiments; they are not "passive" because they use preinstalled tools. Do not
+invent universal CPU-model baselines, silicon grades or reboot consent. The
+reviewed external proposals are tracked separately from executable findings.
 
 ## Use external tools without inventing authority
 

@@ -1,0 +1,16 @@
+{
+  "schema": "g-skills.skill.v1",
+  "name": "vps-health",
+  "title": "VPS Health",
+  "summary": "Agent-owned VPS observation, workload context and private evidence reports.",
+  "version": "0.7.0",
+  "category": "infrastructure",
+  "status": "ready",
+  "entry": "SKILL.md",
+  "checks": {
+    "python": "tools/skills/vps-health/validate.py",
+    "browser": "tools/skills/vps-health/test_dashboard.py",
+    "javascript": "tools/skills/vps-health/test_chart_adapter.cjs",
+    "package": "tools/skills/vps-health/package_check.py"
+  }
+}

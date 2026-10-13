@@ -1,13 +1,24 @@
-name: Verify skills
+name: Verify collection and skills
 on:
   push:
   pull_request:
 permissions:
   contents: read
 jobs:
+  catalog:
+    runs-on: ubuntu-latest
+    outputs:
+      browser: ${{ steps.discover.outputs.browser }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - id: discover
+        run: echo "browser=$(python3 tools/collection.py --matrix browser)" >> "$GITHUB_OUTPUT"
+
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 8
     strategy:
       fail-fast: false
       matrix:
@@ -22,6 +33,11 @@ jobs:
       - run: python tools/validate.py
 
   browser:
+    needs: catalog
+    if: ${{ fromJSON(needs.catalog.outputs.browser).skill[0] != null }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.catalog.outputs.browser) }}
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
@@ -31,19 +47,19 @@ jobs:
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
         with:
           python-version: '3.12'
-      - name: Install pinned browser verification tools
+      - name: Install pinned developer-only browser tools
         run: |
           python -m pip install playwright==1.57.0
           python -m playwright install --with-deps chromium
-      - name: Verify chart data adapter
-        run: node --test tools/test_chart_adapter.cjs
-      - name: Exercise the actual loopback dashboard
-        run: python tools/test_dashboard.py --out "$RUNNER_TEMP/dashboard-proof"
-      - name: Retain synthetic browser evidence
+      - name: Run the selected skill's actual browser acceptance
+        env:
+          SELECTED_SKILL: ${{ matrix.skill }}
+        run: python tools/validate.py --skill "$SELECTED_SKILL" --browser --out "$RUNNER_TEMP/browser-proof"
+      - name: Retain synthetic evidence for this skill only
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: dashboard-${{ github.sha }}
-          path: ${{ runner.temp }}/dashboard-proof
+          name: browser-${{ matrix.skill }}-${{ github.sha }}
+          path: ${{ runner.temp }}/browser-proof
           if-no-files-found: error
           retention-days: 7

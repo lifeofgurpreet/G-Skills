@@ -10,6 +10,18 @@ const VpsOperator=(()=>{
  const object=x=>x!==null&&typeof x==='object'&&!Array.isArray(x);
  const ratio=x=>x===null||finite(x)&&x>=0&&x<=1.02;
  const safeLink=url=>{try{const parsed=new URL(url);return parsed.protocol==='https:'&&origins.has(parsed.hostname)&&!parsed.username&&!parsed.password}catch{return false}};
+ function validGuest(d){
+  if(d==null)return true;
+  if(!object(d)||d.schema!=='g-skills.guest-context-interval.v1'||d.provider_cause_proven!==false||!Array.isArray(d.quality)||!d.quality.every(q=>typeof q==='string')||!Array.isArray(d.storage)||d.storage.length>128)return false;
+  const number=x=>x==null||finite(x)&&x>=0;
+  if(!d.storage.every(x=>object(x)&&typeof x.name==='string'&&typeof x.device_id==='string'&&typeof x.state==='string'&&['read_await_ms','write_await_ms','iops'].every(k=>number(x[k]))))return false;
+  if(!object(d.pressure)||!object(d.network))return false;
+  for(const key of ['io','memory']){const p=d.pressure[key];if(p&&(!object(p)||typeof p.state!=='string'||!ratio(p.some)||!ratio(p.full)))return false;}
+  const soft=d.network.softnet;
+  if(soft&&(!object(soft)||!Array.isArray(soft.rows)||soft.rows.length>1024||!soft.rows.every(r=>object(r)&&typeof r.state==='string'&&(r.delta==null||object(r.delta)&&number(r.delta.time_squeeze)))))return false;
+  if(d.environment&&(!object(d.environment)||(d.environment.cpu!=null&&(!object(d.environment.cpu)||!Array.isArray(d.environment.cpu.models)||!d.environment.cpu.models.every(x=>typeof x==='string')))))return false;
+  return true;
+ }
  function valid(value){
   const b=value.operator,p=value.provider_reference;
   if(!b||b.schema!=='g-skills.operator-brief.v1'||!Array.isArray(b.items)||b.items.length>100||b.automatic_actions!==false||b.service_health_verified!==false)return false;
@@ -21,6 +33,7 @@ const VpsOperator=(()=>{
   if(r.dashboard_url&&!/^http:\/\/127\.0\.0\.1:\d{1,5}\/$/.test(r.dashboard_url))return false;
   if(!Array.isArray(r.requests)||r.requests.length>8||!r.requests.every(q=>object(q)&&typeof q.purpose==='string'&&typeof q.required_capability==='string'&&['NEEDS_CONNECTION','HOST_REPORTED_AVAILABLE','DECLINED'].includes(q.state)&&q.send_authorized===false))return false;
   if(r.events&&(!Array.isArray(r.events)||r.events.length>32||!r.events.every(e=>object(e)&&typeof e.at==='string'&&typeof e.code==='string')))return false;
+  if(!value.assets.every(n=>validGuest(n.guest_context)))return false;
   return value.assets.every(n=>n.timeline===undefined||Array.isArray(n.timeline)&&n.timeline.length<=96&&n.timeline.every(c=>finite(c.start)&&finite(c.end)&&c.end>c.start&&finite(c.coverage)&&c.coverage>=0&&c.coverage<=1&&['unknown','partial','within','watch','investigate'].includes(c.state)));
  }
  function syncStorage(value){
@@ -123,6 +136,21 @@ const VpsOperator=(()=>{
    byId('notification-status').textContent=desktopEnabled?'Enabled for new findings while this viewer is open. Closing it stops notifications.':'Permission not granted. Use the inbox; this skill does not install a background notifier.';
   }catch{byId('notification-status').textContent='This browser cannot display desktop notifications. Use the local inbox.'}
  }
+ function renderDiagnostics(){
+  const n=selected(),box=byId('guest-context-readings'),status=byId('guest-context-status');box.replaceChildren();
+  const d=n?.guest_context;
+  if(!d||d.schema!=='g-skills.guest-context-interval.v1'){status.textContent='Not collected in this capture. Missing context is not a healthy zero.';return}
+  status.textContent=(n.guest_context_current?'Latest retained context':'Historical context — currentness not established')+' · '+(d.quality?.length?'Unqualified interval: '+d.quality.join(', '):fixed(d.seconds,2)+' seconds, guest-visible only');
+  const add=(title,text)=>{const row=make('div',title,'check-item');row.append(make('span',text));box.append(row)};
+  const format=x=>typeof x==='number'&&Number.isFinite(x)?x.toFixed(2):'unmeasured';
+  for(const disk of (d.storage||[]).slice(0,8))add(disk.name+' ('+disk.device_id+')',disk.state+' · read mean '+format(disk.read_await_ms)+' ms · write mean '+format(disk.write_await_ms)+' ms · '+format(disk.iops)+' completed IOPS');
+  if((d.storage||[]).length>8)add('More device layers','Full per-device observations are retained in the private capture; device layers are not summed.');
+  for(const resource of ['io','memory']){const p=d.pressure?.[resource];if(p)add(resource.toUpperCase()+' pressure',p.state+' · some '+pct(p.some)+' · full '+pct(p.full));}
+  const rows=d.network?.softnet?.rows||[];
+  if(rows.length){const valid=rows.filter(r=>r.state==='observed'&&r.delta);const squeeze=valid.reduce((s,r)=>s+r.delta.time_squeeze,0);add('Guest networking budgets',valid.length+'/'+rows.length+' CPU rows observed; time_squeeze increase '+squeeze+'. Not a hypervisor-preemption count.');}
+  const env=d.environment;if(env)add('Guest-visible clock and CPU',(env.clocksource||'Clock unavailable')+' · '+(env.cpu?.models||['CPU model unavailable']).join(', ')+'. No physical-host attestation.');
+ }
+
  function renderAgent(value){
   const r=value.agent_runtime;
   byId('agent-state').textContent=r.state.replaceAll('_',' ');
@@ -146,7 +174,7 @@ const VpsOperator=(()=>{
   const activeIds=new Set(value.operator.items.map(i=>i.id));
   acknowledged=new Set([...acknowledged].filter(id=>activeIds.has(id)));
   try{sessionStorage.setItem(storageKey,JSON.stringify([...acknowledged]))}catch{}
-  renderInbox(value);renderSetup(value);renderProviders(value);renderRibbon(value);renderAgent(value);notifyNew(value);
+  renderInbox(value);renderSetup(value);renderProviders(value);renderRibbon(value);renderAgent(value);renderDiagnostics();notifyNew(value);
   if(active&&byId(active)&&!byId(active).disabled)byId(active).focus({preventScroll:true});
  }
  byId('open-inbox').onclick=()=>{setView('attention');location.hash='attention'};

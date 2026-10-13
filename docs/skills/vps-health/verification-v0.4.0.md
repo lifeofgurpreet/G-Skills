@@ -50,9 +50,9 @@ embedding, and the viewer makes no chart-CDN request.
 46 collector/report, 56 existing workspace, 11 private-study, ten context
 projection, six vendor-integrity and five release-archive tests. It also exercises
 the original standalone CLI bootstrap, export, learn and replay paths.
-`node --test tools/test_chart_adapter.cjs` passes twelve adapter contracts.
+`node --test tools/skills/vps-health/test_chart_adapter.cjs` passes twelve adapter contracts.
 
-`tools/test_dashboard.py` runs 18 scenario groups against the actual loopback
+`tools/skills/vps-health/test_dashboard.py` runs 18 scenario groups against the actual loopback
 server and SQLite synthetic workspaces. Checks cover the original navigation,
 search/filter and failure/recovery paths, linked chart windows, unchanged policy,
 keyboard/pointer inspection, PNG/CSV downloads, zero-subject teardown/recovery,

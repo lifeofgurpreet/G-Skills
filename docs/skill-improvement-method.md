@@ -45,7 +45,7 @@ python3 tools/validate.py
 # Developer-only dependency, not needed by skill users:
 python3 -m pip install playwright==1.57.0
 python3 -m playwright install chromium
-python3 tools/test_dashboard.py --out /private/new-browser-proof
+python3 tools/skills/vps-health/test_dashboard.py --out /private/new-browser-proof
 ```
 
 The browser suite runs the real loopback handler with synthetic workspaces. It covers navigation, subject selection, search, filtering, keyboard inspection, downloads, refresh, failure/recovery and desktop/mobile viewports. Screenshots remain separate from assertions: inspect both the initial viewport and the dense/error states. Simulated phone dimensions are not a physical-device test.
@@ -76,7 +76,7 @@ are release requirements; a copied source directory is only an earlier check.
 
 ## Operator-journey pass
 
-The [0.5 receipt](improvement-v0.5.0.json) records additional selected diagnostic,
+The [0.5 receipt](skills/vps-health/improvement-v0.5.0.json) records additional selected diagnostic,
 documentation and stateful-CLI guidance. The applied idea is not to transplant
 another tool's entire machinery: expose the missing user outcome in this tool,
 add a falsifiable contract, and retain the smallest implementation that passes.

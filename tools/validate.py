@@ -1,86 +1,65 @@
 #!/usr/bin/env python3
-"""Validate portable skill structure, examples, privacy boundaries and tests."""
+"""Collection-wide checks plus explicitly owned per-skill acceptance."""
 from pathlib import Path
+import argparse
 import ipaddress
 import json
 import re
 import subprocess
 import sys
-import tempfile
+import collection
 
 ROOT=Path(__file__).resolve().parents[1]
-SKILL=ROOT/'skills/vps-health'
 
 
-def main():
-    text=(SKILL/'SKILL.md').read_text()
-    assert text.startswith('---\n') and text.count('\n---\n')>=1,'missing frontmatter'
-    front=text.split('\n---\n',1)[0]
-    assert re.search(r'^name: vps-health$',front,re.M),'skill name/path mismatch'
-    description=re.search(r'^description: (.+)$',front,re.M).group(1)
-    assert 1<=len(description)<=1024,'description length'
-    assert len(text.splitlines())<500,'move long references out of the skill entry point'
-    for target in re.findall(r'\]\(([^)]+)\)',text):
-        if '://' not in target:
-            assert (SKILL/target).is_file(),'missing skill reference: '+target
-    forbidden=('-----BEGIN PRIVATE KEY-----',)
-    for p in ROOT.rglob('*'):
-        if not p.is_file() or '.git' in p.parts or '__pycache__' in p.parts:continue
-        assert not p.is_symlink(),'symlink not allowed in public package: '+str(p)
-        if p.suffix in ('.pyc','.gz','.zip'):raise AssertionError('unexpected generated binary: '+str(p))
-        content=p.read_text()
-        if p.name!='validate.py':
-            for value in forbidden:assert value not in content,'private key material: '+str(p)
-        if p.suffix=='.json':json.loads(content)
-        for address in re.findall(r'(?<![\w.])(?:\d{1,3}\.){3}\d{1,3}(?![\w.])',content):
-            try:ip=ipaddress.ip_address(address)
+def privacy(root=ROOT):
+    for path in root.rglob('*'):
+        relative=path.relative_to(root)
+        if any(p in ('.git','__pycache__') for p in relative.parts) or not path.is_file():continue
+        if path.is_symlink():raise ValueError('symlink is not portable: '+str(relative))
+        if path.suffix in ('.db','.sqlite3','.gz','.zip','.pyc'):raise ValueError('generated/private artifact in source: '+str(relative))
+        if path.suffix in ('.png','.jpg','.webp','.ico'):continue
+        text=path.read_text()
+        if path.name!='validate.py' and '-----BEGIN PRIVATE KEY-----' in text:raise ValueError('private key material in source')
+        if path.suffix=='.json':json.loads(text)
+        for raw in re.findall(r'(?<![\w.])(?:\d{1,3}\.){3}\d{1,3}(?![\w.])',text):
+            try:ip=ipaddress.ip_address(raw)
             except ValueError:continue
-            safe=ip.is_loopback or any(ip in ipaddress.ip_network(n) for n in ('192.0.2.0/24','198.51.100.0/24','203.0.113.0/24'))
-            assert safe,'non-example IP address in public source: '+str(p)
-    study=json.loads((ROOT/'docs/improvement-v0.4.0.json').read_text())
-    entries=study['additional_jsm_sources']
-    assert len(entries)==9 and len({entry['skill'] for entry in entries})==9
-    for entry in entries:
-        assert re.fullmatch('[0-9a-f]{64}',entry['source_sha256'])
-        assert entry['read_scope'] and entry['applied_change']
-        target=(ROOT/entry['check']).resolve()
-        assert ROOT.resolve() in target.parents and target.is_file(),'unresolved study-to-check mapping'
-    study=json.loads((ROOT/'docs/improvement-v0.5.0.json').read_text())
-    for entry in study['additional_sources']:
-        assert re.fullmatch('[0-9a-f]{64}',entry['source_sha256'])
-        assert entry['read_scope'] and (ROOT/entry['check']).is_file()
-    assert 'PROPOSED_NOT_APPLIED' in (SKILL/'scripts/vps_health.py').read_text()
-    assert 'human-decision-only' in (SKILL/'scripts/vps_health.py').read_text()
-    subprocess.run([sys.executable,str(ROOT/'tools/test_skill_study.py')],check=True)
-    subprocess.run([sys.executable,str(SKILL/'tests/test_vps_health.py')],check=True)
-    subprocess.run([sys.executable,str(SKILL/'tests/test_workspace.py')],check=True)
-    subprocess.run([sys.executable,str(SKILL/'tests/test_chart_context.py')],check=True)
-    subprocess.run([sys.executable,str(SKILL/'tests/test_operations.py')],check=True)
-    subprocess.run([sys.executable,str(SKILL/'tests/test_agent_runtime.py')],check=True)
-    subprocess.run([sys.executable,str(ROOT/'tools/roadmap.py')],check=True)
-    subprocess.run([sys.executable,str(ROOT/'tools/test_vendor.py')],check=True)
-    subprocess.run([sys.executable,str(ROOT/'tools/test_release_package.py')],check=True)
-    with tempfile.TemporaryDirectory() as directory:
-        # Test the actual exported folder, not only imports from this repository.
-        dest=Path(directory)/'standalone'
-        import shutil
-        shutil.copytree(SKILL,dest,ignore=shutil.ignore_patterns('__pycache__'))
-        subprocess.run([sys.executable,str(dest/'scripts/vps_health.py'),'demo','--out',str(Path(directory)/'demo')],stdout=subprocess.DEVNULL,check=True)
-        subprocess.run([sys.executable,str(dest/'scripts/vps_health.py'),'verify',str(Path(directory)/'demo')],check=True)
-        entry=str(dest/'scripts/vps_health.py');workspace=Path(directory)/'workspace'
-        subprocess.run([sys.executable,entry,'bootstrap','--workspace',str(workspace),'--mode','demo'],stdout=subprocess.DEVNULL,check=True)
-        status=json.loads(subprocess.check_output([sys.executable,entry,'dashboard','--workspace',str(workspace)],text=True))
-        assert status['synthetic'] and status['expected_assets']==3
-        assert status['assets'][2]['stale'], 'offline subject must not look fresh'
-        subprocess.run([sys.executable,entry,'export','--workspace',str(workspace),'--out',str(Path(directory)/'export')],stdout=subprocess.DEVNULL,check=True)
-        subprocess.run([sys.executable,entry,'learn',str(workspace),'--out',str(Path(directory)/'proposal.json')],stdout=subprocess.DEVNULL,check=True)
-        proposal=json.loads((Path(directory)/'proposal.json').read_text())
-        assert proposal['state']=='PROPOSED_NOT_APPLIED' and proposal['can_publish'] is False
-        subprocess.run([sys.executable,entry,'draft-email','--workspace',str(workspace),'--node','example-contended','--impact','synthetic build slowdown','--approve-draft','--example','--out',str(Path(directory)/'example.txt')],stdout=subprocess.DEVNULL,check=True)
-        assert (Path(directory)/'example.txt').read_text().startswith('EXAMPLE ONLY')
+            if not ip.is_loopback and not any(ip in ipaddress.ip_network(n) for n in ('192.0.2.0/24','198.51.100.0/24','203.0.113.0/24')):
+                raise ValueError('non-example network address in public source: '+str(relative))
 
-    print('PASS: skill structure, local references, privacy examples, offline tests, bounded loopback contracts and standalone CLI bootstrap/replay')
-    return 0
 
+def selected(rows,name):
+    if name is None:return rows
+    result=[row for row in rows if row['name']==name]
+    if not result:raise ValueError('unknown skill: '+name)
+    return result
+
+
+def main(argv=None):
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--skill');p.add_argument('--structure-only',action='store_true');p.add_argument('--browser',action='store_true');p.add_argument('--javascript',action='store_true');p.add_argument('--out',type=Path);a=p.parse_args(argv)
+    try:
+        rows=selected(collection.discover(),a.skill)
+        if a.browser or a.javascript:
+            kind='browser' if a.browser else 'javascript'
+            if len(rows)!=1 or kind not in rows[0]['checks']:raise ValueError('select exactly one skill that owns this check')
+            path=collection.owned_path(ROOT,rows[0]['checks'][kind],rows[0]['name'])
+            if a.browser and 'javascript' in rows[0]['checks']:
+                subprocess.run(['node','--test',str(collection.owned_path(ROOT,rows[0]['checks']['javascript'],rows[0]['name']))],check=True)
+            command=[sys.executable,str(path)] if a.browser else ['node','--test',str(path)]
+            if a.out and a.browser:command+=['--out',str(a.out)]
+            subprocess.run(command,check=True);return 0
+        privacy()
+        subprocess.run([sys.executable,str(ROOT/'tools/collection.py'),'--check'],check=True)
+        subprocess.run([sys.executable,str(ROOT/'tools/roadmap.py'),'--check'],check=True)
+        for name in ('test_skill_study.py','test_collection.py','test_package_release.py'):
+            subprocess.run([sys.executable,str(ROOT/'tools'/name)],check=True)
+        if not a.structure_only:
+            for row in rows:
+                path=collection.owned_path(ROOT,row['checks']['python'],row['name'])
+                subprocess.run([sys.executable,str(path)],check=True)
+        print('PASS: collection boundaries and '+(', '.join(row['name'] for row in rows))+' selected acceptance');return 0
+    except (OSError,ValueError,KeyError,subprocess.SubprocessError) as exc:
+        print('FAIL: '+str(exc),file=sys.stderr);return 1
 
 if __name__=='__main__':raise SystemExit(main())

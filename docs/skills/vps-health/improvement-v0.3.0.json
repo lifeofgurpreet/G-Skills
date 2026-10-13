@@ -32,7 +32,7 @@
       "entry_sha256": "50f208e2cc9619f081538a7b60a1f6b1d3bb55f6aaf3c7dd59e3d53283b70a87",
       "read_state": "SELECTED_ENTRY_AND_RELEVANT_REFERENCES_READ",
       "application": "Separate functional assertions from visual inspection; drive actual controls",
-      "proof": "tools/test_dashboard.py starts the real local HTTP handler and exercises every visible control."
+      "proof": "tools/skills/vps-health/test_dashboard.py starts the real local HTTP handler and exercises every visible control."
     },
     {
       "name": "operationalizing-expertise",
@@ -84,7 +84,7 @@
   "private_source_text_published": false,
   "proof_entrypoints": [
     "tools/validate.py",
-    "tools/test_dashboard.py",
+    "tools/skills/vps-health/test_dashboard.py",
     "tools/test_skill_study.py"
   ]
 }

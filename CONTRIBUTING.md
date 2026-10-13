@@ -1,7 +1,40 @@
-# Contributing
+# Contributing a useful skill
 
-Use a synthetic fixture that demonstrates the issue. Preserve the failing output, make the smallest corrective change, and run `python3 tools/validate.py`. Describe the user-visible correction and any changed assumptions. Do not include real logs, endpoints, support tickets or benchmark reports.
+G-Skills is Gurpreet's collection, not a single VPS product. Read root AGENTS.md
+and the guidance of the skill you change. Private data, paid skill bodies,
+credentials and real customer observations never enter public source.
 
-Changes to evidence semantics, network behavior, default tolerances, active-load capabilities or provider contact require explicit maintainer review. Never delete a test just to increase the pass rate. The `learn` output is a starting point for review, not an automatic merge request.
+## Add a skill
 
-For additional skills, use `skills/<lowercase-name>/SKILL.md` plus scripts, tests, assets and focused references. Keep the main skill readable. All dependencies, permissions, side effects and unsupported modes must be explicit. Prefer existing tools to new services.
+1. Scaffold a uniquely named draft with `python3 tools/collection.py --new NAME --title TITLE`.
+2. Make its agent-owned workflow and authority boundaries explicit. Add only the
+   scripts, examples and references needed for that outcome; no mandatory VPS,
+   dashboard, Python runtime or model provider is imposed on the user.
+3. Implement its owning Python maintenance hook and cold package check. Optional
+   browser/JavaScript hooks are declared in `skill.json`. Run the selected skill
+   and collection tests; a draft structural check is not functional proof.
+4. Label development work `skill:NAME`, update the native Beads graph and regenerate
+   catalog/roadmaps. Document unsupported environments and actual acceptance.
+5. Review `status: ready` and release only the selected skill from a committed tree.
+
+## Checks
+
+```bash
+python3 tools/collection.py --write
+python3 tools/roadmap.py --write
+python3 tools/validate.py
+python3 tools/validate.py --skill NAME
+python3 tools/validate.py --skill NAME --browser --out /private/browser-proof
+python3 tools/package_release.py --skill NAME --ref HEAD --out /private/release
+```
+
+Only use browser/JavaScript flags when that skill declares the corresponding
+check. The root command dispatches to the owner; shared code has no default VPS
+selection. Existing releases remain immutable historical references.
+
+A substantial change needs a failing reproduction, actual artifact verification,
+privacy review and a clear account of what did not run. Use selected installed
+JSM/pstack guidance and record its application without copying licensed text.
+Keep source correctness, real-client operation, deployed state and multi-day
+outcomes separate. No unreviewed self-update or automatic external action is
+introduced merely to make the agent seem autonomous.
