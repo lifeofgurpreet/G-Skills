@@ -89,11 +89,13 @@ def config_load(path):
     integer(cfg.get('interval_seconds'),60,3600,'interval_seconds')
     integer(cfg.get('history_days'),1,14,'history_days')
     policy=cfg.get('policy',{})
+    if not isinstance(policy,dict):fail('workspace policy must be an object')
     a=core.finite(policy.get('acceptable_ratio'),minimum=.5,maximum=1)
     b=core.finite(policy.get('investigate_below'),minimum=.1,maximum=1)
     if b>=a: fail('investigate_below must be less than acceptable_ratio')
     assets=cfg.get('assets')
     if not isinstance(assets,list) or not 1<=len(assets)<=100: fail('workspace requires 1-100 expected assets')
+    if not all(isinstance(item,dict) for item in assets):fail('every workspace asset must be an object')
     ids=[core.alias(item.get('id')) for item in assets]
     if len(ids)!=len(set(ids)): fail('duplicate expected asset identity')
     for item in assets:

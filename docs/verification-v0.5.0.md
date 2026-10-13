@@ -57,14 +57,16 @@ replacing a valid screen. A slow in-flight refresh now shows a disabled busy but
 so another click is not silently swallowed. Fractional timeline boundaries are
 covered without inventing elapsed observation time.
 
+A final malformed-configuration check reproduced an AttributeError for a list-valued policy or non-object asset. Both now return a structured unavailable diagnosis, leaving every workspace file unchanged. The two additional regressions run against real private workspaces.
+
 Two plan-question cases initially failed because the only draft path required a
 performance result. The new purpose asks about an explicitly supplied plan and
 makes no performance allegation; the original performance evidence gate remains.
 
 ## Executable verification
 
-The Python suite comprises 172 tests: 46 collector/report, 56 prior workspace,
-11 private-study, ten chart projection, 37 operator/diagnostic/communication,
+The Python suite comprises 174 tests: 46 collector/report, 56 prior workspace,
+11 private-study, ten chart projection, 39 operator/diagnostic/communication,
 six vendor-integrity and six release-package contracts. Twelve JavaScript chart
 adapter contracts remain in place. The existing browser suite is expanded to
 27 scenario groups against the real loopback server and actual synthetic SQLite
