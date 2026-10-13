@@ -2,6 +2,8 @@
 """Collection boundaries proved with unrelated disposable skills, not VPS mocks."""
 from pathlib import Path
 import copy
+import contextlib
+import io
 import json
 import tempfile
 import unittest
@@ -61,6 +63,19 @@ class CollectionTest(unittest.TestCase):
     def test_symlinked_entry_is_not_a_portable_package(self):
         p=self.new();(p/'SKILL.md').rename(p/'real.md');(p/'SKILL.md').symlink_to(p/'real.md')
         with self.assertRaises(ValueError):collection.discover(self.root)
+
+    def test_javascript_skill_does_not_require_a_browser_to_enter_its_ci_matrix(self):
+        path=self.new();manifest=json.loads((path/'skill.json').read_text())
+        manifest['checks']['javascript']='tools/skills/meeting-notes/test.cjs'
+        (self.root/manifest['checks']['javascript']).write_text('// synthetic optional check')
+        (path/'skill.json').write_text(json.dumps(manifest))
+        outputs={}
+        for kind in ('javascript','browser'):
+            stream=io.StringIO()
+            with mock.patch.object(collection,'ROOT',self.root),mock.patch.object(collection,'discover',return_value=collection.discover(self.root)),contextlib.redirect_stdout(stream):
+                self.assertEqual(collection.main(['--matrix',kind]),0)
+            outputs[kind]=json.loads(stream.getvalue())['skill']
+        self.assertEqual(outputs,{'javascript':['meeting-notes'],'browser':[]})
 
     def test_catalog_is_deterministic(self):
         self.new();self.assertEqual(collection.catalog(collection.discover(self.root)),collection.catalog(collection.discover(self.root)))

@@ -9,12 +9,15 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       browser: ${{ steps.discover.outputs.browser }}
+      javascript: ${{ steps.discover.outputs.javascript }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           persist-credentials: false
       - id: discover
-        run: echo "browser=$(python3 tools/collection.py --matrix browser)" >> "$GITHUB_OUTPUT"
+        run: |
+          echo "browser=$(python3 tools/collection.py --matrix browser)" >> "$GITHUB_OUTPUT"
+          echo "javascript=$(python3 tools/collection.py --matrix javascript)" >> "$GITHUB_OUTPUT"
 
   verify:
     runs-on: ubuntu-latest
@@ -31,6 +34,23 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - run: python tools/validate.py
+
+  javascript:
+    needs: catalog
+    if: ${{ fromJSON(needs.catalog.outputs.javascript).skill[0] != null }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.catalog.outputs.javascript) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Run the selected skill's JavaScript acceptance without a browser requirement
+        env:
+          SELECTED_SKILL: ${{ matrix.skill }}
+        run: python3 tools/validate.py --skill "$SELECTED_SKILL" --javascript
 
   browser:
     needs: catalog
