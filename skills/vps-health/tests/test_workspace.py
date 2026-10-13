@@ -232,6 +232,89 @@ class WorkspaceTest(unittest.TestCase):
             conn=http.client.HTTPConnection('127.0.0.1',server.server_port,timeout=5);conn.request('POST','/api/status');r=conn.getresponse();self.assertEqual(r.status,501);r.read();conn.close()
         finally:server.shutdown();server.server_close();thread.join(5)
 
+    def test_changed_owner_epoch_immediately_holds_old_data(self):
+        cfg=self.setup_real();w.ingest(self.root,cfg,[capture(ratio=.99)],NOW)
+        cfg['assets'][0]['epoch']='after-move';w.atomic(self.root/'workspace.json',c.canonical(cfg))
+        row=w.status(self.root,NOW)['assets'][0]
+        self.assertEqual(row['decision'],'HOLD')
+        self.assertIn('epoch_changed_collect_new_evidence',row['holds'])
+
+    def test_failed_latest_attempt_holds_even_recent_good_capture(self):
+        cfg=self.setup_real();w.ingest(self.root,cfg,[capture(ratio=.99)],NOW)
+        with w.database(self.root) as db,db:db.execute('INSERT INTO attempts VALUES (?,?,?,?)',('failed',NOW+1,'ERROR','OSError'))
+        row=w.status(self.root,NOW+2)['assets'][0]
+        self.assertEqual(row['decision'],'HOLD')
+        self.assertIn('latest_collection_failed',row['holds'])
+
+    def test_watch_wall_plan_is_bounded_to_seven_days(self):
+        self.setup_real()
+        a=argparse.Namespace(workspace=self.root,approve_collection=True,cycles=10080,serve=False,port=8765)
+        with mock.patch.object(w,'collect') as collect, mock.patch.object(w.time,'sleep'), self.assertRaises(c.InvalidEvidence):w.watch(a)
+        collect.assert_not_called()
+
+    def test_rejected_output_does_not_read_network(self):
+        self.setup_real();output=Path(self.tmp.name)/'export';output.mkdir()
+        with mock.patch.object(c,'get_json') as net,self.assertRaises(c.InvalidEvidence):w.export(self.root,output)
+        net.assert_not_called()
+
+    def test_readonly_server_does_not_expose_credentials_or_capture(self):
+        w.bootstrap(args(self.root));(self.root/'credentials.env').write_text('MY_TOKEN=not-for-browser')
+        server=w.make_server(self.root,0);thread=threading.Thread(target=server.serve_forever,daemon=True);thread.start()
+        try:
+            conn=http.client.HTTPConnection('127.0.0.1',server.server_port,timeout=5);conn.request('GET','/credentials.env');r=conn.getresponse()
+            self.assertEqual(r.status,404);self.assertNotIn(b'not-for-browser',r.read());conn.close()
+        finally:server.shutdown();server.server_close();thread.join(5)
+
+    def test_daily_epoch_span_is_not_filled_by_missing_samples(self):
+        cfg=self.setup_real();cap=capture(start=NOW-2*86400,end=NOW);cap['samples']=[p for p in cap['samples'] if not NOW-3600*30<p['timestamp']<NOW-3600*15]
+        w.ingest(self.root,cfg,[cap],NOW);row=w.status(self.root,NOW)['assets'][0]
+        self.assertLess(row['coverage'],.75);self.assertEqual(row['decision'],'HOLD')
+
+    def test_endpoint_change_cannot_reuse_the_old_subject_identity(self):
+        cfg=self.setup_real();cfg.update(mode='prometheus',prometheus_url='https://old.example.invalid')
+        cfg['assets'][0]['instance']='old:9100';w.atomic(self.root/'workspace.json',c.canonical(cfg))
+        w.ingest(self.root,cfg,[capture(ratio=.99)],NOW)
+        cfg['prometheus_url']='https://new.example.invalid';cfg['assets'][0]['instance']='new:9100'
+        w.atomic(self.root/'workspace.json',c.canonical(cfg))
+        self.assertEqual(w.status(self.root,NOW)['assets'][0]['decision'],'HOLD')
+
+    def test_review_draft_names_the_actual_utc_range(self):
+        cfg=self.setup_real();w.ingest(self.root,cfg,[capture(start=NOW-3*86400,end=NOW,ratio=.78)],NOW)
+        a=argparse.Namespace(workspace=self.root,approve_draft=True,example=False,node='example-node',impact='higher measured request latency',out=Path(self.tmp.name)/'draft.txt')
+        with mock.patch.object(w.time,'time',return_value=NOW):result=w.draft_email(a)
+        text=a.out.read_text();self.assertIn(c.iso(NOW-3*86400),text);self.assertIn(c.iso(NOW),text)
+        self.assertFalse(result['sent']);self.assertLess(result['words'],200)
+
+    def test_failed_local_ingest_does_not_advance_snapshot(self):
+        self.setup_real()
+        old={'marker':'previous retained baseline'}
+        with w.database(self.root) as db,db:w.set_state(db,'previous_snapshot',old)
+        with mock.patch.object(c,'cpu_snapshot',side_effect=OSError('read failed')):
+            with self.assertRaises(OSError):w.collect(self.root)
+        with w.database(self.root,True) as db:self.assertEqual(w.get_state(db,'previous_snapshot'),old)
+
+    def test_empty_new_capture_cannot_refresh_old_observations(self):
+        cfg=self.setup_real();w.ingest(self.root,cfg,[capture(ratio=.99)],NOW)
+        missing=capture(start=NOW-3300,end=NOW+300);missing['samples']=[]
+        w.ingest(self.root,cfg,[missing],NOW+300)
+        row=w.status(self.root,NOW+300)['assets'][0]
+        self.assertEqual(row['decision'],'HOLD')
+        self.assertIn('latest_collection_no_samples',row['holds'])
+        self.assertEqual(row['last_sample'],NOW)
+
+    def test_demo_offline_subject_fresh_capture_is_stale_measurement(self):
+        w.bootstrap(args(self.root));row=w.status(self.root)['assets'][2]
+        self.assertTrue(row['stale']);self.assertGreater(row['age_seconds'],86400)
+
+    def test_workspace_learning_exports_categories_not_node_or_endpoints(self):
+        w.bootstrap(args(self.root));out=Path(self.tmp.name)/'proposal.json'
+        proposal=w.learning_proposal(self.root,out)
+        text=out.read_text();self.assertEqual(proposal['state'],'PROPOSED_NOT_APPLIED')
+        self.assertFalse(proposal['can_change_policy']);self.assertFalse(proposal['can_publish'])
+        self.assertNotIn('example-stable',text);self.assertNotIn('prometheus_url',text)
+        self.assertNotIn(str(self.root),text)
+        with self.assertRaises(FileExistsError):w.learning_proposal(self.root,out)
+
     def test_daily_report_outputs_are_derived_not_raw_log_exports(self):
         w.bootstrap(args(self.root));files=list((self.root/'daily').glob('*.json'));self.assertGreaterEqual(len(files),3)
         for p in files:
