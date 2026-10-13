@@ -1,0 +1,164 @@
+#!/usr/bin/env python3
+"""Operator contracts: read-only diagnosis, evidence-led attention, provider scope."""
+import copy
+import hashlib
+import json
+import os
+from pathlib import Path
+import sqlite3
+import sys
+import tempfile
+import unittest
+from types import SimpleNamespace
+from unittest import mock
+
+sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'scripts'))
+import vps_health as core
+import vps_workspace as workspace
+import vps_ops as ops
+
+NOW=1791936000.
+
+def row(**changes):
+    return {'id':'example-node','epoch':'example-epoch','decision':'INVESTIGATE','context':'CONTENTION_PRESENT',
+            'mean':.74,'coverage':.95,'elapsed_hours':72,'observed_hours':68.4,'pressure':.18,'cfs':.12,
+            'last_sample':NOW-60,'age_seconds':60,'stale':False,'holds':['controlled_repeats_not_established'],
+            'recommendation':'Review workload and service impact.','provider':'unknown','plan':None,**changes}
+
+def value(**changes):
+    return {'schema':'g-skills.workspace-status.v1','as_of':NOW,'generated_at':core.iso(NOW),'synthetic':False,
+            'mode':'local','assets':[row()],'expected_assets':1,'stored_bytes':1024,'stored_captures':1,
+            'configuration_sha256':'a'*64,'collection_attempts':[],**changes}
+
+def bootstrap(path,mode='demo'):
+    return workspace.bootstrap(SimpleNamespace(workspace=path,mode=mode,node='example-node',interval=300,
+        profile=None,url=None,loki_url=None,token_env=None,loki_token_env=None,allow_http=False,acceptable=.9,investigate_below=.8))
+
+class AttentionTest(unittest.TestCase):
+    def test_quality_precedes_performance_and_never_assigns_provider_cause(self):
+        d=value(assets=[row(id='stale-node',decision='HOLD',stale=True,holds=['stale_collection']),row()])
+        b=ops.brief(d)
+        self.assertEqual(b['items'][0]['kind'],'collection_gap')
+        self.assertTrue(all(not i['provider_cause_proven'] and not i['contact_authorized'] for i in b['items']))
+        self.assertFalse(b['automatic_actions'])
+
+    def test_hold_cannot_become_a_performance_notification(self):
+        b=ops.brief(value(assets=[row(decision='HOLD',mean=.2,holds=['insufficient_coverage'])]))
+        self.assertNotIn('performance_review',[i['kind'] for i in b['items']])
+
+    def test_single_snapshot_waits_instead_of_panicking(self):
+        b=ops.brief(value(assets=[row(decision='HOLD',elapsed_hours=.1,holds=['less_than_24_hours'])]))
+        self.assertEqual(b['items'][0]['kind'],'collect_history')
+        self.assertEqual(b['items'][0]['priority'],'info')
+
+    def test_85_percent_is_watch_not_contact(self):
+        b=ops.brief(value(assets=[row(decision='WATCH',mean=.85)]))
+        self.assertEqual(b['items'][0]['kind'],'watch')
+        self.assertFalse(b['items'][0]['contact_authorized'])
+
+    def test_good_accounting_does_not_clear_unknown_service_health(self):
+        b=ops.brief(value(assets=[row(decision='WITHIN_TOLERANCE',mean=.96,holds=[])]))
+        self.assertEqual(b['items'],[])
+        self.assertFalse(b['service_health_verified'])
+
+    def test_ids_survive_refresh_and_input_order(self):
+        d=value(assets=[row(),row(id='other-node')]);first=ops.brief(d)
+        d['as_of']+=5;d['assets'].reverse()
+        self.assertEqual([i['id'] for i in ops.brief(d)['items']],[i['id'] for i in first['items']])
+
+    def test_changed_epoch_and_kind_create_new_attention_ids(self):
+        a=ops.brief(value())['items'][0]['id']
+        self.assertNotEqual(a,ops.brief(value(assets=[row(epoch='new-epoch')]))['items'][0]['id'])
+        self.assertNotEqual(a,ops.brief(value(assets=[row(decision='WATCH')]))['items'][0]['id'])
+
+    def test_synthetic_state_cannot_request_real_draft(self):
+        b=ops.brief(value(synthetic=True))
+        self.assertTrue(b['synthetic'])
+        self.assertFalse(b['items'][0]['draft_eligible'])
+
+    def test_event_evidence_has_no_endpoints_or_raw_logs(self):
+        d=value();d['private_token']='secret';d['assets'][0]['raw']={'url':'https://secret.invalid'}
+        text=json.dumps(ops.brief(d));self.assertNotIn('secret',text)
+
+    def test_brief_never_mutates_input(self):
+        d=value();original=copy.deepcopy(d);ops.brief(d);self.assertEqual(d,original)
+
+class ProviderTest(unittest.TestCase):
+    def test_provider_classes_and_allowances_remain_distinct(self):
+        p=ops.providers('akamai',now=NOW)
+        self.assertTrue(any(f['kind']=='usage_allowance' for f in p['providers'][0]['facts']))
+        self.assertNotIn('guaranteed_ratio',json.dumps(p))
+        self.assertFalse(p['establishes_contract'])
+
+    def test_unknown_provider_gets_unknown_not_brand_guess(self):
+        p=ops.providers('unknown',now=NOW);self.assertEqual(p['providers'][0]['id'],'other')
+        with self.assertRaises(core.InvalidEvidence):ops.providers('contabo; rm',now=NOW)
+
+    def test_stale_reference_is_visible_not_silently_current(self):
+        p=ops.providers(now=NOW+400*86400)
+        self.assertEqual(p['review_state'],'RECHECK_REQUIRED')
+        self.assertFalse(p['automatically_refreshed'])
+
+    def test_no_provider_link_is_a_runtime_fetch(self):
+        with mock.patch.object(core,'get_json') as net:ops.providers()
+        net.assert_not_called()
+
+    def test_catalog_uses_https_sources_and_is_complete(self):
+        p=ops.providers();self.assertEqual(len(p['providers']),6)
+        for provider in p['providers']:
+            self.assertTrue(provider['check_next']);self.assertTrue(provider['not_a_promise'])
+            for fact in provider['facts']:
+                self.assertTrue(fact['source'].startswith('https://'))
+                self.assertIn(fact['kind'],('allocation','usage_allowance','credit_model','billing_behavior'))
+
+class DoctorTest(unittest.TestCase):
+    def setUp(self):
+        self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup);self.root=Path(self.temp.name)/'workspace'
+
+    def hashes(self):
+        return {str(p.relative_to(self.root)):hashlib.sha256(p.read_bytes()).hexdigest() for p in self.root.rglob('*') if p.is_file()}
+
+    def test_missing_workspace_returns_recovery_without_creation(self):
+        result=ops.doctor(self.root)
+        self.assertEqual(result['verdict'],'UNAVAILABLE');self.assertFalse(self.root.exists())
+        self.assertEqual(result['checks'][0]['code'],'workspace_missing')
+
+    def test_real_demo_diagnosis_makes_no_network_or_writes(self):
+        bootstrap(self.root);before=self.hashes()
+        with mock.patch.object(core,'get_json') as net,mock.patch.object(core,'cpu_snapshot') as read:
+            result=ops.doctor(self.root)
+        self.assertEqual(before,self.hashes());net.assert_not_called();read.assert_not_called()
+        self.assertTrue(result['read_only']);self.assertIn('synthetic_demo',[c['code'] for c in result['checks']])
+
+    def test_local_diagnostics_do_not_claim_daemon_is_running(self):
+        bootstrap(self.root,'local');d=ops.doctor(self.root)
+        self.assertIsNone(d['collector_process_running'])
+        self.assertFalse(d['can_install_services'])
+
+    def test_missing_database_is_not_created(self):
+        bootstrap(self.root);(self.root/'history.sqlite3').unlink();before=self.hashes()
+        result=ops.doctor(self.root)
+        self.assertEqual(before,self.hashes());self.assertEqual(result['verdict'],'UNAVAILABLE')
+
+    def test_corrupt_database_reports_category_not_secret_error_text(self):
+        bootstrap(self.root);(self.root/'history.sqlite3').write_bytes(b'private-secret-not-a-database')
+        result=ops.doctor(self.root)
+        self.assertEqual(result['verdict'],'UNAVAILABLE');self.assertNotIn('private-secret',json.dumps(result))
+
+    def test_missing_named_credential_is_reported_without_its_value(self):
+        bootstrap(self.root);cfg=core.read_json(self.root/'workspace.json');cfg['token_env']='TEST_VPS_SECRET'
+        workspace.atomic(self.root/'workspace.json',core.canonical(cfg))
+        with mock.patch.dict(os.environ,{'TEST_VPS_SECRET':'TOP_SECRET_VALUE'}):
+            result=ops.doctor(self.root)
+        self.assertNotIn('TOP_SECRET_VALUE',json.dumps(result))
+
+    def test_doctor_read_plan_does_not_execute_next_command(self):
+        bootstrap(self.root,'local');d=ops.doctor(self.root)
+        self.assertTrue(d['next_steps']);self.assertTrue(all('effect' in s for s in d['next_steps']))
+        self.assertTrue(any(s['approval_required'] for s in d['next_steps']))
+
+    def test_symlink_database_is_refused_not_followed(self):
+        bootstrap(self.root);db=self.root/'history.sqlite3';copy_path=Path(self.temp.name)/'db-copy';db.rename(copy_path);db.symlink_to(copy_path)
+        self.assertEqual(ops.doctor(self.root)['verdict'],'UNAVAILABLE')
+
+if __name__=='__main__':unittest.main()
