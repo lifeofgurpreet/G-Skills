@@ -57,9 +57,15 @@ class AttentionTest(unittest.TestCase):
         self.assertFalse(b['items'][0]['contact_authorized'])
 
     def test_good_accounting_does_not_clear_unknown_service_health(self):
-        b=ops.brief(value(assets=[row(decision='WITHIN_TOLERANCE',mean=.96,holds=[])]))
+        b=ops.brief(value(assets=[row(decision='WITHIN_TOLERANCE',mean=.96,context='NO_HIGH_PRESSURE_IN_RECORDED_CONTEXT',holds=[])]))
         self.assertEqual(b['items'],[])
         self.assertFalse(b['service_health_verified'])
+
+    def test_good_accounting_does_not_hide_workload_pressure(self):
+        b=ops.brief(value(assets=[row(decision='WITHIN_TOLERANCE',mean=.96)]))
+        self.assertEqual(b['items'][0]['kind'],'workload_pressure')
+        self.assertEqual(b['items'][0]['priority'],'info')
+        self.assertFalse(b['items'][0]['draft_eligible'])
 
     def test_ids_survive_refresh_and_input_order(self):
         d=value(assets=[row(),row(id='other-node')]);first=ops.brief(d)
@@ -160,5 +166,77 @@ class DoctorTest(unittest.TestCase):
     def test_symlink_database_is_refused_not_followed(self):
         bootstrap(self.root);db=self.root/'history.sqlite3';copy_path=Path(self.temp.name)/'db-copy';db.rename(copy_path);db.symlink_to(copy_path)
         self.assertEqual(ops.doctor(self.root)['verdict'],'UNAVAILABLE')
+
+class TimelineTest(unittest.TestCase):
+    policy={'acceptable_ratio':.9,'investigate_below':.8}
+    def point(self,ts,value=.95,duration=60,**extra):
+        return {'timestamp':ts,'duration_seconds':duration,'cpu_accounted_ratio':value,'quality':[],**extra}
+
+    def test_gap_does_not_become_a_healthy_cell(self):
+        cells=ops.timeline([self.point(60),self.point(180)],0,180,self.policy,3)
+        self.assertEqual([c['state'] for c in cells],['within','unknown','within'])
+        self.assertIsNone(cells[1]['mean'])
+
+    def test_narrow_dip_is_visible_despite_a_good_average(self):
+        points=[self.point(55,duration=55),self.point(60,.4,duration=5)]
+        cell=ops.timeline(points,0,60,self.policy,1)[0]
+        self.assertGreater(cell['mean'],.9);self.assertEqual(cell['minimum'],.4)
+        self.assertEqual(cell['state'],'investigate')
+
+    def test_intervals_split_exactly_across_cells(self):
+        cells=ops.timeline([self.point(90,duration=90)],0,120,self.policy,2)
+        self.assertEqual([c['valid_seconds'] for c in cells],[60,30])
+        self.assertEqual(cells[1]['state'],'partial')
+
+    def test_duplicate_intervals_do_not_add_observed_time(self):
+        point=self.point(60)
+        cell=ops.timeline([point,copy.deepcopy(point)],0,60,self.policy,1)[0]
+        self.assertEqual(cell['valid_seconds'],60);self.assertEqual(cell['coverage'],1)
+
+    def test_invalid_interval_remains_unknown(self):
+        cells=ops.timeline([self.point(60,quality=['counter_reset'])],0,60,self.policy,1)
+        self.assertEqual(cells[0]['state'],'unknown')
+
+    def test_fractional_cell_boundaries_do_not_drop_time(self):
+        points=[self.point(101.37,duration=101.37)]
+        cells=ops.timeline(points,0,101.37,self.policy,48)
+        self.assertAlmostEqual(sum(c['valid_seconds'] for c in cells),101.37,places=8)
+        self.assertTrue(all(abs(c['coverage']-1)<1e-8 for c in cells))
+
+    def test_projection_has_no_mutation(self):
+        points=[self.point(60)];before=copy.deepcopy(points)
+        ops.timeline(points,0,60,self.policy);self.assertEqual(points,before)
+
+class CorrespondenceTest(unittest.TestCase):
+    def setUp(self):
+        self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup)
+        self.root=Path(self.temp.name)/'workspace';bootstrap(self.root,'local')
+
+    def args(self,**changes):
+        data=dict(workspace=self.root,node='example-node',purpose='plan-question',plan='Example shared plan',impact=None,
+                  approve_draft=True,example=False,out=Path(self.temp.name)/'question.txt')
+        return SimpleNamespace(**{**data,**changes})
+
+    def test_plan_question_needs_permission_but_not_fake_performance_evidence(self):
+        args=self.args();result=workspace.draft_email(args);text=args.out.read_text()
+        self.assertFalse(result['sent']);self.assertFalse(result['approved_to_send'])
+        self.assertIn('Example shared plan',text);self.assertIn('allocation',text)
+        self.assertNotIn('averaged',text);self.assertLess(result['words'],150)
+
+    def test_plan_question_cannot_infer_the_purchased_plan(self):
+        with self.assertRaises(core.InvalidEvidence):workspace.draft_email(self.args(plan=None))
+
+    def test_plan_question_has_no_automatic_permission(self):
+        with self.assertRaises(core.InvalidEvidence):workspace.draft_email(self.args(approve_draft=False))
+        self.assertFalse(self.args().out.exists())
+
+    def test_performance_purpose_keeps_original_evidence_gate(self):
+        with self.assertRaises(core.InvalidEvidence):workspace.draft_email(self.args(purpose='performance-review',impact='Example service latency'))
+
+    def test_plan_controls_or_overwriting_are_refused(self):
+        with self.assertRaises(core.InvalidEvidence):workspace.draft_email(self.args(plan='Plan\nInjected line'))
+        args=self.args();workspace.draft_email(args);old=args.out.read_bytes()
+        with self.assertRaises(core.InvalidEvidence):workspace.draft_email(args)
+        self.assertEqual(args.out.read_bytes(),old)
 
 if __name__=='__main__':unittest.main()

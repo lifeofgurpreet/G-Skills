@@ -265,6 +265,14 @@ def get_json(base, path, params, token=None, timeout=15):
         raise InvalidEvidence('endpoint request failed: '+type(exc).__name__) from exc
 
 
+def plan_metadata(item):
+    if item.get('provider','unknown') not in ('unknown','contabo','hetzner','digitalocean','akamai','aws','other'):
+        raise InvalidEvidence('unsupported provider label; use other')
+    plan=item.get('plan')
+    if plan is not None and (not isinstance(plan,str) or not 1<=len(plan)<=120 or any(ord(c)<32 for c in plan)):
+        raise InvalidEvidence('plan must be a short printable owner-provided label')
+
+
 def profile_load(path):
     profile = read_json(path)
     if not isinstance(profile, dict) or profile.get('schema') != 'g-skills.vps-profile.v1':
@@ -279,8 +287,7 @@ def profile_load(path):
         ids.append(alias(item.get('id')))
         if not isinstance(item.get('instance'), str) or len(item['instance']) > 255:
             raise InvalidEvidence('asset instance must match its known exporter label')
-        if item.get('provider', 'unknown') not in ('unknown','contabo','hetzner','digitalocean','akamai','aws','other'):
-            raise InvalidEvidence('unsupported provider label; use other')
+        plan_metadata(item)
     if len(ids) != len(set(ids)) or len({a['instance'] for a in assets}) != len(assets):
         raise InvalidEvidence('ambiguous expected asset identities')
     return profile
@@ -515,7 +522,7 @@ def main(argv=None):
         if args.cmd in workspace.COMMANDS:
             result=workspace.dispatch(args)
             print(json.dumps(result,indent=2,allow_nan=False))
-            return 0
+            return (0 if result.get('verdict')=='READY' else 1) if args.cmd=='doctor' else 0
         if args.cmd=='demo':result=report(read_json(ROOT/'assets/demo-capture.json'),args.out)
         elif args.cmd=='collect-local':
             if args.out.exists():raise InvalidEvidence('output exists; no observation will be started')
