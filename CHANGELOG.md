@@ -1,6 +1,20 @@
 # Changelog
 
 
+## 0.6.0 — Agent-owned execution
+
+- Bounded, idempotent plan/start/status/stop workflow with a detached Linux worker,
+  actual process identity checks, collection ownership and private agent handoff.
+- A stopped/completed run cannot silently renew its original approval hash; a new
+  run is a new scoped plan. Configuration changes stop for review.
+- Agent activity and capability needs in the existing read-only dashboard.
+- Host-native connector request/result contract; read, draft and send remain
+  distinct, and a local receipt is never treated as OAuth or send permission.
+- Native Beads epic and generated, validated dependency graph for remaining
+  real-client, connector, platform, estate and multi-day qualification.
+
+
+
 ## 0.5.0 — The operator journey
 
 - Read-only `doctor`, shared CLI/dashboard `brief`, and dated `providers` reference commands.

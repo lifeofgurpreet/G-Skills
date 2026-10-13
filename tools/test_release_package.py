@@ -44,7 +44,7 @@ class PackageTest(unittest.TestCase):
             with self.subTest(mode=mode),self.assertRaises(ValueError):package.validate_skill(files)
 
     def test_operator_files_are_required_in_the_actual_installable_archive(self):
-        for name in ('scripts/vps_ops.py','assets/operator.js','assets/operator.css','assets/provider-catalog.json'):
+        for name in ('scripts/vps_ops.py','assets/operator.js','assets/operator.css','assets/provider-catalog.json','scripts/vps_agent.py','references/agent-connectors.md'):
             files=self.fixture();files.pop(name)
             with self.subTest(name=name),self.assertRaises(ValueError):package.validate_skill(files)
 

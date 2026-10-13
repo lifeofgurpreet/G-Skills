@@ -1,0 +1,40 @@
+{
+  "release": "0.6.0",
+  "schema": "g-skills.improvement-receipt.v1",
+  "sources": [
+    {
+      "skill": "operationalizing-expertise",
+      "source_sha256": "fdb7f8ba4d42f2d8bbab48c11302bc000e21c75565684aadb4117da0659b5197",
+      "read_scope": "entry point and applicable recovery/ownership sections; not every reference or prescribed framework",
+      "application": "Executable private handoff and interchangeable host-agent continuation; one bounded worker, not an agent swarm."
+    },
+    {
+      "skill": "agent-fungibility-philosophy",
+      "source_sha256": "d3e3fd2ddcf2212f831c0c52c8e14cbd32bf6c5f6a62f4351417a46cadec2a04",
+      "read_scope": "entry point and applicable recovery/ownership sections; not every reference or prescribed framework",
+      "application": "Executable private handoff and interchangeable host-agent continuation; one bounded worker, not an agent swarm."
+    }
+  ],
+  "pstack": [
+    "Model lifecycle and permission boundaries explicitly.",
+    "Verify actual subprocess/HTTP and stop behavior, not mtimes.",
+    "Reuse one collector and report authority; do not add an email OAuth stack.",
+    "Reproduce a stopped-run approval renewing the budget, then encode the new generation in the plan."
+  ],
+  "primary_client_references": [
+    "https://developers.openai.com/codex/skills/",
+    "https://developers.openai.com/codex/mcp/",
+    "https://code.claude.com/docs/en/skills",
+    "https://code.claude.com/docs/en/mcp"
+  ],
+  "not_claimed": [
+    "A real Codex or Claude Code cold-start field trial was completed.",
+    "Connector records independently prove OAuth or allow sending.",
+    "Detached runtime survives reboot or a platform that kills jobs."
+  ],
+  "rejected": [
+    "No agent-swarm infrastructure required for one user workspace.",
+    "No framework rewrite or terminal-executing HTTP endpoint.",
+    "No paid skill text, private captures or credential discovery."
+  ]
+}

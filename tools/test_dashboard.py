@@ -20,6 +20,7 @@ ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'skills/vps-health/scripts'))
 import vps_workspace as workspace
 import vps_ops as ops
+import vps_agent as agent
 from playwright.sync_api import sync_playwright, expect
 
 
@@ -44,7 +45,7 @@ def main():
         if os.environ.get('PLAYWRIGHT_CHROMIUM_EXECUTABLE'):launch['executable_path']=os.environ['PLAYWRIGHT_CHROMIUM_EXECUTABLE']
         browser=playwright.chromium.launch(**launch)
         context=browser.new_context(viewport={'width':1440,'height':1000},reduced_motion='reduce',accept_downloads=True)
-        page=context.new_page();errors=[];requests=[]
+        page=context.new_page();errors=[];requests=[];owned_run=None
         # The OS permission boundary is simulated; DOM/server behavior is real.
         page.add_init_script("""window.__notificationRequests=0;window.__notifications=[];
         window.Notification=function(title,opts){window.__notifications.push({title,opts});this.close=()=>{};};
@@ -369,6 +370,33 @@ def main():
             touch_page.get_by_role('button',name='All history',exact=True).tap()
             if args.out:touch_page.screenshot(path=str(args.out/'touch-mobile.png'),full_page=True)
             touch.close();passed('touch-context time controls and channel toggles against the actual viewer')
+            # The existing viewer stays up while a separately owned synthetic
+            # worker is started and stopped. This is not a mocked runtime record.
+            a=SimpleNamespace(workspace=root,mode='auto',node='example-node',profile=None,url=None,loki_url=None,
+                token_env=None,loki_token_env=None,allow_http=False,interval=300,acceptable=.9,investigate_below=.8,
+                provider='unknown',plan=None,duration_seconds=30,port=0,client='generic',approve_plan=None)
+            a.approve_plan=agent.plan(a)['plan_sha256'];managed=agent.start(a);owned_run=managed['run_id']
+            assert managed['process_verified'] and managed['state']=='RUNNING'
+            page.get_by_role('button',name='Refresh live readings').click()
+            page.get_by_role('link',name='Agent',exact=True).click()
+            expect(page.locator('#agent-state')).to_have_text('RUNNING')
+            expect(page.locator('#agent-title')).to_contain_text('owned worker is present')
+            expect(page.locator('#agent-events')).to_contain_text('viewer verified')
+            req=agent.connection_request(root,'mail.draft','Synthetic explicit draft task','generic')
+            page.get_by_role('button',name='Refresh live readings').click()
+            expect(page.locator('#agent-requests')).to_contain_text('NEEDS CONNECTION')
+            assert 'mail.draft' in page.locator('#agent-requests').inner_text()
+            agent.resolve_request(root,req['id'],'available','synthetic.mail_draft','synthetic-result')
+            page.get_by_role('button',name='Refresh live readings').click()
+            expect(page.locator('#agent-requests')).to_contain_text('HOST REPORTED AVAILABLE')
+            expect(page.locator('#agent-requests')).to_contain_text('Recheck')
+            if args.out:page.screenshot(path=str(args.out/'agent.png'),full_page=True)
+            stopped=agent.stop(root,owned_run,wait=10)
+            assert stopped['state']=='STOPPED' and not stopped['process_verified']
+            page.get_by_role('button',name='Refresh live readings').click()
+            expect(page.locator('#agent-state')).to_have_text('STOPPED')
+            page.get_by_role('link',name='Overview',exact=True).click()
+            passed('actual managed worker, connector handoff distinction and cooperative stop shown in the viewer')
             expect(page.locator('.chart-wrap .uplot')).to_have_count(2)
             assert not errors,errors
             assert all(url.startswith(base) or url.startswith('blob:') for url in requests),requests
@@ -386,6 +414,8 @@ def main():
             if args.out:page.screenshot(path=str(args.out/'failure.png'),full_page=True)
             raise
         finally:
+            if owned_run:
+                agent.stop(root,owned_run,wait=10)
             context.close();browser.close();server.shutdown();server.server_close();thread.join(5)
     return 0
 

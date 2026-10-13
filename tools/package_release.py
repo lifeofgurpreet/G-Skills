@@ -55,7 +55,8 @@ def validate_skill(files):
     required={'SKILL.md','scripts/vps_health.py','scripts/vps_workspace.py','assets/chart-adapter.js',
               'assets/workspace-dashboard.html','assets/vendor/uplot/manifest.json','assets/vendor/uplot/LICENSE','LICENSE',
               'scripts/vps_ops.py','assets/operator.js','assets/operator.css','assets/provider-catalog.json',
-              'references/first-hour.md','references/operator-playbook.md'}
+              'references/first-hour.md','references/operator-playbook.md',
+              'scripts/vps_agent.py','references/agent-workflow.md','references/agent-connectors.md'}
     if not required<=set(files):raise ValueError('installable skill is missing required runtime/license files')
     if any(name.startswith(('skills/','.github/','tools/')) for name in files):
         raise ValueError('repository content incorrectly nested inside the skill ZIP')
@@ -90,6 +91,18 @@ def verify_zip(raw):
             brief=json.loads(subprocess.check_output([sys.executable,entry,'brief','--workspace',str(workspace)],text=True,timeout=30))
             if len(brief['items'])!=2 or brief['automatic_actions']:raise ValueError('exported brief contract failed')
             subprocess.run([sys.executable,entry,'providers','--provider','aws'],check=True,stdout=subprocess.DEVNULL,timeout=30)
+            if sys.platform=='linux':
+                options=['--workspace',str(workspace),'--mode','auto','--duration-seconds','10']
+                plan=json.loads(subprocess.check_output([sys.executable,entry,'agent-plan',*options],text=True,timeout=20))
+                runtime=json.loads(subprocess.check_output([sys.executable,entry,'agent-start',*options,'--approve-plan',plan['plan_sha256']],text=True,timeout=15))
+                try:
+                    if runtime['state']!='RUNNING' or not runtime['process_verified']:raise ValueError('exported agent runtime not verified')
+                    current=json.loads(subprocess.check_output([sys.executable,entry,'agent-status','--workspace',str(workspace)],text=True,timeout=15))
+                    if current['run_id']!=runtime['run_id']:raise ValueError('exported handoff lost owned identity')
+                finally:
+                    stop=subprocess.run([sys.executable,entry,'agent-stop','--workspace',str(workspace),'--run-id',runtime['run_id']],capture_output=True,text=True,timeout=20)
+                    if stop.returncode or json.loads(stop.stdout)['state']!='STOPPED':raise ValueError('exported runtime stop not verified')
+
     return len(files)
 
 
@@ -108,7 +121,7 @@ def build(ref,out):
     out=Path(out);out.mkdir(parents=False,exist_ok=False)
     for name,raw in artifacts.items():(out/name).write_bytes(raw)
     manifest={'schema':'g-skills.release-artifacts.v1','version':version,'commit':sha,'skill_files':count,
-              'verification':'actual ZIP extraction -> standalone bootstrap/export -> read-only doctor/brief/providers',
+              'verification':'actual ZIP extraction -> standalone routes -> owned Linux start/status/stop',
               'files':{name:{'bytes':len(raw),'sha256':hashlib.sha256(raw).hexdigest()} for name,raw in artifacts.items()}}
     (out/'manifest.json').write_text(json.dumps(manifest,sort_keys=True,indent=2)+'\n')
     return manifest

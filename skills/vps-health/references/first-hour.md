@@ -1,6 +1,6 @@
-# Your first hour
+# First-hour recipes for the executing agent
 
-Start with a demonstration, choose a collection route, verify it, and leave a usable handoff. Commands are relative to the installed skill directory. Python 3.10+ is required.
+The coding agent should perform these steps, not ask the user to type them. Prefer the managed [agent workflow](agent-workflow.md); these foreground recipes remain useful for demonstrations, diagnosis and unsupported lifecycle platforms. Start with a demonstration, choose an authorized collection route, verify it, and leave a usable handoff. Commands are relative to the installed skill directory. Python 3.10+ is required.
 
 ## See the workflow without connecting a server
 

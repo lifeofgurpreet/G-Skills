@@ -25,3 +25,17 @@ visible again. Diagnose offline before proposing a fix. Provider references must
 have source scope and review dates: usage allowance is not a delivery floor.
 Test missing/malformed contexts, real cold CLI paths and notification permission
 boundaries. A simulated notification API is not a physical operating-system test.
+
+
+The product is agent-owned, not a command manual for the human. For a feature,
+identify which routine step the coding agent should perform, which native tool
+or script actually performs it, and which human decision is unavoidable. Do not
+substitute copied commands, a fake chat/connect button or a stale receipt for live
+capability access. Preserve host permission rules; a plan hash binds scope but
+is not an authentication token. The browser remains read-only.
+
+Track development in native `.beads/issues.jsonl`; `ROADMAP.md` is generated from
+it by `python3 tools/roadmap.py --write`. Validate graph/reference drift in normal
+CI. Runtime/connector/client unknowns have explicit acceptance gates. Use native
+Beads transitions, never close the epic because only script tests passed. Beads
+is a contributor tool, not an installation requirement for skill users.

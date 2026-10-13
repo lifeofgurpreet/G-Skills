@@ -20,7 +20,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-VERSION = '0.5.0'
+VERSION = '0.6.0'
 SCHEMA = 'g-skills.vps-capture.v1'
 ROOT = Path(__file__).resolve().parents[1]
 MAX_BYTES = 8 * 1024 * 1024
@@ -522,7 +522,11 @@ def main(argv=None):
         if args.cmd in workspace.COMMANDS:
             result=workspace.dispatch(args)
             print(json.dumps(result,indent=2,allow_nan=False))
-            return (0 if result.get('verdict')=='READY' else 1) if args.cmd=='doctor' else 0
+            if args.cmd=='doctor':return 0 if result.get('verdict')=='READY' else 1
+            if args.cmd=='agent-plan':return 0 if result.get('ready') else 1
+            if args.cmd=='agent-start':return 0 if result.get('state')=='RUNNING' and result.get('process_verified') else 1
+            if args.cmd=='agent-stop':return 1 if result.get('process_verified') else 0
+            return 0
         if args.cmd=='demo':result=report(read_json(ROOT/'assets/demo-capture.json'),args.out)
         elif args.cmd=='collect-local':
             if args.out.exists():raise InvalidEvidence('output exists; no observation will be started')

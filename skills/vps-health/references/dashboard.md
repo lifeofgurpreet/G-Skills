@@ -95,3 +95,13 @@ exercise the real loopback viewer, SQLite, actions and downloads.
 Setup recipes describe effects and stop procedures but execute nothing in the
 browser. Provider cards are bundled dated references and open primary sources
 only when the user follows a link. They do not discover a plan or modify policy.
+
+
+## Agent-owned runtime
+
+The Agent view shows actual worker identity, its deadline, collection/error counts
+and recorded capability needs. It does not infer an AI chat session is still alive
+or claim that a worker means enough evidence exists. HOST_REPORTED_AVAILABLE is
+an agent report, not independent OAuth proof. The view runs no terminal commands,
+installs no connectors and sends no messages. Private HANDOFF.md and `agent-status`
+allow another coding agent to resume without repeating setup.
