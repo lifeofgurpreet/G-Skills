@@ -320,43 +320,54 @@ def weighted(points,start,end):
     return result
 
 
-def chart_history(points, cadence, limit=600):
-    """Bound display data without erasing extrema or connecting unknown spans.
+CHART_FIELDS = {'value':'cpu_accounted_ratio','execution':'executing_ratio',
+                'pressure':'cpu_pressure_ratio','cfs':'cfs_throttled_periods_ratio'}
 
-    Each bucket keeps its boundaries, minimum, maximum and first invalid point.
-    Breaks are derived from every original interval, not from reduced point gaps.
-    Statistics and retained evidence continue to use the full original sequence.
+
+def chart_history(points, cadence, limit=600):
+    """Project the same observation timeline, never interpolate missing context.
+
+    Each bucket retains boundaries, each channel's extrema and an unknown point.
+    Independent per-channel breaks are computed from ALL original observations.
+    The display is bounded; weighted assessment still uses the unmodified input.
     """
-    integer(limit, 10, 10000, 'chart point limit')
+    integer(limit, 14, 10000, 'chart point limit')
     core.finite(cadence, minimum=.2, maximum=3600)
     if not points:
         return []
-    invalid = [bool(p.get('quality') or p.get('conflict') or p.get('cpu_accounted_ratio') is None) for p in points]
-    breaks = [0]
-    for index, point in enumerate(points):
-        interval_start = point['timestamp'] - point.get('duration_seconds', cadence)
-        gap = index > 0 and interval_start > points[index - 1]['timestamp'] + max(.001, cadence * .001)
-        breaks.append(breaks[-1] + int(invalid[index] or gap))
-    width = max(1, math.ceil(len(points) / (limit // 5)))
-    selected = set()
-    for first in range(0, len(points), width):
-        last = min(first + width, len(points))
-        selected.update((first, last - 1))
-        valid = [i for i in range(first, last) if not invalid[i]]
-        if valid:
-            selected.add(min(valid, key=lambda i: points[i]['cpu_accounted_ratio']))
-            selected.add(max(valid, key=lambda i: points[i]['cpu_accounted_ratio']))
-        bad = next((i for i in range(first, last) if invalid[i]), None)
-        if bad is not None:
-            selected.add(bad)
-    result, previous = [], -1
+    channels={field:[] for field in CHART_FIELDS}
+    breaks={field:[0] for field in CHART_FIELDS}
+    prior=None
+    for point in points:
+        stamp=core.finite(point['timestamp'],minimum=0)
+        if prior is not None and stamp<=prior:
+            fail('chart history timestamps must be strictly increasing')
+        duration=core.finite(point.get('duration_seconds',cadence),minimum=0)
+        gap=prior is not None and stamp-duration>prior+max(.001,cadence*.001)
+        invalid=bool(point.get('quality') or point.get('conflict'))
+        for field,key in CHART_FIELDS.items():
+            value=point.get(key)
+            good=not invalid and type(value) in (int,float) and math.isfinite(value) and 0<=value<=1.02
+            channels[field].append(value if good else None)
+            breaks[field].append(breaks[field][-1]+int(not good or gap))
+        prior=stamp
+    width=1 if len(points)<=limit else max(1,math.ceil(len(points)/(limit//14)))
+    selected=set()
+    for first in range(0,len(points),width):
+        last=min(first+width,len(points));selected.update((first,last-1))
+        for field,values in channels.items():
+            valid=[i for i in range(first,last) if values[i] is not None]
+            if valid:
+                selected.add(min(valid,key=lambda i:values[i]));selected.add(max(valid,key=lambda i:values[i]))
+            missing=next((i for i in range(first,last) if values[i] is None),None)
+            if missing is not None:selected.add(missing)
+    result=[];previous=-1
     for index in sorted(selected):
-        point = points[index]
-        result.append({'t': point['timestamp'],
-                       'value': None if invalid[index] else point['cpu_accounted_ratio'],
-                       'quality': invalid[index],
-                       'break_before': previous >= 0 and (invalid[previous] or breaks[index + 1] > breaks[previous + 1])})
-        previous = index
+        markers={field:previous>=0 and (values[previous] is None or breaks[field][index+1]>breaks[field][previous+1])
+                 for field,values in channels.items()}
+        result.append({'t':points[index]['timestamp'],**{field:values[index] for field,values in channels.items()},
+                       'quality':channels['value'][index] is None,'break_before':markers['value'],'breaks':markers})
+        previous=index
     return result
 
 
@@ -423,9 +434,31 @@ def status(root,now=None,days=None):
             'configuration_sha256':core.digest(cfg),'code_hashes':{'workspace':SELF_HASH,'collector':core.SOURCE_SHA256},'contact_provider':False}
 
 
+def chart_assets():
+    root=core.ROOT/'assets/vendor/uplot'
+    manifest=core.read_json(root/'manifest.json')
+    allowed={'uPlot.iife.min.js','uPlot.min.css','LICENSE'}
+    if manifest.get('name')!='uPlot' or manifest.get('version')!='1.6.32' or set(manifest.get('files',{}))!=allowed:
+        fail('unrecognized chart library manifest; restore the reviewed release')
+    payload={}
+    for name in sorted(allowed):
+        path=root/name
+        if path.is_symlink():fail('chart library must not be a symlink')
+        raw=path.read_bytes();entry=manifest['files'][name]
+        if len(raw)!=entry['bytes'] or hashlib.sha256(raw).hexdigest()!=entry['sha256']:
+            fail('chart library integrity check failed: '+name)
+        payload[name]=raw.decode('utf-8')
+    return payload
+
+
 def page(value,live=False):
     template=(core.ROOT/'assets/workspace-dashboard.html').read_text()
     data=core.canonical(value).decode().replace('<','\\u003c').replace('>','\\u003e').replace('&','\\u0026')
+    vendor=chart_assets()
+    # These are reviewed static assets, never fetched by a dashboard viewer.
+    template=template.replace('/*UPLOT_CSS*/',vendor['uPlot.min.css'])
+    template=template.replace('/*UPLOT_JS*/',vendor['uPlot.iife.min.js'].replace('</script','<\\/script'))
+    template=template.replace('/*CHART_ADAPTER*/',(core.ROOT/'assets/chart-adapter.js').read_text())
     return template.replace('/*STATUS_JSON*/',data).replace('/*LIVE_MODE*/','true' if live else 'false').encode()
 
 

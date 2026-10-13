@@ -54,7 +54,9 @@ def main():
             expect(page.locator('#count-attention')).to_have_text('01')
             expect(page.locator('#count-held')).to_have_text('01')
             expect(page.locator('#node-selector')).to_have_value('example-contended')
-            assert page.locator('#history-chart polyline').count()>0
+            expect(page.locator('#history-chart canvas')).to_have_count(1)
+            expect(page.locator('#context-chart canvas')).to_have_count(1)
+            expect(page.locator('#history-chart .uplot')).to_have_attribute('data-chart-engine','uPlot')
             passed('actual server, three subjects, derived counts and selected history')
             if args.out:
                 page.screenshot(path=str(args.out/'desktop.png'))
@@ -66,15 +68,57 @@ def main():
             expect(page.locator('#action-title')).to_have_text('Keep an eye on service impact')
             page.get_by_label('Inspect node',exact=True).select_option('example-offline')
             expect(page.locator('#action-title')).to_have_text('Restore fresh observations')
-            expect(page.locator('#history-chart')).to_contain_text('No observations')
+            expect(page.locator('#chart-message')).to_contain_text('No observations')
             page.get_by_label('Inspect sample',exact=True).focus();page.keyboard.press('Home')
             first=page.locator('#sample-value').inner_text();page.keyboard.press('End')
             assert page.locator('#sample-value').inner_text()!=first
             latest=page.locator('#sample-value').inner_text()
-            page.locator('#history-chart svg').hover(position={'x':55,'y':85})
+            page.locator('#history-chart .u-over').hover(position={'x':55,'y':85})
             expect(page.locator('#sample-value')).not_to_have_text(latest)
             if args.out:page.screenshot(path=str(args.out/'missing-data.png'))
             passed('row/dropdown selection and keyboard sample inspection')
+
+            # Exercise a real chart-library integration, not a decorative canvas.
+            page.get_by_label('Inspect node',exact=True).select_option('example-contended')
+            mean=page.locator('#selected-mean').inner_text()
+            page.get_by_role('button',name='24h',exact=True).click()
+            expect(page.get_by_role('button',name='24h',exact=True)).to_have_attribute('aria-pressed','true')
+            limits=page.evaluate('chartEngine.getWindow()')
+            assert abs(limits[1]-limits[0]-86400)<1
+            expect(page.locator('#selected-mean')).to_have_text(mean)
+            expect(page.locator('#view-boundary')).to_contain_text('view only')
+            page.get_by_label('Inspect sample',exact=True).focus();page.keyboard.press('Home')
+            sample_values=[page.locator('#'+name).inner_text() for name in ('sample-accounted','sample-execution','sample-pressure','sample-cfs')]
+            assert all(value not in ('—','Unmeasured') for value in sample_values),sample_values
+            page.get_by_role('button',name='Execution',exact=True).click()
+            expect(page.get_by_role('button',name='Execution',exact=True)).to_have_attribute('aria-pressed','false')
+            page.get_by_role('button',name='Execution',exact=True).click()
+            with page.expect_response(lambda response:response.url==base+'/api/status'):
+                page.get_by_role('button',name='Refresh live readings').click()
+            expect(page.get_by_role('button',name='24h',exact=True)).to_have_attribute('aria-pressed','true')
+            assert abs(page.evaluate('chartEngine.getWindow()[1]-chartEngine.getWindow()[0]')-86400)<1
+            passed('linked library charts, exact context readout, channel toggle and persistent range without policy changes')
+
+            # Drag the real plot overlay. Both panes must adopt the same range.
+            overlay=page.locator('#history-chart .u-over').bounding_box()
+            page.mouse.move(overlay['x']+overlay['width']*.25,overlay['y']+40)
+            page.mouse.down();page.mouse.move(overlay['x']+overlay['width']*.70,overlay['y']+45,steps=8);page.mouse.up()
+            assert page.evaluate('chartEngine.getWindow()[1]-chartEngine.getWindow()[0]')<86400*.75
+            page.get_by_role('button',name='All history',exact=True).click()
+            assert page.evaluate('chartEngine.getWindow()[1]-chartEngine.getWindow()[0]')>86400*2
+            passed('drag zoom and reset inspect history without altering assessment')
+
+            with page.expect_download() as event:page.get_by_role('button',name='Save chart image').click()
+            image=Path(event.value.path()).read_bytes();assert image[:8]==b'\x89PNG\r\n\x1a\n' and len(image)>1000
+            page.get_by_role('button',name='6h',exact=True).click()
+            with page.expect_download() as event:page.get_by_role('button',name='Save displayed samples CSV').click()
+            csv=Path(event.value.path()).read_text();assert csv.startswith('observed_utc,accounted_ratio')
+            assert len(csv.strip().splitlines())==page.locator('#sample-rows tr').count()+1
+            page.get_by_text('Inspect displayed data as a table',exact=True).click()
+            expect(page.locator('.sample-table')).to_be_visible()
+            page.get_by_text('Inspect displayed data as a table',exact=True).click()
+            page.get_by_role('button',name='All history',exact=True).click()
+            passed('real PNG and bounded CSV downloads plus keyboard-accessible observation table')
 
             page.get_by_label('Filter by evidence state').select_option('held')
             expect(page.locator('#node-rows tr')).to_have_count(1)
@@ -142,11 +186,11 @@ def main():
 
             for width in (1440,768,390,320):
                 page.set_viewport_size({'width':width,'height':900 if width>400 else 844})
-                expect(page.locator('#history-chart svg')).to_be_visible()
+                expect(page.locator('#history-chart canvas')).to_be_visible()
                 assert not page.evaluate('document.documentElement.scrollWidth > innerWidth'),str(width)
                 assert page.locator('#node-selector').bounding_box()['width']>80
                 if width<=390:
-                    for selector in ('#save-summary','#node-selector','#node-search','#state-filter','#sample-inspector'):
+                    for selector in ('#save-summary','#node-selector','#node-search','#state-filter','#sample-inspector','#save-chart','#save-samples'):
                         assert page.locator(selector).bounding_box()['height']>=44,(width,selector)
                 if args.out and width==390:
                     page.screenshot(path=str(args.out/'mobile.png'))
@@ -183,10 +227,13 @@ def main():
             assert not page.evaluate('document.documentElement.scrollWidth > innerWidth')
             page.unroute('**/api/status');page.get_by_label('Search nodes').fill('')
             passed('100-subject fixture keeps search and selection usable')
+            expect(page.locator('.chart-wrap .uplot')).to_have_count(2)
             assert not errors,errors
             assert all(url.startswith(base) or url.startswith('blob:') for url in requests),requests
             passed('no JavaScript errors or external asset requests')
             receipt={'schema':'g-skills.browser-proof.v1','template_sha256':hashlib.sha256((ROOT/'skills/vps-health/assets/workspace-dashboard.html').read_bytes()).hexdigest(),
+                     'chart_vendor_sha256':hashlib.sha256((ROOT/'skills/vps-health/assets/vendor/uplot/uPlot.iife.min.js').read_bytes()).hexdigest(),
+                     'chart_adapter_sha256':hashlib.sha256((ROOT/'skills/vps-health/assets/chart-adapter.js').read_bytes()).hexdigest(),
                      'checks':checks,'result':'PASS','synthetic_only':True,'route':'actual loopback workspace HTTP handler',
                      'not_claimed':['physical phone validation','independent model review','production fleet qualification']}
             if args.out:(args.out/'receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')

@@ -83,7 +83,7 @@ class ContextChartTest(unittest.TestCase):
             with self.assertRaises(ValueError):w.chart_history(data,300)
 
     def test_small_point_limits_stay_bounded(self):
-        for limit in (10,14,30,100,600):
+        for limit in (14,30,100,600):
             result=w.chart_history(points(),300,limit)
             self.assertLessEqual(len(result),limit)
 

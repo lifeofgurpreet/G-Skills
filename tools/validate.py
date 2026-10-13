@@ -42,6 +42,9 @@ def main():
     subprocess.run([sys.executable,str(ROOT/'tools/test_skill_study.py')],check=True)
     subprocess.run([sys.executable,str(SKILL/'tests/test_vps_health.py')],check=True)
     subprocess.run([sys.executable,str(SKILL/'tests/test_workspace.py')],check=True)
+    subprocess.run([sys.executable,str(SKILL/'tests/test_chart_context.py')],check=True)
+    subprocess.run([sys.executable,str(ROOT/'tools/test_vendor.py')],check=True)
+    subprocess.run([sys.executable,str(ROOT/'tools/test_release_package.py')],check=True)
     with tempfile.TemporaryDirectory() as directory:
         # Test the actual exported folder, not only imports from this repository.
         dest=Path(directory)/'standalone'
