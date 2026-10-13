@@ -22,11 +22,17 @@ ROOT=Path(__file__).resolve().parents[1]
 MAX_BYTES=16*1024*1024
 
 
-def read_tree(ref,root=ROOT):
+def read_tree(ref,root=ROOT,skill=None):
     if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_./-]{0,180}',ref):raise ValueError('invalid source ref')
     sha=subprocess.check_output(['git','rev-parse','--verify','--end-of-options',ref+'^{commit}'],cwd=root,text=True).strip()
     if not re.fullmatch('[a-f0-9]{40}',sha):raise ValueError('expected exact source commit')
-    raw=subprocess.check_output(['git','archive','--format=tar',sha],cwd=root)
+    paths=[]
+    if skill is not None:
+        collection.safe_name(skill)
+        exists=subprocess.run(['git','cat-file','-e',sha+':skills/'+skill+'/skill.json'],cwd=root,capture_output=True)
+        if exists.returncode:raise ValueError('selected skill is absent from the chosen source tree')
+        paths=['skills/'+skill,'tools/skills/'+skill,'LICENSE']
+    raw=subprocess.check_output(['git','archive','--format=tar',sha,*paths],cwd=root)
     if len(raw)>MAX_BYTES:raise ValueError('source exceeds reviewed archive size bound')
     files={}
     with tarfile.open(fileobj=io.BytesIO(raw)) as archive:
@@ -75,7 +81,7 @@ def verify_zip(raw,name,checker=None):
 
 
 def build(ref,out,skill,root=ROOT):
-    name=collection.safe_name(skill);sha,files=read_tree(ref,root)
+    name=collection.safe_name(skill);sha,files=read_tree(ref,root,name)
     prefix=f'skills/{name}/'
     if prefix+'skill.json' not in files:raise ValueError('selected skill is absent from the chosen source tree')
     doc=collection.validate_manifest(json.loads(files[prefix+'skill.json']),name)

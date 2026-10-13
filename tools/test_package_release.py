@@ -6,6 +6,7 @@ import json
 import subprocess
 import tempfile
 import unittest
+from unittest import mock
 import zipfile
 import collection
 import package_release as package
@@ -28,6 +29,14 @@ class CollectionPackageTest(unittest.TestCase):
         with zipfile.ZipFile(out/'writing-review-v4.5.6.zip') as archive:
             self.assertTrue(all(name.startswith('writing-review/') for name in archive.namelist()))
             self.assertFalse(any('meeting-notes' in name or 'vps' in name or 'tools/' in name for name in archive.namelist()))
+
+    def test_large_unrelated_skill_does_not_consume_selected_archive_budget(self):
+        (self.root/'skills/writing-review/unrelated.txt').write_text('x'*100000)
+        subprocess.run(['git','add','.'],cwd=self.root,check=True)
+        subprocess.run(['git','-c','user.name=Fixture','-c','user.email=fixture@example.invalid','commit','-qm','Large unrelated fixture'],cwd=self.root,check=True)
+        with mock.patch.object(package,'MAX_BYTES',50000):
+            d=package.build('HEAD',Path(self.temp.name)/'small','meeting-notes',self.root)
+        self.assertEqual(d['skill'],'meeting-notes')
 
     def test_uncommitted_mutations_do_not_enter_a_release(self):
         p=self.root/'skills/meeting-notes/SKILL.md';p.write_text('uncommitted change')

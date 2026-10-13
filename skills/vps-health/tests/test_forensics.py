@@ -8,6 +8,8 @@ import sys
 import tempfile
 import unittest
 from unittest import mock
+from types import SimpleNamespace
+import time
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'scripts'))
 import vps_forensics as f
 import vps_health as core
@@ -147,5 +149,49 @@ class MigrationTest(unittest.TestCase):
             path=Path(folder)/'snapshot.json';f.save_private(path,fixture())
             if os.name=='posix':self.assertEqual(path.stat().st_mode&0o777,0o600)
             with self.assertRaises(FileExistsError):f.save_private(path,fixture())
+
+class RetentionTest(unittest.TestCase):
+    def interval(self):
+        a,b=pair()
+        def cpu(context,value):
+            return {'start_ns':context['start_ns'],'end_ns':context['end_ns'],
+                    'wall_start_ns':context['wall_ns'],'wall_end_ns':context['wall_ns']+1000000,
+                    'boot_fingerprint':'same-boot','cpus':{'cpu0':[value,0,0,0,0,0,0,0]},
+                    'pressure':{'cpu':None,'io':None,'memory':None},'guest_context':context}
+        return core.local_interval(cpu(a,100),cpu(b,1100),100,10)
+
+    def test_cpu_interval_retains_independent_guest_context(self):
+        row=self.interval()
+        self.assertEqual(row['guest_context']['schema'],f.INTERVAL)
+        self.assertEqual(row['guest_context']['quality'],[])
+        self.assertAlmostEqual(row['cpu_accounted_ratio'],1,places=3)
+
+    def test_malformed_optional_context_does_not_fabricate_or_destroy_cpu_result(self):
+        a,b=pair()
+        def cpu(context,value):
+            return {'start_ns':context['start_ns'],'end_ns':context['end_ns'],
+                    'wall_start_ns':context['wall_ns'],'wall_end_ns':context['wall_ns']+1000000,
+                    'boot_fingerprint':'same-boot','cpus':{'cpu0':[value,0,0,0,0,0,0,0]},
+                    'pressure':{'cpu':None,'io':None,'memory':None},'guest_context':{'schema':'invalid'}}
+        row=core.local_interval(cpu(a,100),cpu(b,1100),100,10)
+        self.assertAlmostEqual(row['cpu_accounted_ratio'],1,places=3)
+        self.assertEqual(row['guest_context']['quality'],['invalid_context'])
+        self.assertEqual(row['guest_context']['storage'],[])
+
+    def test_retained_database_and_status_keep_context_without_certifying_health(self):
+        import vps_workspace as ws
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp)/'private'
+            ws.bootstrap(SimpleNamespace(workspace=root,mode='local',node='example-node',profile=None,url=None,loki_url=None,
+                token_env=None,loki_token_env=None,allow_http=False,interval=60,acceptable=.9,investigate_below=.8))
+            row=self.interval();stamp=row['timestamp']
+            capture=core.new_capture('example-node','passive-linux',stamp-10,stamp,10);capture['samples']=[row]
+            cfg=ws.config_load(root)[1];ws.ingest(root,cfg,[capture],observed=stamp)
+            value=ws.status(root,now=stamp)
+            self.assertEqual(value['assets'][0]['decision'],'HOLD')
+            self.assertEqual(value['assets'][0]['guest_context']['schema'],f.INTERVAL)
+            self.assertTrue(value['assets'][0]['guest_context_current'])
+            later=ws.status(root,now=stamp+3600)
+            self.assertFalse(later['assets'][0]['guest_context_current'])
 
 if __name__=='__main__':unittest.main()
