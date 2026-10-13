@@ -1,3 +1,8 @@
+> For persistent monitoring, start with [bootstrap.md](bootstrap.md). This reference
+> retains the original one-off capture/report CLI. These two routes share the
+> collector but have different retention formats: immutable report bundles versus
+> a private workspace database. Do not pass a summary export to original `verify`.
+
 # Operating the skill
 
 ## Installation

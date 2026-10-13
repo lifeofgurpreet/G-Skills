@@ -1,0 +1,20 @@
+{
+  "schema": "g-skills.vps-profile.v1",
+  "assets": [
+    {
+      "id": "web-example",
+      "instance": "192.0.2.10:9100",
+      "provider": "hetzner",
+      "plan": "verify-exact-plan",
+      "epoch": "initial",
+      "loki_selector": "{job=\"example\",host=\"web-example\"}"
+    },
+    {
+      "id": "worker-example",
+      "instance": "198.51.100.20:9100",
+      "provider": "contabo",
+      "plan": "verify-exact-plan",
+      "epoch": "initial"
+    }
+  ]
+}

@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark light"><meta name="referrer" content="no-referrer">
+<title>VPS Health · G-Skills</title>
+<style>
+:root{--bg:#0c111b;--panel:#151d2b;--line:#2c394d;--text:#e8edf5;--muted:#9cabc0;--good:#86dec1;--watch:#edc674;--bad:#f58b9b;--accent:#a7bffc}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px/1.55 system-ui,-apple-system,sans-serif}main{max-width:1220px;margin:auto;padding:32px 24px 64px}header{display:flex;justify-content:space-between;gap:24px;align-items:center;border-bottom:1px solid var(--line);padding-bottom:24px}.eyebrow{font-size:11px;letter-spacing:.17em;text-transform:uppercase;color:var(--accent);font-weight:700}h1{font-size:36px;line-height:1.15;letter-spacing:-.03em;margin:10px 0}h2{font-size:20px;letter-spacing:-.02em;margin:0 0 12px}h3{font-size:16px;margin:0}p{margin:8px 0}.muted,small{color:var(--muted)}.tag{display:inline-block;padding:4px 10px;border:1px solid var(--line);border-radius:6px;font-size:11px;font-weight:700;letter-spacing:.04em}.tag.good{color:var(--good)}.tag.warn{color:var(--watch)}.tag.bad{color:var(--bad)}.banner{padding:13px 16px;border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:5px;background:var(--panel);margin-top:24px}.banner.demo{border-left-color:var(--watch);color:var(--watch)}.banner.error{border-left-color:var(--bad);color:var(--bad)}.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin:24px 0}.kpi{background:var(--panel);padding:20px;border:1px solid var(--line);border-radius:9px}.kpi strong{display:block;font-size:31px;font-weight:650;letter-spacing:-.04em}.kpi span{font-size:12px;color:var(--muted)}.section{margin:32px 0}.section-title{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:14px}.tabs{display:flex;gap:8px}button{font:inherit;color:var(--text);background:var(--panel);border:1px solid var(--line);padding:6px 12px;border-radius:5px;cursor:pointer}button[aria-pressed=true],button:hover{border-color:var(--accent);color:var(--accent)}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}.card{background:var(--panel);border:1px solid var(--line);border-radius:9px;overflow:hidden}.cardhead{padding:18px 20px 0;display:flex;justify-content:space-between;gap:12px;align-items:start}.nodeid{overflow-wrap:anywhere}.reading{display:flex;align-items:baseline;gap:12px;padding:12px 20px 0}.number{font-size:40px;letter-spacing:-.04em;font-weight:650}.reading small{font-size:12px}.chart{width:100%;height:156px;display:block;margin:4px 0}.stats{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}.stats div{padding:12px 18px}.stats strong{display:block;font-size:16px}.stats small{font-size:11px}.detail{padding:16px 20px}.detail p{font-size:13px}.context{font-size:11px;letter-spacing:.03em;color:var(--watch)}details{border-top:1px solid var(--line);margin-top:14px;padding-top:12px}summary{cursor:pointer;font-size:12px;color:var(--muted)}.holds{padding-left:16px;font-size:12px;color:var(--muted)}table{width:100%;border-collapse:collapse;font-size:12px}th,td{padding:9px 7px;text-align:left;border-bottom:1px solid var(--line)}th{color:var(--muted);font-weight:500}.scroll{overflow:auto;border:1px solid var(--line);border-radius:8px;background:var(--panel);padding:10px 14px}.empty{padding:28px;color:var(--muted);text-align:center}.legend{font-size:12px;color:var(--muted);margin-top:10px}.footer{border-top:1px solid var(--line);padding-top:18px;margin-top:36px;color:var(--muted);font-size:12px;display:flex;justify-content:space-between;gap:20px}.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}@media(max-width:740px){main{padding:20px 14px 36px}h1{font-size:29px}header{align-items:start;flex-direction:column;gap:12px}.kpis{grid-template-columns:repeat(2,1fr);gap:10px}.grid{grid-template-columns:1fr}.section-title,.footer{flex-direction:column;align-items:start}.stats div{padding:10px}.number{font-size:34px}}
+</style>
+</head>
+<body><main>
+<header><div><div class="eyebrow">G-Skills / Evidence-led operations</div><h1>VPS health workspace</h1><p class="muted">One place for coverage, workload context, and the next useful check.</p></div><div><div id="connection" class="tag">Loading retained history</div><p id="asof" class="muted"></p></div></header>
+<div id="notice" role="status" class="banner"></div>
+<div id="transport-error" role="alert" class="banner error" hidden></div>
+<section class="kpis" aria-label="Workspace overview" id="kpis"></section>
+<section class="section"><div class="section-title"><h2>Configured subjects</h2><div class="tabs" role="group" aria-label="Filter subjects"><button type="button" data-filter="all" aria-pressed="true">All subjects</button><button type="button" data-filter="attention" aria-pressed="false">Needs attention</button></div></div><div id="cards" class="grid"></div><p id="legend" class="legend"></p></section>
+<section class="section"><h2>Daily evidence</h2><p class="muted">UTC rollups from retained observations. Partial days and missing coverage stay visible.</p><div class="scroll"><table><thead><tr><th>UTC day</th><th>Subject</th><th>Accounted mean</th><th>Coverage of observed horizon</th><th>Full UTC day elapsed?</th></tr></thead><tbody id="daily"></tbody></table></div></section>
+<section class="section"><h2>Collection activity</h2><p class="muted">An errored collection is not a healthy result. Endpoint details and raw logs are never served here.</p><div class="scroll"><table><thead><tr><th>Observed UTC</th><th>Outcome</th><th>Detail</th></tr></thead><tbody id="events"></tbody></table></div></section>
+<footer class="footer"><span>Accounting is not physical-core entitlement. Pressure can reflect demand, reduced supply, or both.</span><span>Nothing here authorizes provider contact, migration or host changes.</span></footer>
+</main>
+<script id="initial-state" type="application/json">/*STATUS_JSON*/</script>
+<script>
+'use strict';
+const live = /*LIVE_MODE*/;
+let state=JSON.parse(document.getElementById('initial-state').textContent),filter='all';
+const fmt=(n,d=1)=>n===null||n===undefined?'—':(n*100).toFixed(d)+'%';
+const text=(tag,value,cls)=>{const n=document.createElement(tag);n.textContent=value;if(cls)n.className=cls;return n};
+const readable=s=>s.replaceAll('_',' ').toLowerCase();
+const utc=t=>t?new Date(t*1000).toISOString().replace('T',' ').slice(0,19)+' UTC':'No observations yet';
+const age=s=>s===null?'unmeasured':s<120?'less than 2 minutes ago':s<7200?Math.floor(s/60)+' minutes ago':Math.floor(s/3600)+' hours ago';
+const tone=n=>n.decision==='HOLD'?'warn':n.decision==='INVESTIGATE'?'bad':n.decision==='WATCH'?'warn':'good';
+function chart(n){
+ const ns='http://www.w3.org/2000/svg';const svg=document.createElementNS(ns,'svg');svg.setAttribute('viewBox','0 0 520 150');svg.setAttribute('role','img');svg.setAttribute('aria-label','Accounted CPU history for '+n.id);svg.classList.add('chart');
+ const el=(tag,attrs)=>{const e=document.createElementNS(ns,tag);Object.entries(attrs).forEach(([k,v])=>e.setAttribute(k,v));svg.appendChild(e);return e};
+ const y=v=>125-v*100;
+ [.5,1].forEach(v=>{el('line',{x1:42,y1:y(v),x2:500,y2:y(v),stroke:'#2c394d'});const label=el('text',{x:5,y:y(v)+4,fill:'#9cabc0','font-size':10});label.textContent=Math.round(v*100)+'%'});
+ [state.policy.acceptable_ratio,state.policy.investigate_below].forEach(v=>el('line',{x1:42,y1:y(v),x2:500,y2:y(v),stroke:'#8b9ab2','stroke-dasharray':'4 5','stroke-width':.8}));
+ const series=n.history;if(!series.length){const label=el('text',{x:260,y:80,fill:'#9cabc0','text-anchor':'middle','font-size':13});label.textContent='Waiting for first measured interval';return svg}
+ const start=series[0].t,end=Math.max(state.as_of,start+1);let points=[],last=null;
+ const flush=()=>{if(points.length){el('polyline',{points:points.join(' '),fill:'none',stroke:'#a7bffc','stroke-width':2});points=[]}};
+ const gaps=series.slice(1).map((p,i)=>p.t-series[i].t).filter(x=>x>0).sort((a,b)=>a-b);const step=gaps.length?gaps[Math.floor(gaps.length/2)]:300;
+ for(const p of series){if(p.value===null||last!==null&&p.t-last>step*2.5)flush();if(p.value!==null){const x=42+458*(p.t-start)/(end-start);points.push(x.toFixed(1)+','+y(p.value).toFixed(1))}last=p.t}flush();
+ if(n.stale){const t=el('text',{x:494,y:146,fill:'#edc674','text-anchor':'end','font-size':10});t.textContent='No synthetic fill after last observation'}
+ return svg;
+}
+function card(n){
+ const c=text('article','', 'card');const head=text('div','', 'cardhead');head.append(text('h3',n.id,'nodeid'),text('span',n.decision.replaceAll('_',' '),'tag '+tone(n)));c.append(head);
+ const r=text('div','', 'reading');r.append(text('span',fmt(n.mean),'number'),text('small','accounted mean · '+readable(n.observed)));c.append(r,chart(n));
+ const stats=text('div','', 'stats');[['Coverage',fmt(n.coverage,0)],['Observed / elapsed',n.observed_hours.toFixed(1)+' / '+n.elapsed_hours.toFixed(1)+'h'],['Latest',age(n.age_seconds)]].forEach(([k,v])=>{const d=text('div','');d.append(text('strong',v),text('small',k));stats.append(d)});c.append(stats);
+ const details=text('div','', 'detail');details.append(text('span',readable(n.context),'context'),text('p',n.recommendation));
+ const info=text('details','');info.append(text('summary',n.holds.length+' evidence limitations · execution '+fmt(n.execution)+', pressure '+fmt(n.pressure)));
+ const ul=text('ul','', 'holds');n.holds.forEach(h=>ul.append(text('li',readable(h))));info.append(ul,text('small','Current epoch only. Host migration continuity needs owner evidence.'));details.append(info);c.append(details);return c;
+}
+function render(){
+ document.getElementById('connection').textContent=state.synthetic?'SYNTHETIC DEMO':live?'LOCAL LIVE VIEW':'OFFLINE SNAPSHOT';
+ document.getElementById('asof').textContent='As of '+utc(state.as_of);
+ const notice=document.getElementById('notice');notice.className='banner'+(state.synthetic?' demo':'');notice.textContent=state.synthetic?'Synthetic 3-day example — not measurements of real servers. Try filters and inspect the visible gaps.':'Private workspace · '+state.scope+'. Live view refreshes derived history; the collector must be running separately or through watch --serve.';
+ const counters=[['Expected subjects',state.expected_assets],['Decision held',state.assets.filter(n=>n.decision==='HOLD').length],['Retained captures',state.stored_captures],['Raw storage',(state.stored_bytes/1048576).toFixed(1)+' MiB']];const kpis=document.getElementById('kpis');kpis.replaceChildren();for(const [k,v] of counters){const e=text('div','', 'kpi');e.append(text('strong',String(v)),text('span',k));kpis.append(e)}
+ const cards=document.getElementById('cards');cards.replaceChildren();const list=state.assets.filter(n=>filter==='all'||n.decision!=='WITHIN_TOLERANCE');list.forEach(n=>cards.append(card(n)));if(!list.length)cards.append(text('div','No subjects in this filter. Service impact still needs separate verification.','empty'));
+ document.getElementById('legend').textContent='Chosen policy: tolerate '+fmt(state.policy.acceptable_ratio,0)+' or above · watch between '+fmt(state.policy.investigate_below,0)+' and '+fmt(state.policy.acceptable_ratio,0)+' · investigate below '+fmt(state.policy.investigate_below,0)+'. Dashed lines are policy references, not provider guarantees. HOLD overrides all three when evidence is insufficient.';
+ const daily=document.getElementById('daily');daily.replaceChildren();state.assets.flatMap(n=>n.daily.map(d=>({...d,id:n.id}))).sort((a,b)=>b.date.localeCompare(a.date)||a.id.localeCompare(b.id)).forEach(d=>{const tr=text('tr','');[d.date,d.id,fmt(d.accounted_mean),fmt(d.coverage,0),d.complete_utc_day?'Yes':'Partial day'].forEach(v=>tr.append(text('td',v)));daily.append(tr)});
+ const events=document.getElementById('events');events.replaceChildren();state.collection_attempts.forEach(a=>{const tr=text('tr','');[utc(a.observed),a.outcome,a.detail].forEach(v=>tr.append(text('td',v)));events.append(tr)});
+}
+document.querySelectorAll('[data-filter]').forEach(button=>button.addEventListener('click',()=>{filter=button.dataset.filter;document.querySelectorAll('[data-filter]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));render()}));
+render();
+if(live&&location.protocol==='http:')setInterval(async()=>{const error=document.getElementById('transport-error');try{const controller=new AbortController();const timeout=setTimeout(()=>controller.abort(),4000);let r;try{r=await fetch('/api/status',{cache:'no-store',signal:controller.signal})}finally{clearTimeout(timeout)}if(!r.ok)throw Error('response');state=await r.json();render();error.hidden=true}catch{error.hidden=false;error.textContent='Dashboard disconnected. Retained values are frozen, not fresh. Check the local server and collector.';document.getElementById('connection').textContent='DISCONNECTED'}},5000);
+</script></body></html>

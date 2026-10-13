@@ -15,11 +15,12 @@ from pathlib import Path
 import re
 import sys
 import time
+import sqlite3
 import urllib.error
 import urllib.parse
 import urllib.request
 
-VERSION = '0.1.0'
+VERSION = '0.2.0'
 SCHEMA = 'g-skills.vps-capture.v1'
 ROOT = Path(__file__).resolve().parents[1]
 MAX_BYTES = 8 * 1024 * 1024
@@ -507,8 +508,14 @@ def main(argv=None):
     a=sub.add_parser('verify');a.add_argument('bundle',type=Path)
     a=sub.add_parser('learn');a.add_argument('bundle',type=Path);a.add_argument('--out',required=True,type=Path)
     a=sub.add_parser('compare');a.add_argument('before',type=Path);a.add_argument('after',type=Path)
+    import vps_workspace as workspace
+    workspace.register(sub)
     args=p.parse_args(argv)
     try:
+        if args.cmd in workspace.COMMANDS:
+            result=workspace.dispatch(args)
+            print(json.dumps(result,indent=2,allow_nan=False))
+            return 0
         if args.cmd=='demo':result=report(read_json(ROOT/'assets/demo-capture.json'),args.out)
         elif args.cmd=='collect-local':
             if args.out.exists():raise InvalidEvidence('output exists; no observation will be started')
@@ -528,11 +535,11 @@ def main(argv=None):
                 d=read_json(path);captures.extend(d if isinstance(d,list) else [d])
             result=report(captures,args.out)
         elif args.cmd=='verify':result=verify_bundle(args.bundle)
-        elif args.cmd=='learn':result=lesson_proposal(args.bundle,args.out)
+        elif args.cmd=='learn':result=workspace.learning_proposal(args.bundle,args.out) if (args.bundle/'workspace.json').exists() else lesson_proposal(args.bundle,args.out)
         else:result=compare(args.before,args.after)
         print(json.dumps(result,indent=2,allow_nan=False))
         return 0
-    except (InvalidEvidence,OSError,KeyError,TypeError,UnicodeError) as exc:
+    except (InvalidEvidence,OSError,KeyError,TypeError,UnicodeError,sqlite3.Error) as exc:
         print('ERROR: '+type(exc).__name__+': '+str(exc)[:240],file=sys.stderr);return 2
 
 

@@ -32,3 +32,21 @@ Most of these are better encoded in data shape and tests than repeated as longer
 ## Inspiration and licensing
 
 Jeffrey's public [skill description](https://www.jeffreys-skills.md/) demonstrates progressive disclosure, scripts, validation and deterministic versioning. [pstack](https://github.com/cursor/plugins/tree/main/pstack) provides public verification and simplification principles. Apply their approach; do not copy premium skill bodies, run their paid sync tools for public redistribution, or imply affiliation.
+
+
+## Persistent workspace proposals
+
+The same command now accepts either an original verified report bundle or a
+workspace. For example:
+
+```bash
+python3 skills/vps-health/scripts/vps_health.py learn "$HOME/vps-health" --out "$HOME/vps-lesson-001.json"
+```
+
+Workspace proposals contain only fixed decision/gap categories and content
+hashes. No host alias, endpoint, plan, raw log, message text or user impact prose
+is copied. The output is still `PROPOSED_NOT_APPLIED`; no code, threshold, policy,
+service, message or public upload is changed. The maintainer must reproduce the
+pattern with a synthetic test before implementing a release. A common failure
+is an empty but successful scrape refreshing the apparent age of an old sample;
+its regression should assert freshness of the observation, not the request.
