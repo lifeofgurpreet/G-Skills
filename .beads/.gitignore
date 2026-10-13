@@ -1,0 +1,6 @@
+*.db
+*.db-*
+*.lock
+*.log
+.sync*
+metadata.json
