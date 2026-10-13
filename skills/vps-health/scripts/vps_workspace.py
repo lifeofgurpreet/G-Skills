@@ -28,7 +28,7 @@ import uuid
 
 import vps_health as core
 
-VERSION = '0.2.0'
+VERSION = '0.3.0'
 SCHEMA = 'g-skills.workspace.v1'
 SELF_HASH = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
 MAX_STORE_BYTES = 256 * 1024 * 1024
@@ -334,7 +334,8 @@ def chart_history(points, cadence, limit=600):
     invalid = [bool(p.get('quality') or p.get('conflict') or p.get('cpu_accounted_ratio') is None) for p in points]
     breaks = [0]
     for index, point in enumerate(points):
-        gap = index > 0 and point['timestamp'] - points[index - 1]['timestamp'] > cadence * 2.5
+        interval_start = point['timestamp'] - point.get('duration_seconds', cadence)
+        gap = index > 0 and interval_start > points[index - 1]['timestamp'] + max(.001, cadence * .001)
         breaks.append(breaks[-1] + int(invalid[index] or gap))
     width = max(1, math.ceil(len(points) / (limit // 5)))
     selected = set()

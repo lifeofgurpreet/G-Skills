@@ -67,6 +67,10 @@ def main():
             page.get_by_label('Inspect sample',exact=True).focus();page.keyboard.press('Home')
             first=page.locator('#sample-value').inner_text();page.keyboard.press('End')
             assert page.locator('#sample-value').inner_text()!=first
+            latest=page.locator('#sample-value').inner_text()
+            page.locator('#history-chart svg').hover(position={'x':55,'y':85})
+            expect(page.locator('#sample-value')).not_to_have_text(latest)
+            if args.out:page.screenshot(path=str(args.out/'missing-data.png'))
             passed('row/dropdown selection and keyboard sample inspection')
 
             page.get_by_label('Filter by evidence state').select_option('held')
@@ -135,13 +139,24 @@ def main():
                 if width<=390:
                     for selector in ('#save-summary','#node-selector','#node-search','#state-filter','#sample-inspector'):
                         assert page.locator(selector).bounding_box()['height']>=44,(width,selector)
-                if args.out and width==390:page.screenshot(path=str(args.out/'mobile.png'))
+                if args.out and width==390:
+                    page.screenshot(path=str(args.out/'mobile.png'))
+                    page.screenshot(path=str(args.out/'mobile-full.png'),full_page=True)
             passed('desktop/tablet/phone/minimum-width layout and touch target dimensions')
             page.set_viewport_size({'width':1440,'height':1000})
             page.get_by_label('Search nodes').focus()
             page.keyboard.press('Tab');expect(page.get_by_label('Filter by evidence state')).to_be_focused()
             assert page.get_by_label('Filter by evidence state').evaluate('e=>getComputedStyle(e).outlineStyle')!='none'
             passed('keyboard order and visible focus')
+            colors=page.evaluate("Object.fromEntries(['--ink','--muted','--paper','--canvas','--soft','--strong'].map(k=>[k,getComputedStyle(document.documentElement).getPropertyValue(k).trim()]))")
+            def luminance(value):
+                channels=[int(value[i:i+2],16)/255 for i in (1,3,5)]
+                linear=[x/12.92 if x<=.04045 else ((x+.055)/1.055)**2.4 for x in channels]
+                return sum(x*y for x,y in zip(linear,(.2126,.7152,.0722)))
+            for foreground,background in [(colors[a],colors[b]) for a in ('--ink','--muted') for b in ('--paper','--canvas','--soft')]+[('#ffffff',colors['--strong'])]:
+                low,high=sorted((luminance(foreground),luminance(background)))
+                assert (high+.05)/(low+.05)>=4.5,(foreground,background)
+            passed('main text and status text contrast at least 4.5 to 1')
 
             # Stage edge fixtures through the read endpoint. Signoff still uses
             # real inputs, not DOM mutations or calls into renderer internals.
@@ -166,6 +181,9 @@ def main():
                      'not_claimed':['physical phone validation','independent model review','production fleet qualification']}
             if args.out:(args.out/'receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
             print(json.dumps(receipt,indent=2))
+        except Exception:
+            if args.out:page.screenshot(path=str(args.out/'failure.png'),full_page=True)
+            raise
         finally:
             context.close();browser.close();server.shutdown();server.server_close();thread.join(5)
     return 0

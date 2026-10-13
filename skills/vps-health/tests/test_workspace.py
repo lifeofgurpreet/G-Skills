@@ -388,6 +388,12 @@ class ChartEvidenceTest(unittest.TestCase):
         after=next(p for p in result if p['t']>points[43]['timestamp'])
         self.assertTrue(after['break_before'])
 
+    def test_one_missing_interval_is_not_connected(self):
+        points=self.points(100);del points[40]
+        result=w.chart_history(points,300)
+        after=next(p for p in result if p['t']==1800000000+41*300)
+        self.assertTrue(after['break_before'])
+
     def test_absent_intervals_get_an_explicit_line_break(self):
         points=self.points();del points[40:400]
         result=w.chart_history(points,300)

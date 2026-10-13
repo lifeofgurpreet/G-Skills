@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.3.0 — Operator workbench and repeatable skill research
+
+- Replace the dark pastel card stack with a neutral, responsive workbench, selected-node history, next-check context, searchable/filterable inventory and actual evidence/activity navigation.
+- Preserve chart bucket extrema and unknown-span breaks; the former stride sampler could hide short deficits and invalid intervals. Retained measurements and assessment thresholds remain unchanged.
+- Keep the last valid view on malformed or failed refreshes; preserve selection, expanded limitations and keyboard focus. Add larger phone controls and local JSON summary downloads.
+- Add a private-only local skill-study plan, an original applicability method and an explicit seven-source research receipt. Indexing is not a claim of reading or applying every installed skill.
+- Add actual-loopback Playwright CI alongside the Python and standalone-folder checks. Browser tooling is developer-only; no new runtime stack, external assets, sender or deployment capability.
+
+Compatibility: existing workspace format remains v1. A collector source/version
+change is a measurement-epoch boundary; retain prior code and private history
+instead of silently pooling different methods. Summary downloads are not raw
+workspace backups. No automatic migration or timer installation occurs.
+
+
 ## 0.2.0 — Private monitoring workspaces
 
 - Guided demo, one-node Linux and existing Prometheus/Loki bootstrap.

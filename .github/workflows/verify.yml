@@ -37,3 +37,11 @@ jobs:
           python -m playwright install --with-deps chromium
       - name: Exercise the actual loopback dashboard
         run: python tools/test_dashboard.py --out "$RUNNER_TEMP/dashboard-proof"
+      - name: Retain synthetic browser evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: dashboard-${{ github.sha }}
+          path: ${{ runner.temp }}/dashboard-proof
+          if-no-files-found: error
+          retention-days: 7
