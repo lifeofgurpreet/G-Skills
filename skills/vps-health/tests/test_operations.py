@@ -141,6 +141,18 @@ class DoctorTest(unittest.TestCase):
         self.assertIsNone(d['collector_process_running'])
         self.assertFalse(d['can_install_services'])
 
+    def test_malformed_asset_is_a_diagnostic_not_a_traceback(self):
+        bootstrap(self.root,'local');cfg=core.read_json(self.root/'workspace.json');cfg['assets']=[None]
+        workspace.atomic(self.root/'workspace.json',core.canonical(cfg));before=self.hashes()
+        self.assertEqual(ops.doctor(self.root)['verdict'],'UNAVAILABLE')
+        self.assertEqual(self.hashes(),before)
+
+    def test_malformed_policy_is_a_diagnostic_not_a_traceback(self):
+        bootstrap(self.root,'local');cfg=core.read_json(self.root/'workspace.json');cfg['policy']=[]
+        workspace.atomic(self.root/'workspace.json',core.canonical(cfg));before=self.hashes()
+        self.assertEqual(ops.doctor(self.root)['verdict'],'UNAVAILABLE')
+        self.assertEqual(self.hashes(),before)
+
     def test_missing_database_is_not_created(self):
         bootstrap(self.root);(self.root/'history.sqlite3').unlink();before=self.hashes()
         result=ops.doctor(self.root)
