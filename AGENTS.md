@@ -18,3 +18,10 @@ checks. Never update a vendor hash merely to dismiss a failed check. Package one
 committed tree using `tools/package_release.py`, then inspect its actual standalone
 ZIP root, licenses and cold bootstrap. Do not claim speedups, framework-completion
 scores or independent review without their corresponding evidence.
+
+Operator features share the existing measurement authority. Acknowledgment and
+notifications never change evidence state; a recurring resolved finding must be
+visible again. Diagnose offline before proposing a fix. Provider references must
+have source scope and review dates: usage allowance is not a delivery floor.
+Test missing/malformed contexts, real cold CLI paths and notification permission
+boundaries. A simulated notification API is not a physical operating-system test.

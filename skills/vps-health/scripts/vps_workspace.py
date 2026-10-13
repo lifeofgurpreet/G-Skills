@@ -28,7 +28,7 @@ import uuid
 
 import vps_health as core
 
-VERSION = '0.4.0'
+VERSION = '0.5.0'
 SCHEMA = 'g-skills.workspace.v1'
 SELF_HASH = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
 MAX_STORE_BYTES = 256 * 1024 * 1024
@@ -696,7 +696,7 @@ def dispatch(args):
         if args.cmd=='providers':return ops.providers(args.provider)
         return ops.brief(status(args.workspace))
     if args.cmd=='bootstrap':return bootstrap(args)
-    if args.cmd=='capabilities':return {'version':VERSION,'commands':sorted(set(COMMANDS)|{'demo','collect-local','collect-prometheus','report','verify','compare','learn'}),'default_mode':'synthetic demo','privacy':'local workspace only','can_send_email':False,'can_install_services':False,'can_stress_test':False,'exit_codes':{'0':'command completed; not a healthy/causal verdict','2':'invalid input, safety refusal or operation error'},'next':'bootstrap --workspace PRIVATE_NEW_DIRECTORY --mode demo'}
+    if args.cmd=='capabilities':return {'version':VERSION,'commands':sorted(set(COMMANDS)|{'demo','collect-local','collect-prometheus','report','verify','compare','learn'}),'default_mode':'synthetic demo','privacy':'local workspace only','can_send_email':False,'can_install_services':False,'can_stress_test':False,'exit_codes':{'0':'command completed; doctor checks ready, not a service-health verdict','1':'doctor findings or workspace unavailable','2':'invalid input, safety refusal or operation error'},'next':'bootstrap --workspace PRIVATE_NEW_DIRECTORY --mode demo'}
     if args.cmd=='collect':return collect(args.workspace,args.lookback_hours)
     if args.cmd=='dashboard':return render(config_load(args.workspace)[0])
     if args.cmd=='watch':return watch(args)

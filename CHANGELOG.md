@@ -1,5 +1,16 @@
 # Changelog
 
+
+## 0.5.0 — The operator journey
+
+- Read-only `doctor`, shared CLI/dashboard `brief`, and dated `providers` reference commands.
+- A redesigned workbench with an interval evidence ribbon, prioritized attention inbox, setup routes and provider guide.
+- Opt-in, current-viewer-only desktop notifications; stable findings deduplicate refreshes and resolved incidents can recur unread.
+- Separate explicit plan-question and evidence-gated performance-review draft purposes. No sender or automatic host actions.
+- Original first-hour and agent handoff playbooks; provider allocation, sustained-use allowance and credits remain distinct.
+- Actual ZIP checks include operator assets and cold doctor/brief/provider routes. Existing CPU policy and raw measurements are unchanged.
+
+
 ## 0.3.0 — Operator workbench and repeatable skill research
 
 - Replace the dark pastel card stack with a neutral, responsive workbench, selected-node history, next-check context, searchable/filterable inventory and actual evidence/activity navigation.

@@ -30,7 +30,7 @@
   function mount(targets,callbacks={}){
     if(typeof uPlot!=='function')throw new Error('Bundled chart engine unavailable');
     let ready=false,updating=false,bundle=prepare([]),history=[],windowBounds=null,full=[0,1],node='';
-    const colors={ink:'#27312a',execution:'#687ea0',pressure:'#887254',cfs:'#625a76',grid:'#e6e7e2',text:'#626760'};
+    const colors={ink:'#3155d9',execution:'#098f97',pressure:'#b05e20',cfs:'#96529a',grid:'#e4eaf3',text:'#526174'};
     const sync='vps-'+Math.random().toString(36).slice(2);
     function cursor(plot){if(!ready||updating)return;const index=plot.cursor.idx;if(index!==null&&index!==undefined&&bundle.indices[index]>=0)callbacks.inspect?.(bundle.indices[index]);else if(index!==null&&index!==undefined)callbacks.gap?.(bundle.data[0][index]);}
     const axis={stroke:colors.text,font:'10px ui-monospace, monospace',grid:{stroke:colors.grid,width:1},ticks:{show:false},gap:8};
@@ -42,10 +42,10 @@
         axes:[{...axis,size:30,space:90,grid:{show:false},values:(u,values)=>values.map(t=>{const d=new Date(t*1000);return u.scales.x.max-u.scales.x.min>86400?d.toISOString().slice(5,16).replace('T',' '):d.toISOString().slice(11,16);})},yAxis],
         cursor:{drag:{x:true,y:false,setScale:true},sync:{key:sync,scales:['x',null]},points:{size:6}},select:{show:true},
         series:[{},...(context?[
-          {label:'CPU pressure',stroke:colors.pressure,width:1.6,dash:[4,3],spanGaps:false,points:{show:false}},
+          {label:'CPU pressure',stroke:colors.pressure,fill:'rgba(176,94,32,.035)',width:1.6,dash:[4,3],spanGaps:false,points:{show:false}},
           {label:'Throttled periods',stroke:colors.cfs,width:1.6,dash:[2,3],spanGaps:false,points:{show:false}}
         ]:[
-          {label:'Accounted time',stroke:colors.ink,width:2,spanGaps:false,points:{show:false}},
+          {label:'Accounted time',stroke:colors.ink,fill:'rgba(49,85,217,.065)',width:2.2,spanGaps:false,points:{show:false}},
           {label:'Recorded execution',stroke:colors.execution,width:1.4,dash:[5,3],spanGaps:false,points:{show:false}},
           {label:'Tolerance reference',stroke:'#b1b6aa',width:1,dash:[3,5],spanGaps:true,points:{show:false}}
         ])],hooks:{setCursor:[cursor],setScale:[changed]}};

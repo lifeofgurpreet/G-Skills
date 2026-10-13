@@ -1,18 +1,57 @@
-# Provider-specific context
+# Provider context without invented guarantees
 
-Start with the actual product/plan and current primary documentation. Do not carry one supplier's terminology or another product's performance guidance into a contract claim. No percentage below is a universal CPU-delivery promise. These links were reviewed on 2026-10-13; versions, products and policies can change.
+The Providers view and `providers` command read the same packaged
+[typed catalog](../assets/provider-catalog.json). It contains original summaries
+and links to primary product documentation, reviewed on 2026-10-13 UTC. References
+ask for rechecking after 90 days; they never update themselves or fetch websites
+from the viewer. Review the live linked page before making a consequential claim.
 
-| Provider | Inspect before drawing a conclusion | Primary documentation |
+```bash
+python3 scripts/vps_health.py providers --provider hetzner
+python3 scripts/vps_health.py providers --provider aws
+```
+
+A selected provider card is not proof that a node uses that provider or plan.
+Record the exact purchased product, region and allocation model privately. The
+workspace accepts an owner-provided provider and plan label; it does not infer
+those from hostnames, CPU counts or a benchmark score.
+
+| Provider | Distinction that matters | Do not conclude |
 |---|---|---|
-| Contabo | Shared VPS versus dedicated-resource/VDS product, current plan, region, migration history. VDS benchmark advice is not a shared-VPS floor. | [VDS benchmark guidance](https://contabo.com/blog/benchmark-vds-cpu-performance/), [support](https://help.contabo.com/) |
-| Hetzner | Shared CX/CPX/CAX versus dedicated CCX, CPU thread semantics, generation and baseline/burst behavior. | [Cloud server FAQ](https://docs.hetzner.com/cloud/servers/faq/), [server overview](https://docs.hetzner.com/cloud/servers/overview/) |
-| DigitalOcean | Shared versus dedicated CPU Droplet class; premium hardware is not identical to dedicated allocation. Match plan and generation. | [Choosing a CPU Droplet plan](https://docs.digitalocean.com/products/droplets/concepts/choosing-a-plan/) |
-| Akamai/Linode | Shared versus dedicated plan and applicable sustained-usage policy. Allowed utilization is not the same as observed delivered time. | [Shared and dedicated CPUs](https://techdocs.akamai.com/cloud-computing/docs/choosing-between-shared-and-dedicated-cpus) |
-| AWS EC2 | Burstable versus non-burstable, credit balance, standard/unlimited mode, baseline and potential surplus-credit costs. A depleted credit balance is not evidence of a noisy neighbor. | [Credits and baseline concepts](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/burstable-credits-baseline-concepts.html) |
-| Other providers | CPU allocation model, fair-use/burst policy, plan identity, relevant limits, migration and restart semantics. Leave unknowns explicit. | Use that provider's primary product/support documentation. |
+| Contabo | Shared VPS versus dedicated-resource VDS | That dedicated-product benchmark advice is a shared-VPS floor |
+| Hetzner | Shared CX/CPX/CAX baseline/burst versus dedicated CCX | That a vCPU necessarily means an entire physical core |
+| DigitalOcean | Shared/dedicated allocation versus hardware generation | That Premium hardware alone means reserved CPU access |
+| Akamai / Linode | Sustained-usage allowance versus allocation/delivery | That the documented 80% shared usage allowance promises 80% delivered time |
+| AWS EC2 | Instance family, Standard/Unlimited mode and CPU credits | That credit depletion proves a noisy neighbor |
+| Other or unknown | Exact supplier, plan and dated primary source first | That another provider's rule can be borrowed |
 
-## Assembly contract
+The catalog classifies claims as allocation, usage allowance, credit model or
+billing behavior. None sets a `guaranteed_ratio`. The skill's 90%/80% bands remain
+the user's investigation preferences, not a contractual interpretation. Uptime
+commitments, performance expectations and compute allocation are not equivalent.
 
-The coding agent adapts the user's existing tools, not this provider list into automatic actions. A provider adapter should supply current expected asset identities, plan evidence, read-only monitoring selectors, known host epochs and the authority for any future controlled experiment. Keep credentials out of profile files. Use provider APIs only when the user authorizes the specific account/scope and a compatible tool is available.
+## References and scope
 
-Provider-support replies remain private evidence. Summarize their claim, time and scope. Do not assume an offered move occurred; do not infer permission to restart from a recommendation. If the user expressly requests a message later, one affected scope, one time window, verified observations and one question are usually more useful than pages of guessed CPU entitlement.
+- [Contabo VPS](https://docs.contabo.com/docs/servers-hosting/vps/) and [Max Performance VPS / VDS](https://docs.contabo.com/docs/servers-hosting/max-performance-vps/).
+- [Hetzner Cloud server FAQ](https://docs.hetzner.com/cloud/servers/faq/).
+- [DigitalOcean CPU plan guide](https://docs.digitalocean.com/products/droplets/concepts/choosing-a-plan/).
+- [Akamai shared/dedicated comparison](https://techdocs.akamai.com/cloud-computing/docs/choosing-between-shared-and-dedicated-cpus).
+- [EC2 credit/baseline concepts](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/burstable-credits-baseline-concepts.html) and [Unlimited mode](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/burstable-performance-instances-unlimited-mode-concepts.html).
+
+These are product/support references, not a complete review of a customer's legal
+agreement. Product names and terms can change. Contabo product summaries were
+checked against indexed official documentation; direct page retrieval was not
+reliable during this review. Do not describe the whole contract as inspected.
+
+## Adapting to another environment
+
+Use the owner's current expected assets, exact exporter labels, plan evidence and
+known host epochs. Keep API access in already approved tools; this catalog is not
+a cloud API integration. AWS credit metrics, application latency/errors, network
+loss and storage latency may require instruments outside this package. Missing
+context is unknown, not healthy. Another supplier can use `other` while its exact
+policy is reviewed; the agent must not guess a brand-specific rule.
+
+Support replies remain private. Summarize their actual scope and distinguish an
+offer, acknowledgment, start and completion. A provider statement does not itself
+authorize a new host action. See [correspondence.md](correspondence.md).

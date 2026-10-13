@@ -43,6 +43,11 @@ class PackageTest(unittest.TestCase):
             else:files['assets/vendor/uplot/uPlot.iife.min.js']+=b'changed'
             with self.subTest(mode=mode),self.assertRaises(ValueError):package.validate_skill(files)
 
+    def test_operator_files_are_required_in_the_actual_installable_archive(self):
+        for name in ('scripts/vps_ops.py','assets/operator.js','assets/operator.css','assets/provider-catalog.json'):
+            files=self.fixture();files.pop(name)
+            with self.subTest(name=name),self.assertRaises(ValueError):package.validate_skill(files)
+
     def test_paths_cannot_escape_the_export(self):
         with self.assertRaises(ValueError):package.zip_payload({'../../escape':b'x'},'vps-health/')
         with self.assertRaises(ValueError):package.zip_payload({'/absolute':b'x'},'vps-health/')

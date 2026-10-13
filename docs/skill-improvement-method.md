@@ -72,3 +72,14 @@ verify bytes before embedding it. A framework's published benchmark is not our
 observed performance. Keep the smallest fitting integration rather than carrying
 multiple libraries for prestige. Actual uploaded ZIP shape and extracted startup
 are release requirements; a copied source directory is only an earlier check.
+
+
+## Operator-journey pass
+
+The [0.5 receipt](improvement-v0.5.0.json) records additional selected diagnostic,
+documentation and stateful-CLI guidance. The applied idea is not to transplant
+another tool's entire machinery: expose the missing user outcome in this tool,
+add a falsifiable contract, and retain the smallest implementation that passes.
+The cold doctor/brief/provider paths are now tested from the actual ZIP. For
+notification behavior, distinguish real viewer actions from the intentionally
+simulated operating-system permission boundary.

@@ -75,3 +75,23 @@ inside the selected view. Both are explicit local actions; neither is a provider
 submission or an independently signed evidence bundle. Retain the private
 workspace and normal export for deeper replay. The pinned MIT library, CSS and
 license are bundled; there is no browser CDN or third-party Python dependency.
+
+
+## Operator views in 0.5
+
+The interval ribbon uses the full normalized observation intervals and preserves
+minimum, mean and coverage per cell. Selecting it changes only the chart window.
+Arrow keys navigate cells; Enter selects. The numeric sample inspector remains
+an alternative to colour and pointer interaction.
+
+Attention uses the same `brief` result as the CLI. Acknowledgment is tab-local and
+never clears evidence; recovered findings lose the acknowledgment before a later
+recurrence. Desktop alerts require an explicit click and browser permission, only
+run while the viewer is open, and do not repeat unchanged findings. The operating
+system API may be unavailable; use the inbox instead. No notification service is
+installed. Browser checks simulate the OS permission boundary and separately
+exercise the real loopback viewer, SQLite, actions and downloads.
+
+Setup recipes describe effects and stop procedures but execute nothing in the
+browser. Provider cards are bundled dated references and open primary sources
+only when the user follows a link. They do not discover a plan or modify policy.

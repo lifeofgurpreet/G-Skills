@@ -19,6 +19,7 @@ from types import SimpleNamespace
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'skills/vps-health/scripts'))
 import vps_workspace as workspace
+import vps_ops as ops
 from playwright.sync_api import sync_playwright, expect
 
 
@@ -44,6 +45,10 @@ def main():
         browser=playwright.chromium.launch(**launch)
         context=browser.new_context(viewport={'width':1440,'height':1000},reduced_motion='reduce',accept_downloads=True)
         page=context.new_page();errors=[];requests=[]
+        # The OS permission boundary is simulated; DOM/server behavior is real.
+        page.add_init_script("""window.__notificationRequests=0;window.__notifications=[];
+        window.Notification=function(title,opts){window.__notifications.push({title,opts});this.close=()=>{};};
+        Notification.permission='default';Notification.requestPermission=async()=>{window.__notificationRequests++;Notification.permission='granted';return 'granted';};""")
         page.on('pageerror',lambda error:errors.append(str(error)))
         page.on('request',lambda request:requests.append(request.url))
         try:
@@ -58,6 +63,10 @@ def main():
             expect(page.locator('#context-chart canvas')).to_have_count(1)
             expect(page.locator('#history-chart .uplot')).to_have_attribute('data-chart-engine','uPlot')
             passed('actual server, three subjects, derived counts and selected history')
+            expect(page.locator('#attention-banner')).to_be_visible()
+            expect(page.locator('#evidence-ribbon button')).to_have_count(48)
+            assert page.evaluate('window.__notificationRequests')==0
+            passed('operator briefing and interval ribbon render without requesting notification permission')
             if args.out:
                 page.screenshot(path=str(args.out/'desktop.png'))
                 (args.out/'demo.html').write_bytes(workspace.page(workspace.status(root)))
@@ -121,6 +130,90 @@ def main():
             page.get_by_role('button',name='All history',exact=True).click()
             passed('real PNG and bounded CSV downloads plus keyboard-accessible observation table')
 
+            # New workflows exercise actual controls, not injected DOM calls.
+            baseline_mean=page.locator('#selected-mean').inner_text()
+            page.get_by_role('link',name='Attention',exact=False).click()
+            expect(page.locator('#view-attention')).to_be_visible()
+            expect(page.locator('.finding')).to_have_count(2)
+            page.locator('.finding').first.get_by_role('button',name='Acknowledge',exact=True).click()
+            expect(page.locator('.finding.acknowledged')).to_have_count(1)
+            expect(page.locator('#operator-feedback')).to_contain_text('unchanged')
+            page.get_by_role('link',name='Overview',exact=True).click()
+            expect(page.locator('#selected-mean')).to_have_text(baseline_mean)
+            passed('acknowledgment changes unread state without clearing HOLD or altering measurements')
+            # Resolved incidents must not keep their old acknowledgment when
+            # they recur in the same host epoch.
+            page.get_by_role('link',name='Attention',exact=False).click()
+            recovered=workspace.status(root)
+            old=recovered['assets'][2]
+            old.update(decision='WITHIN_TOLERANCE',context='NO_HIGH_PRESSURE_IN_RECORDED_CONTEXT',stale=False,holds=[])
+            recovered['operator']=ops.brief(recovered)
+            page.route('**/api/status',lambda route:route.fulfill(status=200,content_type='application/json',body=json.dumps(recovered)))
+            page.get_by_role('button',name='Refresh live readings').click()
+            expect(page.locator('.finding')).to_have_count(1)
+            page.unroute('**/api/status');page.get_by_role('button',name='Refresh live readings').click()
+            expect(page.locator('.finding')).to_have_count(2)
+            expect(page.locator('.finding.acknowledged')).to_have_count(0)
+            page.get_by_role('link',name='Overview',exact=True).click()
+            passed('resolved findings reappear unread instead of inheriting an old acknowledgment')
+            if args.out:
+                page.get_by_role('link',name='Attention',exact=False).click();page.screenshot(path=str(args.out/'attention.png'),full_page=True);page.get_by_role('link',name='Overview',exact=True).click()
+
+            page.get_by_role('link',name='Setup',exact=True).click()
+            expect(page.locator('#setup-command')).to_contain_text('doctor')
+            page.get_by_role('button',name='Existing Prometheus',exact=True).click()
+            expect(page.locator('#setup-command')).to_contain_text('--token-env')
+            expect(page.locator('#setup-checks')).to_contain_text('not an independent account census')
+            page.get_by_role('button',name='Explore the demo',exact=True).click()
+            expect(page.locator('#setup-command')).to_contain_text('--mode demo')
+            passed('single-host, existing-monitoring and demo setup routes expose commands with their boundaries')
+
+            page.get_by_role('link',name='Providers',exact=True).click()
+            expect(page.locator('.provider-card')).to_have_count(6)
+            page.get_by_label('Provider reference').select_option('akamai')
+            expect(page.locator('.provider-card')).to_have_count(1)
+            page.locator('.provider-card summary').click()
+            expect(page.locator('.provider-card')).to_contain_text('80%')
+            expect(page.locator('.provider-card')).to_contain_text('usage allowance')
+            links=page.locator('.provider-card a').evaluate_all('(links)=>links.map(a=>({url:a.href,rel:a.rel}))')
+            assert all(link['url'].startswith('https://techdocs.akamai.com/') and 'noreferrer' in link['rel'] for link in links)
+            page.get_by_label('Provider reference').select_option('all')
+            passed('provider references preserve allocation/allowance distinction without fetching external policies')
+            if args.out:page.screenshot(path=str(args.out/'providers.png'),full_page=True)
+
+            page.get_by_role('link',name='Attention',exact=False).click()
+            page.get_by_role('button',name='Enable desktop alerts',exact=True).click()
+            expect(page.locator('#notification-status')).to_contain_text('while this viewer is open')
+            assert page.evaluate('window.__notificationRequests')==1
+            assert page.evaluate('window.__notifications.length')==0
+            payload=workspace.status(root)
+            payload['assets'][0]['epoch']='new-synthetic-epoch'
+            payload['operator']=ops.brief(payload)
+            page.route('**/api/status',lambda route:route.fulfill(status=200,content_type='application/json',body=json.dumps(payload)))
+            page.get_by_role('button',name='Refresh live readings').click()
+            # The stable subject has no finding; changing it cannot generate an alert.
+            assert page.evaluate('window.__notifications.length')==0
+            payload['assets'][1]['epoch']='new-synthetic-epoch'
+            payload['operator']=ops.brief(payload)
+            page.get_by_role('button',name='Refresh live readings').click()
+            expect(page.locator('#transport-error')).to_be_hidden()
+            page.wait_for_timeout(100)
+            assert page.evaluate('window.__notifications.length')==1
+            page.get_by_role('button',name='Refresh live readings').click();page.wait_for_timeout(100)
+            assert page.evaluate('window.__notifications.length')==1
+            page.unroute('**/api/status')
+            page.get_by_role('button',name='Refresh live readings').click()
+            page.get_by_role('link',name='Overview',exact=True).click()
+            passed('desktop permission is explicit and simulated notifications deduplicate repeated findings')
+
+            page.get_by_label('Inspect node',exact=True).select_option('example-contended')
+            before=page.locator('#selected-mean').inner_text()
+            page.locator('#evidence-ribbon button').nth(35).click()
+            expect(page.locator('#view-boundary')).to_contain_text('assessment uses the full retained window')
+            expect(page.locator('#selected-mean')).to_have_text(before)
+            page.get_by_role('button',name='All history',exact=True).click()
+            passed('evidence ribbon changes only the displayed interval, not the decision')
+
             page.get_by_label('Filter by evidence state').select_option('held')
             expect(page.locator('#node-rows tr')).to_have_count(1)
             page.get_by_label('Search nodes').fill('not-present')
@@ -158,6 +251,18 @@ def main():
             assert 'code_hashes' in downloaded and 'prometheus_url' not in downloaded
             passed('real download contains synthetic summary and provenance, not endpoints')
 
+            # A slow request exposes an honest busy state instead of silently
+            # swallowing a manual refresh during an automatic poll.
+            pending=[]
+            page.route('**/api/status',lambda route:pending.append(route))
+            page.get_by_role('button',name='Refresh live readings').click()
+            expect(page.get_by_role('button',name='Refresh live readings')).to_be_disabled()
+            assert pending
+            pending[0].fulfill(status=200,content_type='application/json',body=json.dumps(workspace.status(root)))
+            expect(page.get_by_role('button',name='Refresh live readings')).to_be_enabled()
+            page.unroute('**/api/status')
+            passed('in-flight refresh is visibly busy and cannot silently swallow another click')
+
             previous=page.locator('#selected-mean').inner_text()
             page.route('**/api/status',lambda route:route.abort())
             page.get_by_role('button',name='Refresh live readings').click()
@@ -169,7 +274,7 @@ def main():
             expect(page.locator('#transport-error')).to_be_hidden()
             passed('disconnect freezes last known values and recovery clears the warning')
 
-            empty=workspace.status(root);empty['assets']=[];empty['expected_assets']=0
+            empty=workspace.status(root);empty['assets']=[];empty['expected_assets']=0;empty['operator']=ops.brief(empty)
             page.route('**/api/status',lambda route:route.fulfill(json=empty))
             page.get_by_role('button',name='Refresh live readings').click()
             expect(page.locator('#action-title')).to_have_text('Configure your first node')
@@ -193,6 +298,14 @@ def main():
             page.unroute('**/api/status');page.get_by_role('button',name='Refresh live readings').click()
             expect(page.locator('#transport-error')).to_be_hidden()
             passed('malformed history does not partially replace the last valid view')
+            broken=workspace.status(root);broken['operator']['items'][0].pop('evidence')
+            page.route('**/api/status',lambda route:route.fulfill(status=200,content_type='application/json',body=json.dumps(broken)))
+            page.get_by_role('button',name='Refresh live readings').click()
+            expect(page.locator('#transport-error')).to_be_visible()
+            expect(page.locator('#selected-mean')).to_have_text(previous)
+            page.unroute('**/api/status');page.get_by_role('button',name='Refresh live readings').click()
+            expect(page.locator('#transport-error')).to_be_hidden()
+            passed('malformed operator context cannot partially replace a valid screen')
 
             for width in (1440,768,390,320):
                 page.set_viewport_size({'width':width,'height':900 if width>400 else 844})
@@ -236,7 +349,7 @@ def main():
             dense=workspace.status(root);seed=copy.deepcopy(dense['assets'][0]);dense['assets']=[]
             for index in range(100):
                 node=copy.deepcopy(seed);node['id']='example-long-node-name-'+str(index).zfill(3);dense['assets'].append(node)
-            dense['expected_assets']=100
+            dense['expected_assets']=100;dense['operator']=ops.brief(dense)
             page.route('**/api/status',lambda route:route.fulfill(status=200,content_type='application/json',body=json.dumps(dense)))
             page.get_by_role('button',name='Refresh live readings').click()
             expect(page.locator('#node-rows tr')).to_have_count(100)
@@ -263,6 +376,8 @@ def main():
             receipt={'schema':'g-skills.browser-proof.v1','template_sha256':hashlib.sha256((ROOT/'skills/vps-health/assets/workspace-dashboard.html').read_bytes()).hexdigest(),
                      'chart_vendor_sha256':hashlib.sha256((ROOT/'skills/vps-health/assets/vendor/uplot/uPlot.iife.min.js').read_bytes()).hexdigest(),
                      'chart_adapter_sha256':hashlib.sha256((ROOT/'skills/vps-health/assets/chart-adapter.js').read_bytes()).hexdigest(),
+                     'operator_js_sha256':hashlib.sha256((ROOT/'skills/vps-health/assets/operator.js').read_bytes()).hexdigest(),
+                     'operator_css_sha256':hashlib.sha256((ROOT/'skills/vps-health/assets/operator.css').read_bytes()).hexdigest(),
                      'checks':checks,'result':'PASS','synthetic_only':True,'route':'actual loopback workspace HTTP handler',
                      'not_claimed':['physical phone validation','independent model review','production fleet qualification']}
             if args.out:(args.out/'receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
