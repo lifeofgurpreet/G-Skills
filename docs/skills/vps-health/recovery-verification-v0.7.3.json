@@ -1,0 +1,55 @@
+{
+  "schema": "g-skills.recovery-verification.v1",
+  "bead": "gs-2uh.12",
+  "source_before": "25b473a3f5355254bfdf96eca005a07d7ff8f1de",
+  "python_suites": [
+    11,
+    11,
+    8,
+    6,
+    36,
+    46,
+    56,
+    10,
+    39,
+    49,
+    28,
+    28,
+    6,
+    6,
+    13
+  ],
+  "python_tests": 353,
+  "new_private_workspace_tests": 28,
+  "chart_contracts": 12,
+  "browser_groups": 29,
+  "artifact": {
+    "schema": "g-skills.private-workspace-acceptance.v1",
+    "old_release": "vps-health/v0.7.2",
+    "candidate_version": "0.7.3",
+    "candidate_source": "e84dcbbfa1eed4c3ea67c76682aa456cdcfafb3d",
+    "candidate_archive": {
+      "vps-health-v0.7.3.zip": {
+        "bytes": 193204,
+        "sha256": "a510a3323943421123f8d016894ed50d6baa79adcb27bf091dc33f71a2cb472d"
+      }
+    },
+    "retained_legacy_workspace_accepted": true,
+    "new_worker_and_http_verified": true,
+    "worker_stopped": true,
+    "previous_install_restored_byte_for_byte": true,
+    "removal_retained": true,
+    "observation_hashes_preserved": true,
+    "subjects": 3,
+    "capture_batches": 1,
+    "points": 2288,
+    "native_client_trial": false,
+    "production_mutations": false,
+    "provider_contact": false
+  },
+  "primary_threat_scope": "Owned Linux workspace, trusted installed source and benign failures; not a privileged/same-account adversary.",
+  "native_client_trial": false,
+  "pilot_started": false,
+  "provider_contact": false,
+  "production_mutation": false
+}

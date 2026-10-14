@@ -90,8 +90,10 @@ finish before a stop/source event is observed. Corrupted evidence is not rebuilt
 from a status badge or removed to satisfy a test.
 
 The prior real installer install/upgrade/restore/removal proof remains independent
-collection evidence. This pass will additionally exercise the new selected archive
-against a disposable retained v0.7.2 workspace before release. It does not modify
+collection evidence. This pass also exercised the new selected archive against a disposable retained
+v0.7.2 workspace: install, upgrade, live worker/HTTP verification, stop, exact old
+source restore and retained removal all passed. All three synthetic subjects and
+2,288 observation points kept the same capture hashes. It does not modify
 personal client installations, production hosts, provider messages or credentials.
 Codex reauthentication, native discovery and sustained pilots stay separate tasks.
 
@@ -110,3 +112,8 @@ Technical references: Python's [resolved-path semantics](https://docs.python.org
 and SQLite's [atomic commit / rollback journal behavior](https://www.sqlite.org/atomiccommit.html).
 These explain the implementation choices, not blanket guarantees about an arbitrary
 host, filesystem or provider. Actual behavior is checked with the fixtures above.
+
+
+The [machine receipt](recovery-verification-v0.7.3.json) records the verified source,
+artifact and counts. The native source acceptance task `gs-2uh.12` is closed;
+client, install-discovery and sustained-pilot gates are not closed by this pass.
