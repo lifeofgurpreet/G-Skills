@@ -52,6 +52,8 @@ class JourneyTest(unittest.TestCase):
         self.assertFalse((self.root/'workspace').exists())
         self.assertFalse(journey.load(self.root/'trial.json')['native_client_verified'])
         self.assertIn('routine steps yourself',(self.root/'PROMPT.md').read_text())
+        self.assertIn(str(self.root/'vps-health/SKILL.md'),(self.root/'PROMPT.md').read_text())
+        self.assertIn('do not search the whole host',(self.root/'PROMPT.md').read_text())
 
     def test_success_message_without_runtime_cannot_pass(self):
         (self.root/'agent-result.json').write_text(json.dumps({'success':True,'client':'codex'}))

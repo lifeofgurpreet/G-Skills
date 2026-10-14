@@ -80,7 +80,10 @@ def prepare(archive,manifest,out):
               'native_client_verified':False,'mode':'synthetic-only'}
     private_write(out/'trial.json',contract)
     private_write(out/'PROMPT.md',
-        'Read the complete installed vps-health/SKILL.md and own the work. This is a synthetic demonstration only. '
+        'Read this exact installed entry with the file tool: '+str(out/'vps-health/SKILL.md')+'. '
+        'The skill is already located; do not search the whole host. Its CLI is '+str(out/'vps-health/scripts/vps_health.py')+'. '
+        'Use the host permissions for that scoped CLI, not an unnecessary directory scan. '
+        'This is a synthetic demonstration only. '
         'Create a new private demo workspace at '+str(out/'workspace')+' and start its managed loopback viewer '
         'for at most 180 seconds on an available port. That bounded synthetic setup is authorized for this trial. '
         'Do not collect this host, use provider/email/cloud tools, access credentials, change installed skill files '

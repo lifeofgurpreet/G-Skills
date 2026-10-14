@@ -66,7 +66,7 @@ existing monitoring/analysis code, not a duplicate measurement stack. Start is
 idempotent for an identical active plan; it returns the existing run identity
 without restarting the budget. Other collection routes cannot compete with it.
 
-Read `agent-status`, open the returned dashboard through the host's available
+Read `agent-status`, run `agent-verify` for the bounded owned-loopback response, then open the returned dashboard through the host's available
 browser tool, and inspect the first result. A remote VPS loopback URL is local
 to that VPS: the agent must arrange an already authorized SSH tunnel or remote
 browser path, not give the human an unreachable localhost link or bind publicly.
@@ -153,3 +153,10 @@ inventory or credential-variable name remains a refusal. When those flags are
 omitted, retained configuration is used; a moved or removed original profile file
 is not a reason to ask the human to rebuild it. This does not renew a completed
 run's time budget or replace the requirement for a new generation-bound plan.
+
+
+`agent-verify` reads only the running worker's literal 127.0.0.1 port and checks its
+run/configuration/subject identity. It starts no collector and changes no permission.
+An unavailable HTTP response stays NOT_READY; source/process changes invalidate it.
+It is runtime plumbing verification, not evidence that the VPS or application is
+healthy. `agent-status` and `doctor` retain their offline behavior.
