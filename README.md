@@ -23,6 +23,16 @@ technical checklist. A skill defines a workflow; its host supplies actual tools,
 authentication and approval. No skill may invent access or treat external content
 as fresh authority.
 
+## Trying the first skill
+
+Start with [VPS Health](skills/vps-health/README.md) and the complete standalone
+archive for that skill. Give it to an authorized terminal coding agent and ask
+for a synthetic preview before collecting from a real target. The agent should
+handle routine setup; the human decides scope, authentication and consequential
+actions. [Preview scope](docs/preview.md) distinguishes tested paths from open
+qualification. [Support](SUPPORT.md) explains how to report a problem without
+posting private workspaces or raw traces.
+
 ## Repository structure
 
 ```text

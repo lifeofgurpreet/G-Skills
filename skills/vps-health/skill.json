@@ -3,7 +3,7 @@
   "name": "vps-health",
   "title": "VPS Health",
   "summary": "Agent-owned VPS observation, workload context and private evidence reports.",
-  "version": "0.7.3",
+  "version": "0.8.0",
   "category": "infrastructure",
   "status": "ready",
   "entry": "SKILL.md",

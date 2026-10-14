@@ -1,0 +1,46 @@
+name: Skill bug
+description: Report a reproducible problem without private data.
+title: "[skill] "
+body:
+  - type: markdown
+    attributes:
+      value: "Do not paste credentials, raw model traces, databases, host inventories, private dashboards or provider messages. Use synthetic examples. For VPS Health, review support-report output before sharing; normal exports are not the support report."
+  - type: input
+    id: skill
+    attributes:
+      label: Skill and version
+      placeholder: "Skill name and exact released version"
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Agent and environment
+      placeholder: "Agent/version, OS family and local or existing-monitoring route; no hostname or account"
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Expected and actual behavior
+      description: "Describe the operation and result without private identifiers."
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Minimal synthetic reproduction
+      description: "Small steps or example data. Do not attach real captures or raw logs."
+  - type: textarea
+    id: summary
+    attributes:
+      label: Reviewed minimal support summary (optional)
+      description: "For VPS Health, use support-report, not the regular dashboard or database export."
+      render: json
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Privacy check
+      options:
+        - label: "I reviewed this report and excluded credentials, private identifiers and raw observations."
+          required: true

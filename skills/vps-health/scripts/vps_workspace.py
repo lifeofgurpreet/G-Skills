@@ -31,11 +31,11 @@ import uuid
 
 import vps_health as core
 
-VERSION = '0.7.3'
+VERSION = '0.8.0'
 SCHEMA = 'g-skills.workspace.v1'
 SELF_HASH = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
 MAX_STORE_BYTES = 256 * 1024 * 1024
-COMMANDS = ('bootstrap','collect','watch','dashboard','serve','export','schedule','draft-email','capabilities','doctor','brief','providers','agent-plan','agent-start','agent-status','agent-verify','agent-stop','agent-request','agent-resolve','_agent-worker','forensic-snapshot','forensic-observe','forensic-compare')
+COMMANDS = ('bootstrap','collect','watch','dashboard','serve','export','schedule','draft-email','capabilities','doctor','brief','providers','support-report','agent-plan','agent-start','agent-status','agent-verify','agent-stop','agent-request','agent-resolve','_agent-worker','forensic-snapshot','forensic-observe','forensic-compare')
 SQL = '''
 CREATE TABLE IF NOT EXISTS state (key TEXT PRIMARY KEY, value TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS captures (
@@ -642,10 +642,14 @@ def make_server(root,port=8765):
             if self.headers.get('Host')!=expected or self.headers.get('Origin') not in (None,'http://'+expected):
                 self.send_error(403,'Use the printed loopback URL');return
             path=urllib.parse.urlsplit(self.path).path
-            if path not in ('/','/api/status') or '?' in self.path:
+            if path not in ('/','/api/status','/api/support') or '?' in self.path:
                 self.send_error(404);return
             try:
-                value=status(root);data=page(value,True) if path=='/' else core.canonical(value)
+                if path=='/api/support':
+                    import vps_ops as ops
+                    data=core.canonical(ops.support_report(root))
+                else:
+                    value=status(root);data=page(value,True) if path=='/' else core.canonical(value)
                 if len(data)>core.MAX_BYTES:raise ValueError('response bound')
             except (ValueError,OSError,sqlite3.Error):
                 self.send_error(503,'Workspace unavailable; check the local collector');return
@@ -771,6 +775,7 @@ def learning_proposal(root,out):
 
 
 def register(sub):
+    p=sub.add_parser('support-report',help='Offline minimal support summary; no identities, raw data or transmission');p.add_argument('--workspace',type=Path);p.add_argument('--out',type=Path)
     import vps_forensics as forensic
     forensic.register(sub)
     import vps_agent as agent
@@ -800,6 +805,16 @@ def register(sub):
 
 
 def dispatch(args):
+    if args.cmd=='support-report':
+        import vps_ops as ops
+        report=ops.support_report(args.workspace)
+        if args.out:
+            out=public_path(args.out)
+            if args.workspace:
+                workspace=public_path(args.workspace)
+                if out==workspace or workspace in out.parents:fail('support output must be outside the observation workspace')
+            core.save_json(out,report)
+        return report
     if args.cmd.startswith('forensic-'):
         import vps_forensics as forensic
         return forensic.dispatch(args)

@@ -214,3 +214,59 @@ def doctor(path):
     result['verdict']='ATTENTION' if any(c['state'] in ('blocked','attention') for c in checks) else 'READY'
     result['source_sha256']=SOURCE_SHA256
     return result
+
+
+def support_report(path=None):
+    """Offline opt-in support projection. Never redact an unrestricted payload.
+
+    Excludes paths, host/subject identifiers, exact observation times, provider
+    plans, endpoints, token names/values, errors and raw captures by construction.
+    Counts and software/source identifiers remain visible for user review.
+    """
+    import sqlite3
+    import sys
+    import time
+    import vps_workspace as workspace
+    import vps_agent as agent
+    result={'schema':'g-skills.support-report.v1','skill':'vps-health',
+        'version':workspace.VERSION,'python':f'{sys.version_info.major}.{sys.version_info.minor}',
+        'platform':{'linux':'linux','darwin':'macos','win32':'windows'}.get(sys.platform,'other'),
+        'source_sha256':{'operations':SOURCE_SHA256,'workspace':workspace.SELF_HASH,'collector':core.SOURCE_SHA256},
+        'state':'SUMMARY_AVAILABLE','workspace':{'state':'NOT_REQUESTED'},
+        'sent':False,'review_before_sharing':True,'real_host_qualification':False,'provider_fault_established':False,
+        'includes':['software versions and source hashes','categorical checks','aggregate counts when readable'],
+        'excludes':['paths and host identities','provider/account details','endpoints and credential variables',
+                    'raw observations and errors','timestamps and run identifiers']}
+    if path is None:return result
+    w={'state':'UNAVAILABLE','mode':None,'configuration':'UNAVAILABLE','database':'UNAVAILABLE',
+       'chart_assets':'NOT_CHECKED','expected_subjects':None,'capture_batches':None,'retained_points':None,
+       'attempt_states':{},'runtime':'NOT_CHECKED','process_verified':False}
+    result['workspace']=w
+    try:
+        root,cfg=workspace.config_load(path)
+        w.update(mode=cfg['mode'],configuration='READABLE',expected_subjects=len(cfg['assets']))
+    except (OSError,ValueError,KeyError,TypeError):
+        result['state']='PARTIAL';return result
+    try:
+        workspace.chart_assets();w['chart_assets']='VERIFIED'
+    except (OSError,ValueError,KeyError,TypeError):w['chart_assets']='UNAVAILABLE'
+    try:
+        with workspace.database(root,True) as db:
+            deadline=time.monotonic()+1
+            db.set_progress_handler(lambda:int(time.monotonic()>deadline),1000)
+            if db.execute('PRAGMA quick_check(1)').fetchone()[0]!='ok':raise ValueError('integrity')
+            batches=db.execute('SELECT COUNT(*) FROM captures').fetchone()[0]
+            points=db.execute('SELECT COUNT(*) FROM points').fetchone()[0]
+            outcomes=db.execute("SELECT CASE WHEN outcome IN ('RECORDED','PARTIAL','ERROR') THEN outcome ELSE 'OTHER' END AS category,COUNT(*) FROM attempts GROUP BY category").fetchall()
+        w.update(database='READABLE',capture_batches=batches,retained_points=points,
+                 attempt_states={r[0]:r[1] for r in outcomes})
+    except (OSError,ValueError,KeyError,TypeError,sqlite3.Error):pass
+    try:
+        runtime=agent.runtime_status(root)
+        allowed={'NOT_MANAGED','STARTING','RUNNING','STOP_REQUESTED','STOPPED','COMPLETED','FAILED','NEEDS_REVIEW','ORPHANED'}
+        w['runtime']=runtime['state'] if runtime.get('state') in allowed else 'UNAVAILABLE'
+        w['process_verified']=runtime.get('process_verified') is True
+    except (OSError,ValueError,KeyError,TypeError):w['runtime']='UNAVAILABLE'
+    ready=w['database']=='READABLE' and w['chart_assets']=='VERIFIED' and w['runtime']!='UNAVAILABLE'
+    w['state']='READABLE' if ready else 'PARTIAL';result['state']='SUMMARY_AVAILABLE' if ready else 'PARTIAL'
+    return result

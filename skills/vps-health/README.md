@@ -1,6 +1,6 @@
 # VPS Health
 
-**One skill in the [G-Skills collection](../../README.md).** Give the complete
+**One skill in the [G-Skills collection](https://github.com/lifeofgurpreet/G-Skills).** Give the complete
 folder to your coding agent to set up and operate a private VPS investigation:
 scoped collection, retained history, a live local dashboard, workload context and
 honest next actions. The user supplies goals, access and consequential approvals;
@@ -26,6 +26,15 @@ account is needed to view local evidence.
 - Generates private reports, replay receipts and explicitly requested review
   drafts. Actual connectors belong to the host agent, with native authentication
   and separate read/draft/send authorization.
+
+## Preview status
+
+The Linux collector, retained evidence, local viewer and managed lifecycle have
+source, real-process and extracted-release checks. Claude Code project discovery
+has also been exercised. That is not certification of every client, sandbox,
+provider or multi-day workload. Read the [current support scope](https://github.com/lifeofgurpreet/G-Skills/blob/main/docs/preview.md)
+before relying on a feature that needs external access. Codex/native-client and
+completed sustained-pilot gates remain explicit.
 
 ## Start through your agent
 
@@ -68,10 +77,19 @@ VPS Health is independently versioned in `skill.json`. New release tags use
 `vps-health/vX.Y.Z`; older collection-labelled `v0.x` tags remain historical.
 Install this entire folder or its standalone ZIP, not only SKILL.md.
 
-[Skill roadmap](../../docs/skills/vps-health/ROADMAP.md) ·
-[Review of both Gemini proposals](../../docs/skills/vps-health/GEMINI-REVIEW.md) ·
+[Skill roadmap](https://github.com/lifeofgurpreet/G-Skills/blob/main/docs/skills/vps-health/ROADMAP.md) ·
+[Review of both Gemini proposals](https://github.com/lifeofgurpreet/G-Skills/blob/main/docs/skills/vps-health/GEMINI-REVIEW.md) ·
 [Changelog](CHANGELOG.md) · [Contributor guidance](AGENTS.md).
 
 The collection's Beads graph is a development tool; users need neither Beads nor
 a GitHub account to run this skill. Real client/OAuth trials, additional platforms,
 complete estate coverage and multi-day field acceptance remain explicit tasks.
+
+
+## Report a problem without exposing the workspace
+
+Use **Support report** in the live viewer or ask the agent to run `support-report`.
+It creates an offline minimal summary of versions, check categories and counts—not
+an upload or a general redaction of your data. Review the small result before sharing.
+Do not attach the normal summary, dashboard, database or raw agent trace to a
+public issue. [Support workflow](references/support.md).

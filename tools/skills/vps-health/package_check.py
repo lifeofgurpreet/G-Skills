@@ -7,7 +7,7 @@ def validate_files(files):
     required={'SKILL.md','scripts/vps_health.py','scripts/vps_workspace.py','assets/chart-adapter.js',
               'assets/workspace-dashboard.html','assets/vendor/uplot/manifest.json','assets/vendor/uplot/LICENSE','LICENSE',
               'scripts/vps_ops.py','assets/operator.js','assets/operator.css','assets/provider-catalog.json',
-              'references/first-hour.md','references/operator-playbook.md','references/workspace-recovery.md','tests/test_private_workspace.py',
+              'references/first-hour.md','references/operator-playbook.md','references/support.md','references/workspace-recovery.md','tests/test_private_workspace.py',
               'scripts/vps_agent.py','scripts/vps_forensics.py','references/forensics.md','references/agent-workflow.md','references/agent-connectors.md'}
     if not required<=set(files):raise ValueError('installable skill is missing required runtime/license files')
     if any(name.startswith(('skills/','.github/','tools/')) for name in files):
@@ -35,6 +35,12 @@ def cold_check(target):
         brief=json.loads(subprocess.check_output([sys.executable,entry,'brief','--workspace',str(workspace)],text=True,timeout=30))
         if len(brief['items'])!=2 or brief['automatic_actions']:raise ValueError('exported brief contract failed')
         subprocess.run([sys.executable,entry,'providers','--provider','aws'],check=True,stdout=subprocess.DEVNULL,timeout=30)
+        support=json.loads(subprocess.check_output([sys.executable,entry,'support-report','--workspace',str(workspace)],text=True,timeout=30))
+        if support['workspace']['retained_points']!=2288 or support['sent'] or not support['review_before_sharing']:
+            raise ValueError('exported minimal support summary contract failed')
+        if any(v in json.dumps(support) for v in ('example-stable','example-contended',str(workspace))):
+            raise ValueError('private context entered exported support summary')
+
         if sys.platform=='linux':
             options=['--workspace',str(workspace),'--mode','auto','--duration-seconds','10']
             plan=json.loads(subprocess.check_output([sys.executable,entry,'agent-plan',*options],text=True,timeout=20))

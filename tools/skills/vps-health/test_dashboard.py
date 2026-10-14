@@ -276,6 +276,17 @@ def main():
             assert downloaded['synthetic'] and len(downloaded['assets'])==3
             assert 'code_hashes' in downloaded and 'prometheus_url' not in downloaded
             passed('real download contains synthetic summary and provenance, not endpoints')
+            with page.expect_download() as event:page.get_by_role('button',name='Save minimal support report').click()
+            support=json.loads(Path(event.value.path()).read_text())
+            assert support['schema']=='g-skills.support-report.v1' and support['sent'] is False
+            assert support['workspace']['expected_subjects']==3 and support['workspace']['retained_points']==2288
+            assert all(value not in json.dumps(support) for value in ('example-stable','example-offline',str(root),'prometheus_url'))
+            expect(page.locator('#operator-feedback')).to_contain_text('Review it before sharing')
+            page.route('**/api/support',lambda route:route.fulfill(status=503,body='unavailable'))
+            page.get_by_role('button',name='Save minimal support report').click()
+            expect(page.locator('#operator-feedback')).to_contain_text('Nothing was uploaded')
+            page.unroute('**/api/support')
+            passed('real minimal-support download omits identities and handles unavailable service without an upload')
 
             # A slow request exposes an honest busy state instead of silently
             # swallowing a manual refresh during an automatic poll.
