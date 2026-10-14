@@ -10,6 +10,7 @@ import argparse
 import contextlib
 import datetime as dt
 import gzip
+import glob
 import hashlib
 import html
 import http.server
@@ -21,6 +22,8 @@ import re
 import shlex
 import sqlite3
 import sys
+import stat
+import tempfile
 import threading
 import time
 import urllib.parse
@@ -28,7 +31,7 @@ import uuid
 
 import vps_health as core
 
-VERSION = '0.7.2'
+VERSION = '0.7.3'
 SCHEMA = 'g-skills.workspace.v1'
 SELF_HASH = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
 MAX_STORE_BYTES = 256 * 1024 * 1024
@@ -57,34 +60,62 @@ def integer(value, low, high, name):
     return value
 
 
+def private_directory(path):
+    info=Path(path).lstat()
+    if not stat.S_ISDIR(info.st_mode):fail('workspace must be a real directory')
+    if os.name=='posix' and (info.st_uid!=os.getuid() or info.st_mode&0o077):
+        fail('workspace must be private and owned by this user; no permissions changed')
+
+
+def private_file(path,missing_ok=False):
+    try:info=Path(path).lstat()
+    except FileNotFoundError:
+        if missing_ok:return None
+        raise
+    if not stat.S_ISREG(info.st_mode) or info.st_nlink!=1:
+        fail('private state must be a regular single-link file; preserve it for inspection')
+    if os.name=='posix' and (info.st_uid!=os.getuid() or info.st_mode&0o077):
+        fail('private state is exposed or not owned by this user; no permissions changed')
+    return info
+
+
+def sync_directory(path):
+    if os.name!='posix':return
+    fd=os.open(path,os.O_RDONLY|os.O_DIRECTORY)
+    try:os.fsync(fd)
+    finally:os.close(fd)
+
+
 def atomic(path, data):
-    """Replace derived state only; captures themselves are content addressed."""
-    path = Path(path)
-    if path.is_symlink(): fail('refusing symbolic-link output')
-    tmp = path.with_name('.'+path.name+'.'+uuid.uuid4().hex+'.tmp')
+    """Replace private derived state; never a link, pipe or shared file."""
+    path=Path(path);private_file(path,missing_ok=True)
+    tmp=path.with_name('.'+path.name+'.'+uuid.uuid4().hex+'.tmp')
     try:
-        fd = os.open(tmp, os.O_WRONLY|os.O_CREAT|os.O_EXCL, 0o600)
+        fd=os.open(tmp,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
         with os.fdopen(fd,'wb') as handle:
             handle.write(data);handle.flush();os.fsync(handle.fileno())
-        os.replace(tmp,path)
+        private_file(path,missing_ok=True)
+        os.replace(tmp,path);sync_directory(path.parent)
     finally:
-        if tmp.exists(): tmp.unlink()
+        if tmp.exists():tmp.unlink()
 
 
 def public_path(path):
-    path = Path(path).expanduser().absolute()
-    if path.is_symlink(): fail('workspace must not be a symbolic link')
-    for part in (path,*path.parents):
-        if part == core.ROOT:
-            fail('choose a private workspace outside the installed skill folder')
-    return path.resolve()
+    path=Path(path).expanduser().absolute()
+    if path.is_symlink():fail('workspace must not be a symbolic link')
+    try:resolved=path.resolve()
+    except (OSError,RuntimeError) as exc:raise core.InvalidEvidence('cannot resolve workspace path safely') from exc
+    installed=core.ROOT.resolve()
+    if resolved==installed or installed in resolved.parents:
+        fail('choose a private workspace outside the installed skill folder')
+    return resolved
 
 
 def config_load(path):
     root=public_path(path)
-    if not root.is_dir() or (root/'workspace.json').is_symlink(): fail('workspace not found; run bootstrap first')
-    cfg=core.read_json(root/'workspace.json')
-    return root,validate_config(cfg)
+    if not root.is_dir():fail('workspace not found; run bootstrap first')
+    private_directory(root);private_file(root/'workspace.json')
+    return root,validate_config(core.read_json(root/'workspace.json'))
 
 
 def validate_config(cfg):
@@ -121,7 +152,11 @@ def validate_config(cfg):
 @contextlib.contextmanager
 def database(root, readonly=False):
     path=root/'history.sqlite3'
-    if path.is_symlink() or not path.is_file():fail('history database missing or symbolic; bootstrap a valid workspace')
+    private_directory(root);private_file(path)
+    # Preserve SQLite recovery files; never delete a hot journal as cleanup.
+    # Refuse links/special files rather than let a database operation touch them.
+    for suffix in ('-journal','-wal','-shm'):
+        private_file(path.with_name(path.name+suffix),missing_ok=True)
     if readonly:
         db=sqlite3.connect(path.as_uri()+'?mode=ro',uri=True,timeout=2)
     else:
@@ -240,27 +275,67 @@ def bootstrap_config(args):
     return validate_config(cfg)
 
 
+@contextlib.contextmanager
+def initialization_lock(root):
+    # One named lock per canonical target, retained to avoid inode-swap races
+    # between cooperating initializers. It grants no ownership of existing data.
+    if os.name!='posix':
+        yield
+        return
+    import fcntl
+    path=root.parent/('.vps-init-'+hashlib.sha256(str(root).encode()).hexdigest()[:24]+'.lock')
+    fd=os.open(path,os.O_RDWR|os.O_CREAT|os.O_NOFOLLOW|os.O_NONBLOCK,0o600)
+    try:
+        info=os.fstat(fd)
+        if not stat.S_ISREG(info.st_mode) or info.st_nlink!=1 or info.st_uid!=os.getuid() or info.st_mode&0o077:
+            fail('initialization lock is not a private regular file')
+        try:fcntl.flock(fd,fcntl.LOCK_EX|fcntl.LOCK_NB)
+        except BlockingIOError:fail('another initialization owns this target; inspect its result before retrying')
+        yield
+    finally:os.close(fd)
+
+
+def bootstrap_checkpoint(phase,stage,target):
+    """Test-only fault seam. No command, environment variable or hook activates it."""
+
+
 def bootstrap(args):
     root=public_path(args.workspace)
     if root.exists():fail('workspace exists; use dashboard or collect, or choose a new private path')
     cfg=bootstrap_config(args)
-    root.mkdir(parents=True,mode=0o700)
-    try:
-        atomic(root/'workspace.json',core.canonical(cfg));config_load(root)
-        path=root/'history.sqlite3';fd=os.open(path,os.O_RDWR|os.O_CREAT|os.O_EXCL,0o600);os.close(fd)
-        db=sqlite3.connect(path)
-        try:db.executescript(SQL);db.commit()
-        finally:db.close()
-        if args.mode=='demo':ingest(root,cfg,demo_seed(cfg,time.time()))
-        render(root)
-    except Exception:
-        # Preserve a failed bootstrap for inspection instead of deleting a path.
-        raise
+    root.parent.mkdir(parents=True,mode=0o700,exist_ok=True)
+    with initialization_lock(root):
+        if root.exists() or root.is_symlink():fail('workspace appeared during setup; preserve it and inspect')
+        prefix='.'+root.name+'.initializing-'
+        if sum(1 for _ in root.parent.glob(glob.escape(prefix)+'*'))>=4:
+            fail('four interrupted initialization stages are retained; inspect/archive them explicitly before retrying')
+        stage=Path(tempfile.mkdtemp(prefix=prefix,dir=root.parent))
+        # Work in a private sibling. The requested workspace appears only when
+        # its configuration, database and view are complete. Interrupted stage
+        # contents are retained; retrying creates a fresh, bounded stage.
+        atomic(stage/'.bootstrap.json',core.canonical({'target':str(root),'source':SELF_HASH,'state':'initializing'}))
+        try:
+            atomic(stage/'workspace.json',core.canonical(cfg));config_load(stage)
+            path=stage/'history.sqlite3';fd=os.open(path,os.O_RDWR|os.O_CREAT|os.O_EXCL,0o600);os.close(fd)
+            db=sqlite3.connect(path)
+            try:db.executescript(SQL);db.commit()
+            finally:db.close()
+            if args.mode=='demo':ingest(stage,cfg,demo_seed(cfg,time.time()))
+            bootstrap_checkpoint('initialized',stage,root)
+            render(stage)
+            atomic(stage/'.bootstrap.json',core.canonical({'target':str(root),'source':SELF_HASH,'state':'prepared'}))
+            sync_directory(stage);bootstrap_checkpoint('prepared',stage,root)
+            if root.exists() or root.is_symlink():fail('destination appeared; nothing there was replaced')
+            os.rename(stage,root);sync_directory(root.parent)
+        except Exception as exc:
+            retained=stage if stage.exists() else root
+            raise core.InvalidEvidence('initialization needs inspection; files retained at '+str(retained)+
+                                       '; never delete existing evidence or assume a viewer started') from exc
     return {'workspace':str(root),'mode':args.mode,'configuration_only':args.mode!='demo',
             'dashboard':str(root/'dashboard.html'),
             'next_command':f'python3 {shlex.quote(str(Path(__file__).with_name("vps_health.py")))} '+
                            (f'serve --workspace {shlex.quote(str(root))}' if args.mode=='demo' else f'watch --workspace {shlex.quote(str(root))} --approve-collection --serve'),
-            'notes':'No service installed. Demo data is synthetic. Real collection requires the explicit next command.'}
+            'notes':'Complete private workspace published. No service installed; real collection requires an approved next operation.'}
 
 
 def collect(root, lookback_hours=1, *, runtime_id=None):

@@ -40,7 +40,11 @@ def linux_required():
 
 def source_binding():
     import vps_forensics as forensic
-    return {'agent':SOURCE_SHA256,'workspace':ws.SELF_HASH,'collector':core.SOURCE_SHA256,'guest_context':forensic.SOURCE_SHA256}
+    files=sorted((core.ROOT/'scripts').glob('*.py'))
+    if not 1<=len(files)<=16:raise core.InvalidEvidence('unexpected installed script inventory')
+    disk={p.name:hashlib.sha256(core.read_bytes(p)).hexdigest() for p in files}
+    return {'agent':SOURCE_SHA256,'workspace':ws.SELF_HASH,'collector':core.SOURCE_SHA256,
+            'guest_context':forensic.SOURCE_SHA256,'installed_scripts':core.digest(disk)}
 
 
 def config_intent(cfg):
@@ -48,6 +52,7 @@ def config_intent(cfg):
 
 
 def _safe_dir(root,create=False):
+    if root.exists():ws.private_directory(root)
     path=root/'.agent'
     if path.is_symlink():raise core.InvalidEvidence('managed state directory must not be a symbolic link')
     if create:
@@ -60,6 +65,7 @@ def _safe_dir(root,create=False):
 def _read(path,default=None):
     if path.is_symlink():raise core.InvalidEvidence('managed state file must not be a symbolic link')
     if not path.exists():return default
+    ws.private_file(path)
     if not path.is_file() or path.stat().st_size>256*1024:
         raise core.InvalidEvidence('managed state is not a bounded regular file')
     return core.read_json(path)
@@ -331,6 +337,11 @@ require their own authorization. No such action is performed by this worker.
     ws.atomic(path,text.encode())
 
 
+def handoff_if_readable(root,status=None):
+    try:handoff(root,status);return True
+    except (OSError,ValueError,KeyError,TypeError):return False
+
+
 def _guard_config(root,cfg,runtime_id=None):
     folder=_safe_dir(root)
     if not folder.exists():return
@@ -399,7 +410,7 @@ def start(args):
 
 
 def stop(path,run_id,wait=5):
-    linux_required();root,cfg=ws.config_load(path)
+    linux_required();root=ws.public_path(path);ws.private_directory(root)
     if not re.fullmatch('[a-f0-9]{32}',str(run_id)):raise core.InvalidEvidence('stop needs the exact current run identity')
     d=runtime_status(root)
     if d.get('run_id')!=run_id:raise core.InvalidEvidence('stop identity differs from the current managed run')
@@ -412,7 +423,7 @@ def stop(path,run_id,wait=5):
         if not d['process_verified'] and d['state'] in TERMINAL:break
         time.sleep(.05)
     if d['process_verified']:d={**d,'state':'STOP_REQUESTED','stop_note':'Cooperative stop pending; no signal or forced termination was used.'}
-    handoff(root,d)
+    d['handoff_refreshed']=handoff_if_readable(root,d)
     return d
 
 
@@ -445,12 +456,16 @@ def worker(path,run_id,fd):
         state.update(state='RUNNING',dashboard_url=f'http://127.0.0.1:{server.server_port}/');save('viewer_verified');handoff(root,runtime_status(root))
         next_collection=0.;next_heartbeat=0.
         while time.monotonic()<deadline:
-            if _read(folder/'stop.json',{}).get('run_id')==run_id:
+            request=_read(folder/'stop.json',{})
+            if not isinstance(request,dict):raise core.InvalidEvidence('invalid stop request shape')
+            if request.get('run_id')==run_id:
                 state['state']='STOPPED';save('stop_requested');break
             _,current=ws.config_load(root)
             if config_intent(current)!=intent['configuration']:
                 state['state']='NEEDS_REVIEW';save('configuration_changed');break
             tick=time.monotonic()
+            if tick>=next_heartbeat and source_binding()!=intent['source']:
+                state['state']='NEEDS_REVIEW';save('installed_source_changed');break
             if cfg['mode']!='demo' and tick>=next_collection:
                 state['cycles']+=1;save('collection_started')
                 try:
@@ -468,8 +483,9 @@ def worker(path,run_id,fd):
     finally:
         if server:server.shutdown();server.server_close()
         if thread:thread.join(2)
-        save();handoff(root,{**state,'process_verified':False})
-        os.close(fd)
+        try:
+            save();handoff_if_readable(root,{**state,'process_verified':False})
+        finally:os.close(fd)
     return {'state':state['state'],'run_id':run_id}
 
 

@@ -136,12 +136,19 @@ class ProbeTests(unittest.TestCase):
         with mock.patch.object(h.sys,'platform','darwin'),self.assertRaises(h.InvalidEvidence):h.collect_local('example')
 
     def test_proc_files_read_in_small_bounded_chunks(self):
-        class Proc(io.BytesIO):
+        real_fdopen=h.os.fdopen
+        class Reader:
+            def __init__(self,handle):self.handle=handle
+            def __enter__(self):return self
+            def __exit__(self,*args):self.handle.close()
+            def fileno(self):return self.handle.fileno()
             def read(self,n=-1):
-                self.assert_size(n);return super().read(n)
-            def assert_size(self,n):
-                if n>4096 or n<0:raise AssertionError('oversized proc read')
-        with mock.patch('builtins.open',return_value=Proc(b'small')):self.assertEqual(h.read_bytes('/proc/example'),b'small')
+                if not 0<=n<=4096:raise AssertionError('oversized proc read')
+                return self.handle.read(n)
+        with tempfile.TemporaryDirectory() as temp:
+            p=Path(temp)/'regular';p.write_bytes(b'x'*8200)
+            with mock.patch.object(h.os,'fdopen',side_effect=lambda fd,mode:Reader(real_fdopen(fd,mode))):
+                self.assertEqual(h.read_bytes(p),b'x'*8200)
 
 
 class ArtifactTests(unittest.TestCase):
