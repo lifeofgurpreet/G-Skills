@@ -1,0 +1,21 @@
+name: Skill improvement
+description: Propose a concrete user outcome for the owning skill.
+body:
+  - type: input
+    id: skill
+    attributes:
+      label: Owning skill, or collection-wide
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: What should the user's agent accomplish?
+      description: "Describe the repeated problem, expected result and unavoidable human decisions. No private examples."
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Example and acceptance
+      description: "A synthetic example and a way to tell that it works. A larger script count is not an acceptance criterion."

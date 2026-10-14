@@ -1,5 +1,15 @@
 # VPS Health changelog
 
+## 0.8.0 — Minimal support reports and a clearer preview boundary
+
+Add `support-report` and a matching live-viewer download that include only software
+identifiers, categorical checks and aggregate counts. No private paths, subjects,
+endpoints, credentials, raw errors or observations are exported; nothing is sent.
+Broken or absent workspaces still produce a truthful partial support summary.
+Document native project discovery separately from current execution constraints,
+and keep the installed README's repository links usable outside a checkout.
+
+
 ## 0.7.3 — Recoverable setup and private evidence boundaries
 
 Initialize in a private retained stage and publish only complete workspaces. Retry

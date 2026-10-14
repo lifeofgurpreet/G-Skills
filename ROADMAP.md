@@ -14,14 +14,14 @@ This repository hosts independent public skills. Root work is catalog/distributi
 | `gs-ekd.2` Dispatch validation and immutable releases to the selected skill | closed | 1 | Unassigned | — | `gs-ekd.1` |
 | `gs-ekd.3` Separate collection identity, documentation and task ownership | closed | 1 | Unassigned | — | `gs-ekd.1` |
 | `gs-nah.1` Publish the quarter plan with explicit owners and launch gates | closed | 1 | collection-maintainer | 2026-10-21 | — |
-| `gs-nah.2` Qualify clean skill installation, upgrade and removal | in_progress | 1 | distribution-verifier | 2026-11-07 | `gs-nah.5` |
-| `gs-nah.3` Prepare a bounded community preview and maintainer feedback loop | open | 1 | Gurpreet-and-community-maintainer | 2026-12-21 | `gs-nah.2` |
+| `gs-nah.2` Qualify clean skill installation, upgrade and removal | closed | 1 | distribution-verifier | 2026-11-07 | `gs-nah.5` |
+| `gs-nah.3` Prepare a bounded community preview and maintainer feedback loop | closed | 1 | Gurpreet-and-community-maintainer | 2026-12-21 | `gs-nah.2` |
 | `gs-nah.4` Select the next independent skill from repeated real work | open | 1 | Gurpreet-and-product-agent | 2027-01-07 | — |
 | `gs-nah.5` Implement reversible selected-skill installation with preserved recovery state | closed | 1 | distribution-agent | 2026-10-28 | — |
 
 ## Skill programmes
 
-- [VPS Health](docs/skills/vps-health/ROADMAP.md): 10 open implementation/acceptance tasks; independent version 0.7.3.
+- [VPS Health](docs/skills/vps-health/ROADMAP.md): 10 open implementation/acceptance tasks; independent version 0.8.0.
 
 ## Collection acceptance
 
@@ -77,11 +77,15 @@ Verify selected-skill distribution from actual release archives in supported cli
 
 **Acceptance:** Two independent skill fixtures keep versions and files separate. A clean install, interrupted upgrade, rollback and removal preserve user evidence and untouched other skills. Actual supported-client discovery gets a separate receipt; archive validity does not prove discovery.
 
+**Receipt:** Qualified the supported Linux/Claude Code project-local installation route: actual native discovery/loading of installed v0.7.3, disappearance after managed removal, restoration/loading and a separate session loading the v0.8.0 candidate entry/support reference. Previous actual archive install/update/recovery/restore/removal and two-skill isolation evidence is retained. Current model-driven execution was BLOCKED by a required sandbox dependency, so runtime/Codex qualification remains separately open in gs-2uh.6. No sandbox bypass or personal skill-directory mutation. See docs/project-discovery-2026-10-15.json.
+
 ### gs-nah.3 — Prepare a bounded community preview and maintainer feedback loop
 
 Prepare concise supported-scope documentation, sanitized issue/report templates, known limitations, contributor expectations and a release checklist. A public repository already exists; social announcements, invitations and any email remain a separate owner decision.
 
 **Acceptance:** Preview candidates have reproducible install/stop/export routes, public synthetic examples and private-data warnings. Support intake never asks for tokens or raw private data publicly. All claimed compatibility and evidence scopes have receipts; Gurpreet separately approves wider sharing.
+
+**Receipt:** Preview preparation delivered: current supported-scope matrix, self-contained agent entry/support guide, privacy-aware public issue forms, and an implemented offline minimal-support command plus real viewer download. 17 new Python support contracts; 370 complete Python tests, 12 chart contracts and 30 browser groups pass. Native discovery and current execution blockers are explicit rather than marketing claims. This closes preparation only: wider publicity remains an owner decision and gs-2uh.13 stays open for native-client and sustained-pilot acceptance. No social post, invitation, provider message or upload was sent.
 
 ### gs-nah.4 — Select the next independent skill from repeated real work
 

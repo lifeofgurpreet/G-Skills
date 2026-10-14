@@ -1,0 +1,86 @@
+{
+  "schema": "g-skills.project-discovery.v1",
+  "scope": "Claude Code Linux project-local skill discovery; not runtime execution or all-client compatibility",
+  "source_commit": "707ac232f93b746c74118527723066af88a816f5",
+  "release_tag": "vps-health/v0.7.3",
+  "archive": {
+    "vps-health-v0.7.3.zip": {
+      "bytes": 193204,
+      "sha256": "a510a3323943421123f8d016894ed50d6baa79adcb27bf091dc33f71a2cb472d"
+    }
+  },
+  "sessions": {
+    "discovery-start": {
+      "trace_sha256": "b399fa67d10a69517b292bb14364f30afdb57ae5bee2c5f5fb46cc32cd249f09",
+      "native_version": "2.1.300",
+      "skill_listed": true,
+      "tool_kinds": [
+        "Skill",
+        "Bash",
+        "Read"
+      ],
+      "requested_permission_mode": "dontAsk",
+      "effective_permission_mode": "default",
+      "outcome": "DISCOVERED_EXECUTION_BLOCKED"
+    },
+    "discovery-removed": {
+      "trace_sha256": "001f18e543d6e14e59739cc3686ede6905183449cf141827caa1863b3b4e2423",
+      "native_version": "2.1.300",
+      "skill_listed": false,
+      "tool_kinds": [],
+      "requested_permission_mode": "dontAsk",
+      "effective_permission_mode": "default",
+      "outcome": "REMOVAL_RECOGNIZED"
+    },
+    "discovery-restored": {
+      "trace_sha256": "4649417b77f7ab67310d2095d739cd59f969acfdf7da122c89eb3843fac5f86e",
+      "native_version": "2.1.300",
+      "skill_listed": true,
+      "tool_kinds": [
+        "Read"
+      ],
+      "requested_permission_mode": "dontAsk",
+      "effective_permission_mode": "default",
+      "outcome": "RESTORED_SKILL_LOADED"
+    },
+    "discovery-candidate": {
+      "trace_sha256": "b9a639810f97fe8c299d38a73af150ab8de666233e277493959362e4021d0756",
+      "native_version": "2.1.300",
+      "skill_listed": true,
+      "version_read": "0.8.0",
+      "outcome": "UPGRADED_SKILL_AND_SUPPORT_REFERENCE_LOADED",
+      "inspected_files": {
+        "SKILL.md": "c717575ebf78a47887e735a2eec7125e3b7d1b85d3b2de223aadbefabdae7f06",
+        "references/support.md": "5cddf46e333174737fa7a0f66e0ebc5041eff181055bc870f2d4f17116886b08"
+      },
+      "runtime_executed": false,
+      "requested_permission_mode": "dontAsk",
+      "effective_permission_mode": "default"
+    }
+  },
+  "discovery_sequence": "installed -> recognized and loaded -> removed and absent -> restored and loaded",
+  "runtime_this_trial": "BLOCKED_BEFORE_EXECUTION",
+  "blocker": "Required native sandbox dependency socat unavailable",
+  "permissions_weakened": false,
+  "dependencies_installed": false,
+  "model_report_alone_accepted": false,
+  "personal_skill_directories_modified": false,
+  "credentials_copied_to_project": false,
+  "provider_contact": false,
+  "candidate_archive": {
+    "commit": "ef24ffadfe0fa098496e3dccc59e3277eb138f91",
+    "files": {
+      "vps-health-v0.8.0.zip": {
+        "bytes": 200216,
+        "sha256": "e5dc69f5842ff1416721283b17b89bfe19afc204ee4b5d53124561ff1cfe23c5"
+      }
+    },
+    "schema": "g-skills.skill-release.v1",
+    "skill": "vps-health",
+    "skill_files": 47,
+    "tag": "vps-health/v0.8.0",
+    "verification": "actual selected archive extraction and owning committed acceptance",
+    "version": "0.8.0"
+  },
+  "final_source_equivalence": "The entry/support-reference hashes match final source; the later responsive CSS correction is covered by separate browser and final-archive checks."
+}

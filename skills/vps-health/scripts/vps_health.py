@@ -21,7 +21,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-VERSION = '0.7.3'
+VERSION = '0.8.0'
 SCHEMA = 'g-skills.vps-capture.v1'
 ROOT = Path(__file__).resolve().parents[1]
 MAX_BYTES = 8 * 1024 * 1024
