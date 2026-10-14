@@ -89,6 +89,51 @@ class PlanTest(unittest.TestCase):
         d=agent.runtime_status(self.root)
         self.assertEqual(d['state'],'NOT_MANAGED');self.assertFalse(self.root.exists())
 
+class ExistingMetricsRouteTest(unittest.TestCase):
+    def setUp(self):
+        self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup)
+        self.root=Path(self.temp.name)/'private'
+        self.profile=Path(self.temp.name)/'profile.json'
+        self.profile.write_text(json.dumps({'schema':'g-skills.vps-profile.v1','assets':[
+            {'id':'example-node','instance':'example.invalid:9100','provider':'other','epoch':'initial'}]}))
+        self.a=args(self.root,mode='prometheus',profile=self.profile,url='https://metrics.example.invalid',
+                    loki_url='https://logs.example.invalid')
+
+    def test_identical_profile_and_endpoints_preserve_retry_plan(self):
+        first=agent.plan(self.a)
+        ws.bootstrap(self.a)
+        before=(self.root/'workspace.json').read_bytes()
+        again=agent.plan(self.a)
+        self.assertEqual(first['plan_sha256'],again['plan_sha256'])
+        self.assertEqual(before,(self.root/'workspace.json').read_bytes())
+
+    def test_auto_resume_accepts_matching_explicit_route(self):
+        ws.bootstrap(self.a)
+        self.a.mode='auto'
+        self.assertTrue(agent.plan(self.a)['ready'])
+
+    def test_changed_endpoint_refuses_without_altering_workspace(self):
+        ws.bootstrap(self.a);before=(self.root/'workspace.json').read_bytes()
+        self.a.url='https://different.example.invalid'
+        with self.assertRaises(core.InvalidEvidence):agent.plan(self.a)
+        self.assertEqual(before,(self.root/'workspace.json').read_bytes())
+
+    def test_changed_inventory_refuses_without_altering_workspace(self):
+        ws.bootstrap(self.a);before=(self.root/'workspace.json').read_bytes()
+        self.profile.write_text(json.dumps({'schema':'g-skills.vps-profile.v1','assets':[
+            {'id':'other-node','instance':'other.invalid:9100'}]}))
+        with self.assertRaises(core.InvalidEvidence):agent.plan(self.a)
+        self.assertEqual(before,(self.root/'workspace.json').read_bytes())
+
+    def test_omitted_route_uses_retained_config_without_original_profile_file(self):
+        ws.bootstrap(self.a);self.profile.unlink()
+        self.assertTrue(agent.plan(args(self.root,mode='auto'))['ready'])
+
+    def test_different_credential_variable_does_not_silently_use_original(self):
+        ws.bootstrap(self.a);self.a.token_env='DIFFERENT_VPS_TOKEN'
+        with mock.patch.dict(os.environ,{'DIFFERENT_VPS_TOKEN':'not-a-real-token'}):
+            with self.assertRaises(core.InvalidEvidence):agent.plan(self.a)
+
 class RuntimeTest(unittest.TestCase):
     def setUp(self):
         if sys.platform!='linux':self.skipTest('managed worker currently qualifies Linux only')
