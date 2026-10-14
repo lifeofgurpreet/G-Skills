@@ -1,0 +1,4 @@
+interface:
+  display_name: "Model Fleet Observatory"
+  short_description: "Private live model and reasoning dashboard across authorized boxes"
+  default_prompt: "Use $model-fleet-observatory to discover authorized coding-agent sessions, render one table per box, show model/reasoning/profile evidence, refresh safely, and keep unsupported surfaces UNKNOWN. Do not read prompts, credentials or tokens, and do not expose the dashboard publicly."

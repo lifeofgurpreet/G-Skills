@@ -1,0 +1,15 @@
+{
+  "schema": "g-skills.skill.v1",
+  "name": "model-fleet-observatory",
+  "title": "Model Fleet Observatory",
+  "summary": "Private live dashboard for model, reasoning and profile evidence across coding-agent boxes.",
+  "version": "0.1.0",
+  "category": "developer-tools",
+  "status": "ready",
+  "entry": "SKILL.md",
+  "checks": {
+    "python": "tools/skills/model-fleet-observatory/validate.py",
+    "browser": "tools/skills/model-fleet-observatory/test_dashboard.py",
+    "package": "tools/skills/model-fleet-observatory/package_check.py"
+  }
+}
