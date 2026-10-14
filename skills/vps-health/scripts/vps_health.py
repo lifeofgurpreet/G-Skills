@@ -14,13 +14,14 @@ import os
 from pathlib import Path
 import re
 import sys
+import stat
 import time
 import sqlite3
 import urllib.error
 import urllib.parse
 import urllib.request
 
-VERSION = '0.7.2'
+VERSION = '0.7.3'
 SCHEMA = 'g-skills.vps-capture.v1'
 ROOT = Path(__file__).resolve().parents[1]
 MAX_BYTES = 8 * 1024 * 1024
@@ -61,12 +62,18 @@ def finite(value, *, minimum=None, maximum=None):
 
 
 def read_bytes(path):
-    data = bytearray()
-    with open(path, 'rb') as handle:
-        while chunk := handle.read(min(4096, MAX_BYTES + 1 - len(data))):
+    # JSON/config input must never wait on a FIFO or read an arbitrary device.
+    # procfs counters are regular files even when their reported size is zero.
+    flags=os.O_RDONLY|getattr(os,'O_NOFOLLOW',0)|getattr(os,'O_NONBLOCK',0)
+    try:fd=os.open(path,flags)
+    except OSError as exc:raise InvalidEvidence('input must be a readable regular file, not a symbolic link') from exc
+    data=bytearray()
+    with os.fdopen(fd,'rb') as handle:
+        if not stat.S_ISREG(os.fstat(handle.fileno()).st_mode):
+            raise InvalidEvidence('input must be a bounded regular file')
+        while chunk:=handle.read(min(4096,MAX_BYTES+1-len(data))):
             data.extend(chunk)
-            if len(data) > MAX_BYTES:
-                raise InvalidEvidence('input exceeds 8 MiB limit')
+            if len(data)>MAX_BYTES:raise InvalidEvidence('input exceeds 8 MiB limit')
     return bytes(data)
 
 
@@ -105,8 +112,10 @@ def alias(value):
 
 
 def save_json(path, value):
-    with Path(path).open('x', encoding='utf-8') as handle:
-        handle.write(json.dumps(value, indent=2, ensure_ascii=False, allow_nan=False) + '\n')
+    raw=json.dumps(value,indent=2,ensure_ascii=False,allow_nan=False)+'\n'
+    fd=os.open(path,os.O_WRONLY|os.O_CREAT|os.O_EXCL|getattr(os,'O_NOFOLLOW',0),0o600)
+    with os.fdopen(fd,'w',encoding='utf-8') as handle:
+        handle.write(raw);handle.flush();os.fsync(handle.fileno())
 
 
 def new_capture(node, kind, start, end, interval):

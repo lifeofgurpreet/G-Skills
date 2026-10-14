@@ -4,7 +4,7 @@ description: Take ownership of a user's VPS investigation: discover authorized t
 license: MIT
 compatibility: Python 3.10+ and SQLite. Managed lifecycle and passive local collection currently qualify Linux; demo/offline/foreground views remain portable. Use the terminal agent's actual authorized host, browser and connector tools. No bundled OAuth service, provider sender, root service or public dashboard exposure.
 metadata:
-  version: "0.7.2"
+  version: "0.7.3"
   author: lifeofgurpreet
 ---
 
@@ -57,6 +57,19 @@ Stop is cooperative; a bounded read already underway may finish first. Recheck
 STOP_REQUESTED before claiming STOPPED. Never signal an arbitrary or reused PID.
 No new collection competes with a managed worker. Configuration changes stop the
 worker for review rather than silently targeting a different service.
+
+## Recover without destroying the investigation
+
+Setup publishes the requested workspace only after a private staged initialization
+is complete. An interrupted first attempt keeps its files for inspection; the
+agent can retry the same unused target without deleting them or rebuilding config
+by hand. Private state refuses exposed modes, links, pipes and special files.
+Doctor remains read-only; it never fixes permissions or discards recovery journals.
+
+The owned run can be stopped by its exact identity even when config parsing fails.
+Workers started with this version detect installed Python changes and stop for
+review before another cycle. Continue stopping consumers before upgrades; older
+releases do not retroactively gain the check. [Failure recovery](references/workspace-recovery.md).
 
 ## Deliver an interface, not a folder tour
 

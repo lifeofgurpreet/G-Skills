@@ -32,6 +32,7 @@ def main():
     subprocess.run([sys.executable,str(SKILL/'tests/test_chart_context.py')],check=True)
     subprocess.run([sys.executable,str(SKILL/'tests/test_operations.py')],check=True)
     subprocess.run([sys.executable,str(SKILL/'tests/test_agent_runtime.py')],check=True)
+    subprocess.run([sys.executable,str(SKILL/'tests/test_private_workspace.py')],check=True)
     subprocess.run([sys.executable,str(SKILL/'tests/test_forensics.py')],check=True)
     subprocess.run([sys.executable,str(ROOT/'tools/skills/vps-health/test_vendor.py')],check=True)
     subprocess.run([sys.executable,str(ROOT/'tools/skills/vps-health/test_release_package.py')],check=True)

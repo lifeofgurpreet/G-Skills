@@ -13,7 +13,7 @@ This is one skill within G-Skills. Its work does not define the whole collection
 | `gs-2uh.1` Discover explicit scope and produce an idempotent executable plan | closed | 1 | Unassigned | — | — |
 | `gs-2uh.10` Fix same-route Prometheus setup retries without scope drift | closed | 1 | runtime-agent | 2026-10-21 | — |
 | `gs-2uh.11` Verify cold and resumed client journeys from actual artifacts | closed | 1 | verification-agent | 2026-10-28 | — |
-| `gs-2uh.12` Audit private-state boundaries and release failure recovery | open | 1 | safety-review-agent | 2026-11-07 | — |
+| `gs-2uh.12` Audit private-state boundaries and release failure recovery | closed | 1 | safety-review-agent | 2026-11-07 | — |
 | `gs-2uh.13` Qualify the narrow passive preview before broader promotion | open | 1 | Gurpreet-and-quality-maintainer | 2026-11-14 | `gs-2uh.12`, `gs-2uh.6`, `gs-2uh.8`, `gs-nah.2` |
 | `gs-2uh.2` Manage collector and viewer beyond a terminal-agent session | closed | 1 | Unassigned | — | `gs-2uh.1` |
 | `gs-2uh.3` Expose agent progress and recovery in the dashboard | closed | 1 | Unassigned | — | `gs-2uh.2` |
@@ -36,7 +36,7 @@ flowchart LR
   gs_2uh_1["gs-2uh.1: closed"]
   gs_2uh_10["gs-2uh.10: closed"]
   gs_2uh_11["gs-2uh.11: closed"]
-  gs_2uh_12["gs-2uh.12: open"]
+  gs_2uh_12["gs-2uh.12: closed"]
   gs_2uh_13["gs-2uh.13: open"]
   gs_2uh_12 --> gs_2uh_13
   gs_2uh_6 --> gs_2uh_13
@@ -115,6 +115,8 @@ Provide private trial preparation and an artifact evaluator for future real-clie
 Before wider VPS preview, review installation/runtime state, source updates, relative paths, malformed input, partial bootstrap, private file handling and failed/uncertain requests using existing ownership code rather than a second framework.
 
 **Acceptance:** A recorded threat-model pass and regressions cover high-risk read/write/launch boundaries, interrupted setup and upgrade recovery. No permission bypass, automatic provider contact or customer-data upload is introduced. Unresolved high-severity findings block the preview.
+
+**Receipt:** Implemented and verified private-workspace recovery: 28 new real file/process/SQLite regressions, 353 complete Python tests, 12 chart contracts and 29 real-browser groups pass. Actual v0.7.2 -> candidate v0.7.3 install/start/verify/stop/restore/removal preserved all 3 synthetic subjects and 2,288 points. Failed initializations remain private and retryable; linked/nonregular/exposed state refuses; SQLite owns rollback; broken config cannot prevent an owned stop; source replacement stops the worker for review. Threat boundary and residual limits recorded in docs/skills/vps-health/verification-v0.7.3.md. Exact-source hosted CI remains the release gate. No production, provider or native-client claim.
 
 ### gs-2uh.13 — Qualify the narrow passive preview before broader promotion
 
