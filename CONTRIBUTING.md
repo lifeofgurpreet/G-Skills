@@ -38,3 +38,13 @@ JSM/pstack guidance and record its application without copying licensed text.
 Keep source correctness, real-client operation, deployed state and multi-day
 outcomes separate. No unreviewed self-update or automatic external action is
 introduced merely to make the agent seem autonomous.
+
+
+## Distribution changes
+
+Read [the installation lifecycle contract](docs/installation-lifecycle.md) before
+changing collection-level install/update/remove behavior. Test actual interruption,
+retained old files, user modifications, independent skill boundaries and stale
+approvals. Never execute package hooks during installation or silently adopt a
+folder managed by a different tool. Local filesystem tests do not certify native
+Codex/Claude discovery. Keep source-preview and qualified-client claims separate.
