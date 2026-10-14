@@ -76,3 +76,8 @@ public collection. Learning produces reviewed changes, not self-granted permissi
 
 [Collection roadmap](ROADMAP.md) · [Improvement method](docs/skill-improvement-method.md) ·
 [Security](SECURITY.md) · [License](LICENSE)
+
+
+## Next three months
+
+The [October 14–January 14 execution plan](docs/plans/2026-10-14-quarter.md) separates collection readiness from each skill. It names target windows, accountable roles, preview gates and explicitly deferred work. Native Beads remains the task-state authority; passing source checks does not authorize a public announcement or imply every client/provider was qualified.

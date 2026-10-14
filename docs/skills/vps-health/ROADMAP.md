@@ -2,32 +2,46 @@
 
 This is one skill within G-Skills. Its work does not define the whole collection. State is generated from the shared native graph using the `skill:vps-health` label.
 
+[Quarter plan and preview gates](../../plans/2026-10-14-quarter.md). This skill does not need every optional feature finished before a supported, evidence-backed preview.
+
 ## Task graph
 
-| Task | State | Priority | Blocking prerequisites |
-|---|---|---:|---|
-| `gs-2uh` Agent-owned VPS investigation with minimal human work | in_progress | 1 | — |
-| `gs-8cq` Integrate reviewed Gemini guest-context proposals | in_progress | 1 | — |
-| `gs-2uh.1` Discover explicit scope and produce an idempotent executable plan | closed | 1 | — |
-| `gs-2uh.2` Manage collector and viewer beyond a terminal-agent session | closed | 1 | `gs-2uh.1` |
-| `gs-2uh.3` Expose agent progress and recovery in the dashboard | closed | 1 | `gs-2uh.2` |
-| `gs-2uh.4` Discover host-native connector capabilities only when needed | in_progress | 1 | `gs-2uh.1` |
-| `gs-2uh.5` Bind external actions to reviewed content and verified results | open | 1 | `gs-2uh.4` |
-| `gs-2uh.6` Qualify cold Codex and Claude Code user journeys | open | 1 | `gs-2uh.2`, `gs-2uh.3`, `gs-2uh.4` |
-| `gs-2uh.8` Validate multi-day operation and measurement usefulness | open | 1 | `gs-2uh.2`, `gs-2uh.3` |
-| `gs-8cq.1` Retain aligned passive storage, memory and network context | closed | 1 | — |
-| `gs-8cq.2` Compare guest traits without false physical-migration proof | closed | 1 | `gs-8cq.1` |
-| `gs-2uh.7` Cover heterogeneous estates and non-Linux agent hosts | open | 2 | `gs-2uh.1` |
-| `gs-2uh.9` Make self-improvement a reviewed evidence-to-regression loop | open | 2 | `gs-2uh.6`, `gs-2uh.8` |
-| `gs-8cq.3` Design approved active CPU, memory and storage experiments | open | 2 | `gs-8cq.1` |
-| `gs-8cq.4` Qualify authorized SSH fleet and bounded path diagnostics | open | 2 | `gs-2uh.7` |
-| `gs-8cq.5` Extend provider playbooks from the supplied proposals with dated primary evidence | open | 2 | — |
+| Task | State | Priority | Owner role | Target | Blocking prerequisites |
+|---|---|---:|---|---|---|
+| `gs-2uh` Agent-owned VPS investigation with minimal human work | in_progress | 1 | vps-programme-maintainer | 2027-01-14 | — |
+| `gs-8cq` Integrate reviewed Gemini guest-context proposals | in_progress | 1 | diagnostics-maintainer | 2027-01-14 | — |
+| `gs-2uh.1` Discover explicit scope and produce an idempotent executable plan | closed | 1 | Unassigned | — | — |
+| `gs-2uh.10` Fix same-route Prometheus setup retries without scope drift | closed | 1 | runtime-agent | 2026-10-21 | — |
+| `gs-2uh.11` Verify cold and resumed client journeys from actual artifacts | closed | 1 | verification-agent | 2026-10-28 | — |
+| `gs-2uh.12` Audit private-state boundaries and release failure recovery | open | 1 | safety-review-agent | 2026-11-07 | — |
+| `gs-2uh.13` Qualify the narrow passive preview before broader promotion | open | 1 | Gurpreet-and-quality-maintainer | 2026-11-14 | `gs-2uh.12`, `gs-2uh.6`, `gs-2uh.8`, `gs-nah.2` |
+| `gs-2uh.2` Manage collector and viewer beyond a terminal-agent session | closed | 1 | Unassigned | — | `gs-2uh.1` |
+| `gs-2uh.3` Expose agent progress and recovery in the dashboard | closed | 1 | Unassigned | — | `gs-2uh.2` |
+| `gs-2uh.4` Discover host-native connector capabilities only when needed | in_progress | 1 | connector-agent | 2026-11-28 | `gs-2uh.1` |
+| `gs-2uh.5` Bind external actions to reviewed content and verified results | open | 1 | connector-verification-agent | 2026-12-07 | `gs-2uh.4` |
+| `gs-2uh.6` Qualify cold Codex and Claude Code user journeys | open | 1 | client-verification-agent | 2026-11-07 | `gs-2uh.11`, `gs-2uh.2`, `gs-2uh.3` |
+| `gs-2uh.8` Validate multi-day operation and measurement usefulness | open | 1 | field-verification-agent | 2026-11-14 | `gs-2uh.2`, `gs-2uh.3` |
+| `gs-8cq.1` Retain aligned passive storage, memory and network context | closed | 1 | Unassigned | — | — |
+| `gs-8cq.2` Compare guest traits without false physical-migration proof | closed | 1 | Unassigned | — | `gs-8cq.1` |
+| `gs-2uh.7` Cover heterogeneous estates and non-Linux agent hosts | open | 2 | runtime-and-estate-agent | 2026-12-07 | `gs-2uh.1` |
+| `gs-2uh.9` Make self-improvement a reviewed evidence-to-regression loop | open | 2 | quality-maintainer | 2027-01-07 | `gs-2uh.6`, `gs-2uh.8` |
+| `gs-8cq.3` Design approved active CPU, memory and storage experiments | open | 2 | experiment-method-agent | 2026-12-07 | `gs-8cq.1` |
+| `gs-8cq.4` Qualify authorized SSH fleet and bounded path diagnostics | open | 2 | fleet-verification-agent | 2027-01-07 | `gs-2uh.7` |
+| `gs-8cq.5` Extend provider playbooks from the supplied proposals with dated primary evidence | open | 2 | provider-research-agent | 2026-11-28 | — |
 
 ```mermaid
 flowchart LR
   gs_2uh["gs-2uh: in_progress"]
   gs_8cq["gs-8cq: in_progress"]
   gs_2uh_1["gs-2uh.1: closed"]
+  gs_2uh_10["gs-2uh.10: closed"]
+  gs_2uh_11["gs-2uh.11: closed"]
+  gs_2uh_12["gs-2uh.12: open"]
+  gs_2uh_13["gs-2uh.13: open"]
+  gs_2uh_12 --> gs_2uh_13
+  gs_2uh_6 --> gs_2uh_13
+  gs_2uh_8 --> gs_2uh_13
+  gs_nah_2 --> gs_2uh_13
   gs_2uh_2["gs-2uh.2: closed"]
   gs_2uh_1 --> gs_2uh_2
   gs_2uh_3["gs-2uh.3: closed"]
@@ -37,9 +51,9 @@ flowchart LR
   gs_2uh_5["gs-2uh.5: open"]
   gs_2uh_4 --> gs_2uh_5
   gs_2uh_6["gs-2uh.6: open"]
+  gs_2uh_11 --> gs_2uh_6
   gs_2uh_2 --> gs_2uh_6
   gs_2uh_3 --> gs_2uh_6
-  gs_2uh_4 --> gs_2uh_6
   gs_2uh_8["gs-2uh.8: open"]
   gs_2uh_2 --> gs_2uh_8
   gs_2uh_3 --> gs_2uh_8
@@ -79,6 +93,34 @@ Agent determines the authorized target/environment first, reuses a matching work
 **Acceptance:** Read-only plan; one approval applies to the reviewed bounded operations; wrong hash, changed target/config/source or mismatched existing workspace refused. Existing identical runtime returns its identity without duplication.
 
 **Receipt:** Source contract delivered in v0.6: 35 agent runtime tests include actual detached CLI/HTTP, simultaneous start, bounded completion, abrupt owned-child exit/recovery, safe stop and private handoff; browser source verifies the Agent view and capability distinction. The old approval cannot renew a completed run. See docs/verification-v0.6.0.md. This is Linux source/runtime qualification, not real Codex/Claude/OAuth or multi-day field acceptance.
+
+### gs-2uh.10 — Fix same-route Prometheus setup retries without scope drift
+
+A repeated identical existing-monitoring setup was rejected merely because profile/endpoints were supplied again. Reproduce it and allow only semantically matching saved routes. Changed sources or credential variable names remain refused.
+
+**Acceptance:** Failing-before matching-route and auto-resume cases pass; changed endpoint/inventory/credential variable and missing original profile cases retain no-mutation guarantees. Existing runtime and extracted artifact checks pass.
+
+**Receipt:** Two matching-route regressions failed before the fix. All six focused cases pass, and an actual loopback metrics worker reuses its identity/deadline on repeated identical setup while empty data stays HOLD. Existing source suite passed 281 tests plus this new live fixture. Final exact-head CI is the release gate; measurements and action permissions unchanged.
+
+### gs-2uh.11 — Verify cold and resumed client journeys from actual artifacts
+
+Provide private trial preparation and an artifact evaluator for future real-client runs. Check installed release bytes, actual process/HTTP, same-run continuation, retained observations and stop. A model success message or selected client name is not proof of execution.
+
+**Acceptance:** Preparation runs no client or monitoring. Positive actual-worker fixtures and negative claimed-success, modified-source, changed-run and missing-stop cases prove the evaluator. Real Codex/Claude traces and semantic review remain required under gs-2uh.6; fixture tests cannot close that gate.
+
+**Receipt:** Private artifact evaluator and thirteen tests delivered: prepared source hashes, actual worker/HTTP, same-run stop and retained observations, plus false-success and malformed boundary cases. The evaluator explicitly cannot certify native Codex/Claude execution; actual traces and semantic review remain open in gs-2uh.6.
+
+### gs-2uh.12 — Audit private-state boundaries and release failure recovery
+
+Before wider VPS preview, review installation/runtime state, source updates, relative paths, malformed input, partial bootstrap, private file handling and failed/uncertain requests using existing ownership code rather than a second framework.
+
+**Acceptance:** A recorded threat-model pass and regressions cover high-risk read/write/launch boundaries, interrupted setup and upgrade recovery. No permission bypass, automatic provider contact or customer-data upload is introduced. Unresolved high-severity findings block the preview.
+
+### gs-2uh.13 — Qualify the narrow passive preview before broader promotion
+
+A supported passive-preview decision is narrower than the full VPS programme. It requires real basic-client, private-state and sustained-observation evidence, while optional mail sending, every provider, active benchmarks and wider platforms stay excluded unless separately qualified. Do not hold all unrelated G-Skills entries behind this VPS-specific decision.
+
+**Acceptance:** Recorded owner review references actual client and 72-hour pilot receipts, safe install/update evidence and resolved high-severity safety findings. Supported and unsupported claims are explicit. Reaching this task never automatically posts an announcement, sends an invitation or contacts a provider.
 
 ### gs-2uh.2 — Manage collector and viewer beyond a terminal-agent session
 

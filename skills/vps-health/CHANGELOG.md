@@ -1,5 +1,9 @@
 # VPS Health changelog
 
+## 0.7.1 — Safe existing-monitoring retries
+
+Repeated setup may supply the same approved Prometheus/Loki route and profile without being treated as a scope change. Actual endpoint/inventory/credential-variable mismatches remain refusals, and retained configurations work without the original profile file. Measurements, thresholds and action permissions are unchanged. A separate developer artifact evaluator supports cold/resumed client qualification but does not claim native-client completion.
+
 ## 0.7.0 — Reviewed guest diagnostics
 
 Passive storage, memory, network and guest-trait evidence from the reviewed Gemini proposals; explicit snapshot/compare limitations and retained dashboard context. CPU thresholds and external-action authority are unchanged. Future releases use `vps-health/vX.Y.Z` within the G-Skills collection.

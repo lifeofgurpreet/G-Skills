@@ -89,6 +89,51 @@ class PlanTest(unittest.TestCase):
         d=agent.runtime_status(self.root)
         self.assertEqual(d['state'],'NOT_MANAGED');self.assertFalse(self.root.exists())
 
+class ExistingMetricsRouteTest(unittest.TestCase):
+    def setUp(self):
+        self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup)
+        self.root=Path(self.temp.name)/'private'
+        self.profile=Path(self.temp.name)/'profile.json'
+        self.profile.write_text(json.dumps({'schema':'g-skills.vps-profile.v1','assets':[
+            {'id':'example-node','instance':'example.invalid:9100','provider':'other','epoch':'initial'}]}))
+        self.a=args(self.root,mode='prometheus',profile=self.profile,url='https://metrics.example.invalid',
+                    loki_url='https://logs.example.invalid')
+
+    def test_identical_profile_and_endpoints_preserve_retry_plan(self):
+        first=agent.plan(self.a)
+        ws.bootstrap(self.a)
+        before=(self.root/'workspace.json').read_bytes()
+        again=agent.plan(self.a)
+        self.assertEqual(first['plan_sha256'],again['plan_sha256'])
+        self.assertEqual(before,(self.root/'workspace.json').read_bytes())
+
+    def test_auto_resume_accepts_matching_explicit_route(self):
+        ws.bootstrap(self.a)
+        self.a.mode='auto'
+        self.assertTrue(agent.plan(self.a)['ready'])
+
+    def test_changed_endpoint_refuses_without_altering_workspace(self):
+        ws.bootstrap(self.a);before=(self.root/'workspace.json').read_bytes()
+        self.a.url='https://different.example.invalid'
+        with self.assertRaises(core.InvalidEvidence):agent.plan(self.a)
+        self.assertEqual(before,(self.root/'workspace.json').read_bytes())
+
+    def test_changed_inventory_refuses_without_altering_workspace(self):
+        ws.bootstrap(self.a);before=(self.root/'workspace.json').read_bytes()
+        self.profile.write_text(json.dumps({'schema':'g-skills.vps-profile.v1','assets':[
+            {'id':'other-node','instance':'other.invalid:9100'}]}))
+        with self.assertRaises(core.InvalidEvidence):agent.plan(self.a)
+        self.assertEqual(before,(self.root/'workspace.json').read_bytes())
+
+    def test_omitted_route_uses_retained_config_without_original_profile_file(self):
+        ws.bootstrap(self.a);self.profile.unlink()
+        self.assertTrue(agent.plan(args(self.root,mode='auto'))['ready'])
+
+    def test_different_credential_variable_does_not_silently_use_original(self):
+        ws.bootstrap(self.a);self.a.token_env='DIFFERENT_VPS_TOKEN'
+        with mock.patch.dict(os.environ,{'DIFFERENT_VPS_TOKEN':'not-a-real-token'}):
+            with self.assertRaises(core.InvalidEvidence):agent.plan(self.a)
+
 class RuntimeTest(unittest.TestCase):
     def setUp(self):
         if sys.platform!='linux':self.skipTest('managed worker currently qualifies Linux only')
@@ -134,6 +179,33 @@ class RuntimeTest(unittest.TestCase):
         a=self.begin();b=self.begin(mode='auto')
         self.assertEqual(a['run_id'],b['run_id']);self.assertEqual(a['pid'],b['pid'])
         self.assertEqual(a['deadline_utc'],b['deadline_utc'])
+
+    def test_identical_prometheus_start_reuses_actual_worker_and_keeps_empty_data_held(self):
+        import http.server
+        import threading
+        class Metrics(http.server.BaseHTTPRequestHandler):
+            def do_GET(self):
+                body=json.dumps({'status':'success','data':{'resultType':'matrix','result':[]}}).encode()
+                self.send_response(200);self.send_header('Content-Type','application/json');self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body)
+            def log_message(self,*args):pass
+        endpoint=http.server.ThreadingHTTPServer(('127.0.0.1',0),Metrics)
+        thread=threading.Thread(target=endpoint.serve_forever,daemon=True);thread.start()
+        try:
+            profile=Path(self.temp.name)/'metrics-profile.json'
+            profile.write_text(json.dumps({'schema':'g-skills.vps-profile.v1','assets':[{'id':'example-node','instance':'example.invalid:9100'}]}))
+            options=dict(mode='prometheus',profile=profile,url='http://127.0.0.1:'+str(endpoint.server_port),allow_http=True)
+            first=self.begin(**options);second=self.begin(**options)
+            self.assertEqual(first['run_id'],second['run_id']);self.assertEqual(first['deadline_utc'],second['deadline_utc'])
+            deadline=time.monotonic()+5
+            while time.monotonic()<deadline:
+                state=ws.status(self.root)
+                if state['stored_captures']:break
+                time.sleep(.05)
+            self.assertGreater(state['stored_captures'],0)
+            self.assertEqual(state['assets'][0]['decision'],'HOLD')
+            self.assertEqual(agent.stop(self.root,first['run_id'],wait=8)['state'],'STOPPED')
+        finally:
+            endpoint.shutdown();endpoint.server_close();thread.join(2)
 
     def test_changed_request_does_not_replace_active_run(self):
         original=self.begin()

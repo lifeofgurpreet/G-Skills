@@ -128,6 +128,33 @@ def _run_locked(folder):
         raise
 
 
+def matching_existing_route(args,cfg):
+    """A retry can repeat its original route, but cannot redirect stored scope.
+
+    Profile paths are transport, not identity: compare their validated asset
+    content to the retained config. Omitted inputs use the retained values and
+    need no surviving original profile file. No config or credentials are changed.
+    """
+    supplied=any(getattr(args,k,None) for k in ('profile','url','loki_url'))
+    if supplied and cfg['mode']!='prometheus':
+        raise core.InvalidEvidence('existing workspace uses a different source route')
+    for option,key in (('url','prometheus_url'),('loki_url','loki_url')):
+        value=getattr(args,option,None)
+        if value and core.endpoint(value,cfg['allow_http'])!=cfg.get(key):
+            raise core.InvalidEvidence('existing endpoint differs; preserve this workspace and review a new scope')
+    for name in ('token_env','loki_token_env'):
+        value=getattr(args,name,None)
+        if value and value!=cfg.get(name):
+            raise core.InvalidEvidence('existing credential variable differs; review configuration separately')
+    if getattr(args,'allow_http',False) and not cfg['allow_http']:
+        raise core.InvalidEvidence('retry cannot enable a new HTTP allowance')
+    if getattr(args,'profile',None):
+        supplied=core.profile_load(args.profile)['assets']
+        normalize=lambda values:sorted(values,key=lambda a:a['id'])
+        if normalize(supplied)!=normalize(cfg['assets']):
+            raise core.InvalidEvidence('existing inventory differs; preserve this workspace and review a new scope')
+
+
 def plan(args):
     root=ws.public_path(args.workspace)
     seconds=ws.integer(args.duration_seconds,1,7*86400,'duration_seconds')
@@ -141,8 +168,7 @@ def plan(args):
     if exists:
         _,cfg=ws.config_load(root)
         if args.mode not in ('auto',cfg['mode']):raise core.InvalidEvidence('existing workspace uses another collection mode; do not overwrite it')
-        if any(getattr(args,key,None) for key in ('profile','url','loki_url')):
-            raise core.InvalidEvidence('existing workspace already defines endpoints and scope; changing them needs an explicit new workspace')
+        matching_existing_route(args,cfg)
     elif args.mode=='auto':
         return {'schema':'g-skills.agent-plan.v1','ready':False,'needs':[{'code':'target_scope','actor':'agent','question':'Identify the user-authorized host or existing monitoring route; select demo, local or prometheus explicitly.'}],
                 'workspace':str(root),'external_actions_authorized':False,'plan_sha256':None}
