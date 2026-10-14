@@ -14,9 +14,10 @@ This repository hosts independent public skills. Root work is catalog/distributi
 | `gs-ekd.2` Dispatch validation and immutable releases to the selected skill | closed | 1 | Unassigned | — | `gs-ekd.1` |
 | `gs-ekd.3` Separate collection identity, documentation and task ownership | closed | 1 | Unassigned | — | `gs-ekd.1` |
 | `gs-nah.1` Publish the quarter plan with explicit owners and launch gates | closed | 1 | collection-maintainer | 2026-10-21 | — |
-| `gs-nah.2` Qualify clean skill installation, upgrade and removal | open | 1 | distribution-verifier | 2026-11-07 | — |
+| `gs-nah.2` Qualify clean skill installation, upgrade and removal | open | 1 | distribution-verifier | 2026-11-07 | `gs-nah.5` |
 | `gs-nah.3` Prepare a bounded community preview and maintainer feedback loop | open | 1 | Gurpreet-and-community-maintainer | 2026-12-21 | `gs-nah.2` |
 | `gs-nah.4` Select the next independent skill from repeated real work | open | 1 | Gurpreet-and-product-agent | 2027-01-07 | — |
+| `gs-nah.5` Implement reversible selected-skill installation with preserved recovery state | in_progress | 1 | distribution-agent | 2026-10-28 | — |
 
 ## Skill programmes
 
@@ -87,6 +88,12 @@ Prepare concise supported-scope documentation, sanitized issue/report templates,
 By the final month, propose at most three high-value repeated user workflows, compare their generality and effort, and let Gurpreet choose one. Reuse collection scaffolding only after selection. Do not invent a second live product to fill the catalog.
 
 **Acceptance:** Record user-selected problem, intended agent-owned outcome, authority limits and cold-use acceptance; create a draft-only entry for that choice. If no choice is made, record a waiting decision rather than release a placeholder.
+
+### gs-nah.5 — Implement reversible selected-skill installation with preserved recovery state
+
+Build the shared agent-callable offline plan/apply/status path for one selected reviewed skill archive. Preserve modified or unmanaged folders, other skills and user evidence; stage and journal replacements outside discovery; never run packaged hooks, connect accounts or override client permissions. This is implementation/fixture acceptance, not native-client discovery.
+
+**Acceptance:** Fresh install, idempotent repeat, update, retained removal and prior-version restore pass with unrelated synthetic skills and the real VPS archive. Wrong hash/destination, source edits, symlinks and concurrent writers refuse. Actual process interruption has recoverable old files; a removed installation cannot reuse its old approval. Native Codex/Claude installation/discovery remains under gs-nah.2.
 
 A second unrelated skill must be discoverable, independently validated and packaged without inheriting another skill's browser, runtime or safety policy. Draft scaffolds are not completed products.
 

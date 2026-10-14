@@ -66,6 +66,21 @@ its license, and invokes that skill's committed exported-folder check. It does
 not publish automatically. See [contributing](CONTRIBUTING.md) and
 [collection design](docs/collection-design.md).
 
+## Agent-managed installation preview
+
+The [selected-skill lifecycle helper](docs/installation-lifecycle.md) lets an agent
+plan and apply a reviewed local archive, preserve prior versions, recover an
+interrupted update and remove a skill from discovery without deleting its files.
+It rejects user edits and unowned installations rather than overwriting them.
+The recovery store stays outside client discovery. No packaged script, hook or
+account connection is executed during installation.
+
+This is a Linux-verified source preview, not a claim of completed native-client
+qualification. The agent must choose the actual authorized client location, stop
+consumers before mutation and verify discovery afterward. `gs-nah.5` tracks full
+artifact acceptance; `gs-nah.2` retains the real-client gate. The lifecycle helper
+belongs to collection tooling, not to VPS Health or every installed skill bundle.
+
 ## Shared quality, independent scope
 
 We favor useful agent-owned workflows, progressive disclosure, original reusable

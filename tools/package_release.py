@@ -57,26 +57,43 @@ def zip_payload(files,prefix):
     return stream.getvalue()
 
 
-def verify_zip(raw,name,checker=None):
+def archive_files(raw,name):
+    """Read one reviewed skill without running its acceptance code or installing it."""
     collection.safe_name(name)
+    if len(raw)>MAX_BYTES:raise ValueError('archive exceeds the size bound')
     with zipfile.ZipFile(io.BytesIO(raw)) as archive:
         infos=archive.infolist();names=archive.namelist()
-        if len(names)!=len(set(names)) or sum(i.file_size for i in infos)>MAX_BYTES or not infos:
+        if len(names)!=len(set(names)) or not 1<=len(infos)<=2000 or sum(i.file_size for i in infos)>MAX_BYTES:
             raise ValueError('duplicate, empty or oversized archive')
-        if any(not n.startswith(name+'/') for n in names):raise ValueError('wrong skill root')
+        folded=set()
         for item in infos:
-            path=PurePosixPath(item.filename)
-            if path.is_absolute() or '..' in path.parts or stat.S_ISLNK(item.external_attr>>16):raise ValueError('unsafe ZIP member')
+            path=PurePosixPath(item.filename);mode=item.external_attr>>16
+            if (not item.filename.startswith(name+'/') or path.as_posix()!=item.filename
+                    or path.is_absolute() or '..' in path.parts or len(path.parts)<2
+                    or any(not part or ':' in part or '\\' in part or part.endswith((' ','.')) or any(ord(c)<32 for c in part) for part in path.parts)
+                    or stat.S_ISLNK(mode) or item.is_dir() or (stat.S_IFMT(mode) not in (0,stat.S_IFREG))
+                    or item.filename.casefold() in folded):
+                raise ValueError('unsafe, ambiguous or nonportable ZIP member')
+            folded.add(item.filename.casefold())
         files={n[len(name)+1:]:archive.read(n) for n in names}
-        if not {'SKILL.md','skill.json','LICENSE'}<=set(files):raise ValueError('missing entry, metadata or license')
-        meta=collection.validate_manifest(json.loads(files['skill.json']),name)
-        if meta['status']!='ready':raise ValueError('draft skill is not releasable')
-        with tempfile.TemporaryDirectory() as temp:
-            target=Path(temp)/name;target.mkdir()
-            for relative,data in files.items():
-                dest=target/relative;dest.parent.mkdir(parents=True,exist_ok=True);dest.write_bytes(data)
-            if checker is not None:
-                subprocess.run([sys.executable,str(checker),'--skill-dir',str(target)],check=True,timeout=150)
+    if not {'SKILL.md','skill.json','LICENSE'}<=set(files):raise ValueError('missing entry, metadata or license')
+    if any(k.casefold()=='.gskills-install.json' or k.casefold().startswith('.gskills-install.json/') for k in files):raise ValueError('reserved install receipt name')
+    for name_in_archive in files:
+        if any(p.as_posix() in files for p in PurePosixPath(name_in_archive).parents if p.as_posix()!='.'):
+            raise ValueError('file/directory prefix collision')
+    meta=collection.validate_manifest(json.loads(files['skill.json']),name)
+    if meta['status']!='ready':raise ValueError('draft skill is not releasable')
+    return files
+
+
+def verify_zip(raw,name,checker=None):
+    files=archive_files(raw,name)
+    with tempfile.TemporaryDirectory() as temp:
+        target=Path(temp)/name;target.mkdir()
+        for relative,data in files.items():
+            dest=target/relative;dest.parent.mkdir(parents=True,exist_ok=True);dest.write_bytes(data)
+        if checker is not None:
+            subprocess.run([sys.executable,str(checker),'--skill-dir',str(target)],check=True,timeout=150)
     return len(files)
 
 
