@@ -49,7 +49,7 @@ def main():
             if server:
                 page.goto(base, wait_until="networkidle")
             else:
-                page.route("http://example.test/api/snapshot", lambda route: route.fulfill(status=200, content_type="application/json", body=json.dumps(state.read())))
+                page.route("http://example.test/api/refresh", lambda route: route.fulfill(status=200, content_type="application/json", body=json.dumps(state.read())))
                 page.set_content("<base href='http://example.test/'>" + dashboard.HTML, wait_until="networkidle")
             expect(page.locator("#box-count")).to_have_text("2")
             expect(page.locator("#session-count")).to_have_text("2")

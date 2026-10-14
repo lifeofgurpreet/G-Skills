@@ -23,7 +23,9 @@ python3 scripts/model_fleet_dashboard.py serve \
   --bind 127.0.0.1 --port 8765 --interval 600 --discover-local
 ```
 
-The server exposes `/`, `/api/snapshot` and `/healthz`. Refresh is event-safe:
+The server exposes `/`, `/api/snapshot`, `/api/refresh` and `/healthz`. A
+wrapper or hotkey can call `/api/refresh` for an immediate event-style update;
+the ten-minute timer remains the fallback. Refresh is event-safe:
 the collector replaces a complete snapshot under a lock, so the browser never
 sees half a box. `r` requests an immediate read; the interval loop continues
 until the operator stops the foreground process. The runtime has no daemon
