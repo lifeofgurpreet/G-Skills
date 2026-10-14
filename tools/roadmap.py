@@ -44,10 +44,12 @@ def load(root=ROOT):
 
 
 def table(rows):
-    lines=['| Task | State | Priority | Blocking prerequisites |','|---|---|---:|---|']
+    lines=['| Task | State | Priority | Owner role | Target | Blocking prerequisites |','|---|---|---:|---|---|---|']
     for r in rows:
         deps=[d['depends_on_id'] for d in r.get('dependencies',[]) if d['type']=='blocks']
-        lines.append(f"| `{r['id']}` {r['title'].replace('|','/')} | {r['status']} | {r['priority']} | {', '.join('`'+d+'`' for d in deps) or '—'} |")
+        owner=str(r.get('assignee') or 'Unassigned').replace('|','/').replace('\n',' ')
+        due=str(r.get('due_at') or '')[:10] or '—'
+        lines.append(f"| `{r['id']}` {r['title'].replace('|','/')} | {r['status']} | {r['priority']} | {owner} | {due} | {', '.join('`'+d+'`' for d in deps) or '—'} |")
     return lines
 
 
@@ -62,7 +64,7 @@ def details(rows):
 def render(root=ROOT):
     rows=load(root);skills=collection.discover(root)
     shared=[r for r in rows if scope(r)=='scope:collection']
-    lines=['# G-Skills collection roadmap','','This repository hosts independent public skills. Root work is catalog/distribution/quality infrastructure, not the roadmap of the first skill. Canonical task state is `.beads/issues.jsonl`; regenerate with `python3 tools/roadmap.py --write`.','','## Collection infrastructure','']+table(shared)+['','## Skill programmes','']
+    lines=['# G-Skills collection roadmap','','This repository hosts independent public skills. Root work is catalog/distribution/quality infrastructure, not the roadmap of the first skill. Canonical task state is `.beads/issues.jsonl`; regenerate with `python3 tools/roadmap.py --write`.','','[Three-month execution plan and sharing gates](docs/plans/2026-10-14-quarter.md). Owners and targets below come from Beads; a target date is not a scheduled job or release authorization.','','## Collection infrastructure','']+table(shared)+['','## Skill programmes','']
     for skill in skills:
         own=[r for r in rows if scope(r)=='skill:'+skill['name']]
         opened=sum(r['status']!='closed' for r in own if r['issue_type']!='epic')
@@ -71,7 +73,7 @@ def render(root=ROOT):
     outputs={root/'ROADMAP.md':'\n'.join(lines)}
     for skill in skills:
         name=skill['name'];own=[r for r in rows if scope(r)=='skill:'+name]
-        body=[f'# {skill["title"]} roadmap','','This is one skill within G-Skills. Its work does not define the whole collection. State is generated from the shared native graph using the `skill:'+name+'` label.','','## Task graph','']+table(own)+['','```mermaid','flowchart LR']
+        body=[f'# {skill["title"]} roadmap','','This is one skill within G-Skills. Its work does not define the whole collection. State is generated from the shared native graph using the `skill:'+name+'` label.','','[Quarter plan and preview gates](../../plans/2026-10-14-quarter.md). This skill does not need every optional feature finished before a supported, evidence-backed preview.','','## Task graph','']+table(own)+['','```mermaid','flowchart LR']
         for r in own:
             ident=r['id'].replace('-','_').replace('.','_');body.append(f'  {ident}["{r["id"]}: {r["status"]}"]')
             for d in r.get('dependencies',[]):

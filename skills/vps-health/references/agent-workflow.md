@@ -142,3 +142,14 @@ private files. They are not actual Codex/Claude task-completion evaluations.
 Repository epic `gs-2uh` tracks the remaining client, connector, cross-platform,
 full-estate and multi-day acceptance work. The user does not need Beads to use
 the installed skill; it is this project's development tracker.
+
+
+### Repeating an existing-monitoring setup
+
+An agent may repeat its exact approved profile and endpoints when retrying setup.
+The runtime compares the validated profile contents and normalized endpoints to
+the retained scope rather than rejecting their mere presence. A different source,
+inventory or credential-variable name remains a refusal. When those flags are
+omitted, retained configuration is used; a moved or removed original profile file
+is not a reason to ask the human to rebuild it. This does not renew a completed
+run's time budget or replace the requirement for a new generation-bound plan.

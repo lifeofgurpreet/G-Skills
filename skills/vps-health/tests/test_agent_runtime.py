@@ -180,6 +180,33 @@ class RuntimeTest(unittest.TestCase):
         self.assertEqual(a['run_id'],b['run_id']);self.assertEqual(a['pid'],b['pid'])
         self.assertEqual(a['deadline_utc'],b['deadline_utc'])
 
+    def test_identical_prometheus_start_reuses_actual_worker_and_keeps_empty_data_held(self):
+        import http.server
+        import threading
+        class Metrics(http.server.BaseHTTPRequestHandler):
+            def do_GET(self):
+                body=json.dumps({'status':'success','data':{'resultType':'matrix','result':[]}}).encode()
+                self.send_response(200);self.send_header('Content-Type','application/json');self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body)
+            def log_message(self,*args):pass
+        endpoint=http.server.ThreadingHTTPServer(('127.0.0.1',0),Metrics)
+        thread=threading.Thread(target=endpoint.serve_forever,daemon=True);thread.start()
+        try:
+            profile=Path(self.temp.name)/'metrics-profile.json'
+            profile.write_text(json.dumps({'schema':'g-skills.vps-profile.v1','assets':[{'id':'example-node','instance':'example.invalid:9100'}]}))
+            options=dict(mode='prometheus',profile=profile,url='http://127.0.0.1:'+str(endpoint.server_port),allow_http=True)
+            first=self.begin(**options);second=self.begin(**options)
+            self.assertEqual(first['run_id'],second['run_id']);self.assertEqual(first['deadline_utc'],second['deadline_utc'])
+            deadline=time.monotonic()+5
+            while time.monotonic()<deadline:
+                state=ws.status(self.root)
+                if state['stored_captures']:break
+                time.sleep(.05)
+            self.assertGreater(state['stored_captures'],0)
+            self.assertEqual(state['assets'][0]['decision'],'HOLD')
+            self.assertEqual(agent.stop(self.root,first['run_id'],wait=8)['state'],'STOPPED')
+        finally:
+            endpoint.shutdown();endpoint.server_close();thread.join(2)
+
     def test_changed_request_does_not_replace_active_run(self):
         original=self.begin()
         a=args(self.root,mode='auto',duration_seconds=30);a.approve_plan=agent.plan(a)['plan_sha256']
