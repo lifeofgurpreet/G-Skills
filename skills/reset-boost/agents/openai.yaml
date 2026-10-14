@@ -1,0 +1,4 @@
+interface:
+  display_name: "Reset Boost"
+  short_description: "Turn a coding-agent fleet up for a usage reset and back down"
+  default_prompt: "Use $reset-boost to check my fleet's model status and usage. Propose the exact boost command for the coming reset and run it only when I say so. Turn down with done whenever I ask or the reset lands, and show me the dashboard with anything that did not switch."

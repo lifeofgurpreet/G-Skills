@@ -17,6 +17,11 @@ VPS observation, multi-resource context and private evidence reports. Its Linux
 worker, dashboard, provider guidance and roadmap belong to that skill. Other
 skills can be entirely different and need not use Python, a dashboard or VPS concepts.
 
+**Draft:** [Reset Boost](skills/reset-boost/README.md) — turn every coding-agent
+account in a fleet up for a provider usage reset and back down when it lands,
+with launch-config and live-session readback and an HTML dashboard. Draft
+skills are not released and have not been qualified on other people's estates.
+
 The human supplies the goal, authorized scope and consequential decisions. The
 agent should do routine setup and verification rather than hand the human a
 technical checklist. A skill defines a workflow; its host supplies actual tools,

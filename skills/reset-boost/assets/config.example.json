@@ -1,0 +1,13 @@
+{
+  "hosts": {
+    "laptop": {"type": "local"},
+    "build-1": {"type": "ssh", "ssh": "build-1", "sudo": true, "project_roots": ["/srv/projects"]},
+    "build-2": {"type": "ssh", "ssh": "build-2"},
+    "win-1": {"type": "windows", "ssh": "win-1"}
+  },
+  "baseline": "normal",
+  "exclude_profiles": ["pro-1"],
+  "auto_down": {"reset": true, "quorum": 0.5, "drop_points": 15, "ceiling": null},
+  "cooling_hours": 12,
+  "usage": {"type": "url", "url": "https://usage.example.test/v1/accounts", "provider": "codex", "timeout": 30}
+}

@@ -1,0 +1,30 @@
+{
+  "accounts": [
+    {
+      "id": "acct-team-a",
+      "profile": "team-a",
+      "plan": "team",
+      "windows": [
+        {"key": "session", "used_percent": 12, "resets_at": "2026-10-15T03:00:00Z", "window_seconds": 18000},
+        {"key": "weekly", "used_percent": 64, "resets_at": "2026-10-20T00:00:00Z", "window_seconds": 604800}
+      ]
+    },
+    {
+      "id": "acct-team-b",
+      "profile": "team-b",
+      "plan": "team",
+      "windows": [
+        {"key": "session", "used_percent": 3, "resets_at": "2026-10-15T04:30:00Z", "window_seconds": 18000},
+        {"key": "weekly", "used_percent": 41, "resets_at": "2026-10-20T00:00:00Z", "window_seconds": 604800}
+      ]
+    },
+    {
+      "id": "acct-pro-1",
+      "profile": "pro-1",
+      "plan": "pro",
+      "windows": [
+        {"key": "weekly", "used_percent": 88, "resets_at": "2026-10-20T00:00:00Z", "window_seconds": 604800}
+      ]
+    }
+  ]
+}

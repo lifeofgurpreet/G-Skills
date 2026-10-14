@@ -1,0 +1,14 @@
+{
+  "schema": "g-skills.skill.v1",
+  "name": "reset-boost",
+  "title": "Reset Boost",
+  "summary": "Turn every coding-agent account up for a provider usage reset and back down when it lands, with readback and an HTML dashboard.",
+  "version": "0.1.0",
+  "category": "agent-operations",
+  "status": "draft",
+  "entry": "SKILL.md",
+  "checks": {
+    "python": "tools/skills/reset-boost/validate.py",
+    "package": "tools/skills/reset-boost/package_check.py"
+  }
+}

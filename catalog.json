@@ -3,6 +3,17 @@
   "schema": "g-skills.catalog.v1",
   "skills": [
     {
+      "category": "agent-operations",
+      "entry": "skills/reset-boost/SKILL.md",
+      "name": "reset-boost",
+      "path": "skills/reset-boost",
+      "release_tag": "reset-boost/v0.1.0",
+      "status": "draft",
+      "summary": "Turn every coding-agent account up for a provider usage reset and back down when it lands, with readback and an HTML dashboard.",
+      "title": "Reset Boost",
+      "version": "0.1.0"
+    },
+    {
       "category": "infrastructure",
       "entry": "skills/vps-health/SKILL.md",
       "name": "vps-health",
