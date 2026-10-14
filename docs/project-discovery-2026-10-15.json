@@ -42,6 +42,20 @@
       "requested_permission_mode": "dontAsk",
       "effective_permission_mode": "default",
       "outcome": "RESTORED_SKILL_LOADED"
+    },
+    "discovery-candidate": {
+      "trace_sha256": "b9a639810f97fe8c299d38a73af150ab8de666233e277493959362e4021d0756",
+      "native_version": "2.1.300",
+      "skill_listed": true,
+      "version_read": "0.8.0",
+      "outcome": "UPGRADED_SKILL_AND_SUPPORT_REFERENCE_LOADED",
+      "inspected_files": {
+        "SKILL.md": "c717575ebf78a47887e735a2eec7125e3b7d1b85d3b2de223aadbefabdae7f06",
+        "references/support.md": "5cddf46e333174737fa7a0f66e0ebc5041eff181055bc870f2d4f17116886b08"
+      },
+      "runtime_executed": false,
+      "requested_permission_mode": "dontAsk",
+      "effective_permission_mode": "default"
     }
   },
   "discovery_sequence": "installed -> recognized and loaded -> removed and absent -> restored and loaded",
@@ -52,5 +66,21 @@
   "model_report_alone_accepted": false,
   "personal_skill_directories_modified": false,
   "credentials_copied_to_project": false,
-  "provider_contact": false
+  "provider_contact": false,
+  "candidate_archive": {
+    "commit": "ef24ffadfe0fa098496e3dccc59e3277eb138f91",
+    "files": {
+      "vps-health-v0.8.0.zip": {
+        "bytes": 200216,
+        "sha256": "e5dc69f5842ff1416721283b17b89bfe19afc204ee4b5d53124561ff1cfe23c5"
+      }
+    },
+    "schema": "g-skills.skill-release.v1",
+    "skill": "vps-health",
+    "skill_files": 47,
+    "tag": "vps-health/v0.8.0",
+    "verification": "actual selected archive extraction and owning committed acceptance",
+    "version": "0.8.0"
+  },
+  "final_source_equivalence": "The entry/support-reference hashes match final source; the later responsive CSS correction is covered by separate browser and final-archive checks."
 }
