@@ -7,7 +7,7 @@ def validate_files(files):
     required={'SKILL.md','scripts/vps_health.py','scripts/vps_workspace.py','assets/chart-adapter.js',
               'assets/workspace-dashboard.html','assets/vendor/uplot/manifest.json','assets/vendor/uplot/LICENSE','LICENSE',
               'scripts/vps_ops.py','assets/operator.js','assets/operator.css','assets/provider-catalog.json',
-              'references/first-hour.md','references/operator-playbook.md',
+              'references/first-hour.md','references/operator-playbook.md','references/workspace-recovery.md','tests/test_private_workspace.py',
               'scripts/vps_agent.py','scripts/vps_forensics.py','references/forensics.md','references/agent-workflow.md','references/agent-connectors.md'}
     if not required<=set(files):raise ValueError('installable skill is missing required runtime/license files')
     if any(name.startswith(('skills/','.github/','tools/')) for name in files):
@@ -49,9 +49,17 @@ def cold_check(target):
                 stop=subprocess.run([sys.executable,entry,'agent-stop','--workspace',str(workspace),'--run-id',runtime['run_id']],capture_output=True,text=True,timeout=20)
                 if stop.returncode or json.loads(stop.stdout)['state']!='STOPPED':raise ValueError('exported runtime stop not verified')
 
+    if sys.platform=='linux':
+        result=subprocess.run([sys.executable,str(target/'tests/test_private_workspace.py'),
+            'InitializationTest.test_process_death_mid_initialization_allows_safe_new_attempt',
+            'RuntimeBoundaryTest.test_agent_retries_the_original_approved_setup_after_interrupted_render'],
+            capture_output=True,text=True,timeout=90)
+        if result.returncode:
+            raise ValueError('extracted initialization/agent recovery check failed: '+result.stderr[-3000:])
+
 def main():
     p=argparse.ArgumentParser();p.add_argument('--skill-dir',required=True,type=Path);a=p.parse_args()
     files={f.relative_to(a.skill_dir).as_posix():f.read_bytes() for f in a.skill_dir.rglob('*') if f.is_file() and '__pycache__' not in f.parts}
     validate_files(files);cold_check(a.skill_dir)
-    print('PASS: isolated VPS Health package including owned runtime stop')
+    print('PASS: isolated VPS Health package including owned stop and interrupted initialization recovery')
 if __name__=='__main__':main()

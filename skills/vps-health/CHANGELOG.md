@@ -1,5 +1,16 @@
 # VPS Health changelog
 
+## 0.7.3 — Recoverable setup and private evidence boundaries
+
+Initialize in a private retained stage and publish only complete workspaces. Retry
+an interrupted first setup without deleting the original files. Refuse linked,
+exposed or nonregular state; bounded JSON reads cannot hang on a FIFO, and new
+captures ignore permissive umasks. Preserve SQLite rollback journals and verify
+transaction recovery. Owned shutdown no longer requires valid configuration;
+installed Python changes stop a worker for review before another collection cycle.
+CPU decisions, provider permissions and collection-wide tooling are unchanged.
+
+
 ## 0.7.2 — Agent-owned viewer verification
 
 Add `agent-verify`: bounded literal-loopback readback matched to the actual worker, configuration and declared subjects. No redirects, proxy routing or generic shell/curl permission is needed. Stopped, changed and mismatched runtimes remain NOT_READY. Collection and diagnostic thresholds are unchanged.
