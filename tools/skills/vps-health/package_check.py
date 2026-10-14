@@ -43,6 +43,8 @@ def cold_check(target):
                 if runtime['state']!='RUNNING' or not runtime['process_verified']:raise ValueError('exported agent runtime not verified')
                 current=json.loads(subprocess.check_output([sys.executable,entry,'agent-status','--workspace',str(workspace)],text=True,timeout=15))
                 if current['run_id']!=runtime['run_id']:raise ValueError('exported handoff lost owned identity')
+                verified=json.loads(subprocess.check_output([sys.executable,entry,'agent-verify','--workspace',str(workspace)],text=True,timeout=15))
+                if verified['state']!='VERIFIED' or not verified['http_verified']:raise ValueError('exported viewer readback not verified')
             finally:
                 stop=subprocess.run([sys.executable,entry,'agent-stop','--workspace',str(workspace),'--run-id',runtime['run_id']],capture_output=True,text=True,timeout=20)
                 if stop.returncode or json.loads(stop.stdout)['state']!='STOPPED':raise ValueError('exported runtime stop not verified')

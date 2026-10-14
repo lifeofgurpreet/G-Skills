@@ -1,5 +1,9 @@
 # VPS Health changelog
 
+## 0.7.2 — Agent-owned viewer verification
+
+Add `agent-verify`: bounded literal-loopback readback matched to the actual worker, configuration and declared subjects. No redirects, proxy routing or generic shell/curl permission is needed. Stopped, changed and mismatched runtimes remain NOT_READY. Collection and diagnostic thresholds are unchanged.
+
 ## 0.7.1 — Safe existing-monitoring retries
 
 Repeated setup may supply the same approved Prometheus/Loki route and profile without being treated as a scope change. Actual endpoint/inventory/credential-variable mismatches remain refusals, and retained configurations work without the original profile file. Measurements, thresholds and action permissions are unchanged. A separate developer artifact evaluator supports cold/resumed client qualification but does not claim native-client completion.

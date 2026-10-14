@@ -175,6 +175,31 @@ class RuntimeTest(unittest.TestCase):
         self.assertEqual(results[0]['run_id'],results[1]['run_id'])
         self.assertEqual(results[0]['pid'],results[1]['pid'])
 
+    def test_verify_reads_actual_owned_http_without_an_external_shell_tool(self):
+        d=self.begin();before=ws.status(self.root)['stored_captures'];result=agent.verify_runtime(self.root)
+        self.assertEqual(result['state'],'VERIFIED');self.assertTrue(result['http_verified'])
+        self.assertEqual(result['run_id'],d['run_id']);self.assertTrue(result['synthetic'])
+        self.assertGreater(result['stored_captures'],0);self.assertIn('does not mean',result['collection_note'])
+        self.assertFalse(result['service_health_verified']);self.assertFalse(result['provider_cause_proven'])
+        self.assertEqual(ws.status(self.root)['stored_captures'],before)
+
+    def test_stopped_runtime_never_attempts_http_verification(self):
+        d=self.begin();agent.stop(self.root,d['run_id'],wait=8)
+        with mock.patch.object(agent,'read_viewer') as read:
+            result=agent.verify_runtime(self.root)
+        read.assert_not_called();self.assertEqual(result['state'],'NOT_READY')
+
+    def test_viewer_payload_cannot_substitute_a_different_owned_run(self):
+        d=self.begin();payload=ws.status(self.root);payload['agent_runtime']['run_id']='0'*32
+        with mock.patch.object(agent,'read_viewer',return_value=payload):result=agent.verify_runtime(self.root)
+        self.assertEqual(result['state'],'NOT_READY');self.assertEqual(result['reason'],'http_identity_mismatch')
+
+    def test_viewer_refuses_unapproved_configuration_after_start(self):
+        self.begin();cfg=core.read_json(self.root/'workspace.json');cfg['policy']['acceptable_ratio']=.93
+        ws.atomic(self.root/'workspace.json',core.canonical(cfg))
+        result=agent.verify_runtime(self.root)
+        self.assertEqual(result['state'],'NOT_READY');self.assertFalse(result['http_verified'])
+
     def test_repeat_start_attaches_without_duplicate_or_new_budget(self):
         a=self.begin();b=self.begin(mode='auto')
         self.assertEqual(a['run_id'],b['run_id']);self.assertEqual(a['pid'],b['pid'])
@@ -388,5 +413,25 @@ class ConnectorRequestTest(unittest.TestCase):
 
     def test_unsupported_capability_is_not_a_shell_escape(self):
         with self.assertRaises(core.InvalidEvidence):agent.connection_request(self.root,'sh -c whoami','test','generic')
+
+class ViewerTransportTest(unittest.TestCase):
+    def test_transport_rejects_non_loopback_urls_without_creating_connections(self):
+        for url in ('https://example.invalid/','http://localhost:1234/','http://127.0.0.1:1234/redirect','http://127.0.0.1:0/','http://user@127.0.0.1:1234/'):
+            with self.subTest(url=url),mock.patch.object(agent.http.client,'HTTPConnection') as conn:
+                with self.assertRaises(core.InvalidEvidence):agent.read_viewer(url)
+                conn.assert_not_called()
+
+    def test_http_redirect_is_not_followed(self):
+        connection=mock.MagicMock();response=connection.getresponse.return_value;response.status=302
+        with mock.patch.object(agent.http.client,'HTTPConnection',return_value=connection):
+            with self.assertRaises(core.InvalidEvidence):agent.read_viewer('http://127.0.0.1:1234/')
+        self.assertEqual(connection.request.call_count,1);response.read.assert_not_called()
+
+    def test_oversized_payload_is_refused_before_reading(self):
+        connection=mock.MagicMock();response=connection.getresponse.return_value;response.status=200
+        response.getheader.return_value=str(agent.VIEWER_READ_LIMIT+1)
+        with mock.patch.object(agent.http.client,'HTTPConnection',return_value=connection):
+            with self.assertRaises(core.InvalidEvidence):agent.read_viewer('http://127.0.0.1:1234/')
+        response.read.assert_not_called()
 
 if __name__=='__main__':unittest.main()

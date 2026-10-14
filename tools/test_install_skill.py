@@ -69,6 +69,17 @@ class InstallTest(unittest.TestCase):
         self.assertEqual([p.name for p in self.directory.iterdir()],[self.skill])
         self.assertTrue((self.target()/'SKILL.md').is_file());self.assertFalse(result['native_client_verified'])
 
+    def test_installed_status_hands_the_agent_an_exact_entry_not_a_machine_search(self):
+        self.apply();result=install.status(self.directory,self.store,self.skill)
+        self.assertEqual(result['agent_entry']['file'],str(self.target()/'SKILL.md'))
+        self.assertIn(str(self.target()/'SKILL.md'),result['agent_entry']['instruction'])
+        self.assertFalse(result['agent_entry']['search_machine'])
+        self.assertFalse(result['native_client_verified'])
+
+    def test_retired_installation_does_not_offer_a_missing_entry(self):
+        self.apply();self.apply('remove')
+        self.assertIsNone(install.status(self.directory,self.store,self.skill)['agent_entry'])
+
     def test_retry_same_plan_is_noop_with_same_generation(self):
         p=self.plan();a=self.apply(approval=p['plan_sha256']);b=self.apply(approval=p['plan_sha256'])
         self.assertEqual(b['state'],'UNCHANGED')

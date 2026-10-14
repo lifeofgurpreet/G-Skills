@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import contextlib
 import hashlib
+import http.client
 import json
 import os
 from pathlib import Path
@@ -226,6 +227,64 @@ def runtime_status(path):
                                  'resolve_host_capability' if any(r['state']=='NEEDS_CONNECTION' for r in requests) else
                                  'inspect_evidence' if state in TERMINAL else 'monitor_existing_run')
     return result
+
+
+VIEWER_READ_LIMIT=8*1024*1024
+
+
+def read_viewer(url):
+    """Read only the owned literal loopback status endpoint. No proxy or redirect."""
+    match=re.fullmatch(r'http://127\.0\.0\.1:([0-9]{1,5})/',str(url))
+    if not match or not 1<=int(match[1])<=65535:
+        raise core.InvalidEvidence('viewer verification is restricted to a literal loopback port')
+    connection=http.client.HTTPConnection('127.0.0.1',int(match[1]),timeout=3)
+    try:
+        connection.request('GET','/api/status',headers={'Accept':'application/json'})
+        response=connection.getresponse()
+        if response.status!=200:raise core.InvalidEvidence('viewer did not return a successful local response')
+        length=response.getheader('Content-Length')
+        if length is not None and (not str(length).isdigit() or int(length)>VIEWER_READ_LIMIT):
+            raise core.InvalidEvidence('viewer payload exceeds the read limit')
+        raw=response.read(VIEWER_READ_LIMIT+1)
+        if len(raw)>VIEWER_READ_LIMIT:raise core.InvalidEvidence('viewer payload exceeds the read limit')
+        return json.loads(raw)
+    finally:connection.close()
+
+
+def verify_runtime(path):
+    """One agent-callable readback without shell/curl permissions or state changes."""
+    root,cfg=ws.config_load(path);state=runtime_status(root)
+    result={'schema':'g-skills.viewer-verification.v1','state':'NOT_READY','run_id':state.get('run_id'),
+            'http_verified':False,'process_verified':state.get('process_verified',False),
+            'service_health_verified':False,'provider_cause_proven':False,'external_actions_authorized':False}
+    if not state.get('process_verified') or state['state']!='RUNNING':
+        return {**result,'reason':'owned_worker_not_running'}
+    launch=_read(_safe_dir(root)/'launch.json',{})
+    if (launch.get('intent',{}).get('configuration')!=config_intent(cfg)
+            or launch.get('intent',{}).get('source')!=source_binding()):
+        return {**result,'reason':'source_or_configuration_changed'}
+    try:
+        payload=read_viewer(state.get('dashboard_url'))
+    except (OSError,ValueError,http.client.HTTPException):
+        return {**result,'reason':'local_http_unavailable'}
+    live=payload.get('agent_runtime',{}) if isinstance(payload,dict) else {}
+    expected=sorted(a['id'] for a in cfg['assets'])
+    assets=payload.get('assets') if isinstance(payload,dict) else None
+    if (not isinstance(live,dict) or not isinstance(assets,list)
+            or not all(isinstance(a,dict) and isinstance(a.get('id'),str) for a in assets)
+            or payload.get('schema')!='g-skills.workspace-status.v1'
+            or payload.get('configuration_sha256')!=core.digest(cfg)
+            or sorted(a['id'] for a in assets)!=expected
+            or live.get('run_id')!=state['run_id'] or live.get('process_verified') is not True):
+        return {**result,'reason':'http_identity_mismatch'}
+    after=runtime_status(root)
+    if after.get('run_id')!=state['run_id'] or not after.get('process_verified') or after['state']!='RUNNING':
+        return {**result,'reason':'runtime_changed_during_readback'}
+    return {**result,'state':'VERIFIED','http_verified':True,'dashboard_url':state['dashboard_url'],
+            'synthetic':cfg['mode']=='demo','expected_subjects':len(expected),'read_only':True,
+            'stored_captures':payload.get('stored_captures'),
+            'collection_note':('Seeded synthetic observations are present. Zero real collection cycles does not mean the demo history is empty.' if cfg['mode']=='demo' else 'Collection counts and service-health acceptance are separate from viewer verification.'),
+            'note':'The owned viewer responded for this workspace. This does not certify service health or provider responsibility.'}
 
 
 def handoff(root,status=None):
@@ -468,6 +527,7 @@ def register(sub):
         p.add_argument('--duration-seconds',type=int,default=72*3600);p.add_argument('--port',type=int,default=0)
         p.add_argument('--client',choices=sorted(CLIENTS),default='generic');p.add_argument('--approve-plan')
     p=sub.add_parser('agent-status',help='Read actual owned-process state and pending agent needs');p.add_argument('--workspace',required=True,type=Path)
+    p=sub.add_parser('agent-verify',help='Read the owned loopback viewer and match current process/configuration');p.add_argument('--workspace',required=True,type=Path)
     p=sub.add_parser('agent-stop',help='Request cooperative stop for the exact owned run');p.add_argument('--workspace',required=True,type=Path);p.add_argument('--run-id',required=True)
     p=sub.add_parser('agent-request',help='Persist a host-native capability need, not a connection or consent');p.add_argument('--workspace',required=True,type=Path);p.add_argument('--capability',choices=sorted(CAPABILITIES),required=True);p.add_argument('--purpose',required=True);p.add_argument('--client',choices=sorted(CLIENTS),default='generic')
     p=sub.add_parser('agent-resolve',help='Record a host-reported capability result; not permission to send');p.add_argument('--workspace',required=True,type=Path);p.add_argument('--request-id',required=True);p.add_argument('--outcome',choices=('available','declined'),required=True);p.add_argument('--tool-id');p.add_argument('--receipt-ref')
@@ -478,6 +538,7 @@ def dispatch(args):
     if args.cmd=='agent-plan':return plan(args)
     if args.cmd=='agent-start':return start(args)
     if args.cmd=='agent-status':return runtime_status(args.workspace)
+    if args.cmd=='agent-verify':return verify_runtime(args.workspace)
     if args.cmd=='agent-stop':return stop(args.workspace,args.run_id)
     if args.cmd=='agent-request':return connection_request(args.workspace,args.capability,args.purpose,args.client)
     if args.cmd=='agent-resolve':return resolve_request(args.workspace,args.request_id,args.outcome,args.tool_id,args.receipt_ref)

@@ -1,0 +1,80 @@
+{
+  "schema": "g-skills.execution-receipt.v1",
+  "date": "2026-10-14",
+  "scope": "Linux, explicit installed entry, synthetic monitoring only",
+  "release_lifecycle": {
+    "published_archives": [
+      "vps-health/v0.7.0",
+      "vps-health/v0.7.1"
+    ],
+    "install": true,
+    "upgrade": true,
+    "runtime_start_stop": true,
+    "prior_version_restored_byte_for_byte": true,
+    "removed_from_discovery": true,
+    "old_versions_retained": true,
+    "private_evidence_unchanged": true,
+    "subject_count": 3,
+    "capture_rows": 1,
+    "point_count": 2288,
+    "native_client_verified": false,
+    "system_installations_changed": false
+  },
+  "claude_code": {
+    "version": "2.1.299",
+    "permission_mode": "dontAsk with scoped CLI allowance",
+    "authentication": "existing protected account route; not copied into the project",
+    "source_commit": "12ae2386c32a68c8c970323734f5e89a71b36b02",
+    "archive_sha256": "553dd14a0b0e74fd6ab5099dc1fcf1ae5898618e4eb6786248a3d76109eb9a1a",
+    "native_sessions": {
+      "claude-final-start": {
+        "sha256": "937e6e37e2b1b1fe4f2d0ede13dc42a14dea52e4cb0b6ce4b70b44d79f01d40f",
+        "skill_commands": [
+          "capabilities",
+          "agent-plan",
+          "agent-plan",
+          "agent-plan",
+          "agent-start",
+          "agent-verify",
+          "agent-status",
+          "doctor"
+        ],
+        "native_result": "success"
+      },
+      "claude-final-resume": {
+        "sha256": "bbb0dccf3114a83525a7c64743dfa16a43cd354094b88058338ab2869ffb67e5",
+        "skill_commands": [
+          "agent-status",
+          "--help",
+          "agent-verify",
+          "agent-verify",
+          "agent-stop",
+          "agent-status",
+          "agent-verify"
+        ],
+        "native_result": "success"
+      }
+    },
+    "independent_artifact_checks": [
+      "same live run and loopback HTTP",
+      "same retained observations through fresh-session stop"
+    ],
+    "preserved_points": 2288,
+    "personal_skill_directories_changed": false,
+    "semantic_limits": [
+      "Explicit entry-path invocation, not automatic plugin discovery.",
+      "Native summaries confused no real collection cycles with absence of the seeded demo observations; the data were present and independently checked.",
+      "Read-only shell observations were permitted or refused by the existing host policy; no policy was widened."
+    ]
+  },
+  "codex": {
+    "version": "0.162.1",
+    "result": "BLOCKED_BY_EXISTING_AUTHENTICATION",
+    "code": "token_revoked / workspace routing discovery unauthorized (401)",
+    "account_switched": false,
+    "reauthentication_attempted": false
+  },
+  "provider_contact": false,
+  "pilot_started": false,
+  "publicity_sent": false
+}

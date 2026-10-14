@@ -28,11 +28,11 @@ import uuid
 
 import vps_health as core
 
-VERSION = '0.7.1'
+VERSION = '0.7.2'
 SCHEMA = 'g-skills.workspace.v1'
 SELF_HASH = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
 MAX_STORE_BYTES = 256 * 1024 * 1024
-COMMANDS = ('bootstrap','collect','watch','dashboard','serve','export','schedule','draft-email','capabilities','doctor','brief','providers','agent-plan','agent-start','agent-status','agent-stop','agent-request','agent-resolve','_agent-worker','forensic-snapshot','forensic-observe','forensic-compare')
+COMMANDS = ('bootstrap','collect','watch','dashboard','serve','export','schedule','draft-email','capabilities','doctor','brief','providers','agent-plan','agent-start','agent-status','agent-verify','agent-stop','agent-request','agent-resolve','_agent-worker','forensic-snapshot','forensic-observe','forensic-compare')
 SQL = '''
 CREATE TABLE IF NOT EXISTS state (key TEXT PRIMARY KEY, value TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS captures (

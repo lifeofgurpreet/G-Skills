@@ -151,6 +151,8 @@ def status(directory,store,skill):
     return {'schema':'g-skills.install-status.v1','state':'RECOVERY_REQUIRED' if (folder/'pending.json').exists() else 'INSTALLED' if current else 'NOT_INSTALLED',
             'target':str(target),'current':current,'revisions':revisions,
             'native_client_verified':False,'runtime_started':False,'evidence_removed':False,
+            'agent_entry':({'file':str(target/'SKILL.md'),'search_machine':False,
+                'instruction':'Read this installed entry directly: '+str(target/'SKILL.md')+'. Do not search the whole host to locate it. Use only the scoped tools authorized for the requested task; a denied broad scan does not establish whether a different, explicitly allowed operation is available.'} if current else None),
             'retained_staging':len(list(folder.glob('stage-*'))) if folder.exists() else 0}
 
 

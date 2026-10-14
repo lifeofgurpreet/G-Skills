@@ -4,7 +4,7 @@ description: Take ownership of a user's VPS investigation: discover authorized t
 license: MIT
 compatibility: Python 3.10+ and SQLite. Managed lifecycle and passive local collection currently qualify Linux; demo/offline/foreground views remain portable. Use the terminal agent's actual authorized host, browser and connector tools. No bundled OAuth service, provider sender, root service or public dashboard exposure.
 metadata:
-  version: "0.7.1"
+  version: "0.7.2"
   author: lifeofgurpreet
 ---
 
@@ -37,7 +37,7 @@ Use [agent-workflow.md](references/agent-workflow.md) for the exact lifecycle an
 | Scope | Resolve target and private destination from actual tools/context | Clarify missing target or access only |
 | Plan | `agent-plan` with explicit mode/source, duration and port | Approve the bounded scope once when not already authorized |
 | Apply | `agent-start` using the returned plan hash | No manual configuration/copying of the hash |
-| Verify | `agent-status`, `doctor`, browser readback, first capture | View the dashboard; do not equate it with collected days |
+| Verify | `agent-status`, `agent-verify`, `doctor`, first capture | View the dashboard; do not equate it with collected days |
 | Resume | Read private `HANDOFF.md` and current state | No repeated setup while the same owned run exists |
 | Capability gap | `agent-request`, host discovery/OAuth, `agent-resolve` | Complete the native authentication/consent step |
 | Stop | `agent-stop` with the exact run identity | A stop instruction, not a process-ID hunt |
@@ -60,7 +60,7 @@ worker for review rather than silently targeting a different service.
 
 ## Deliver an interface, not a folder tour
 
-Open the returned dashboard with the host's browser capability. For a remote VPS,
+Use `agent-verify` to check the owned loopback viewer directly through this skill's CLI. It matches the response to the current run, configured subjects and source; it follows no redirects and requires no generic curl/shell permission. Then open the returned dashboard with the host's browser capability. For a remote VPS,
 arrange an existing approved tunnel or remote browser path; localhost on the VPS
 is not automatically reachable from the user's laptop. Never bind publicly just
 to make the link convenient.
