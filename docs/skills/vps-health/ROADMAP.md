@@ -19,7 +19,7 @@ This is one skill within G-Skills. Its work does not define the whole collection
 | `gs-2uh.3` Expose agent progress and recovery in the dashboard | closed | 1 | Unassigned | — | `gs-2uh.2` |
 | `gs-2uh.4` Discover host-native connector capabilities only when needed | in_progress | 1 | connector-agent | 2026-11-28 | `gs-2uh.1` |
 | `gs-2uh.5` Bind external actions to reviewed content and verified results | open | 1 | connector-verification-agent | 2026-12-07 | `gs-2uh.4` |
-| `gs-2uh.6` Qualify cold Codex and Claude Code user journeys | open | 1 | client-verification-agent | 2026-11-07 | `gs-2uh.11`, `gs-2uh.2`, `gs-2uh.3` |
+| `gs-2uh.6` Qualify cold Codex and Claude Code user journeys | in_progress | 1 | client-verification-agent | 2026-11-07 | `gs-2uh.11`, `gs-2uh.2`, `gs-2uh.3` |
 | `gs-2uh.8` Validate multi-day operation and measurement usefulness | open | 1 | field-verification-agent | 2026-11-14 | `gs-2uh.2`, `gs-2uh.3` |
 | `gs-8cq.1` Retain aligned passive storage, memory and network context | closed | 1 | Unassigned | — | — |
 | `gs-8cq.2` Compare guest traits without false physical-migration proof | closed | 1 | Unassigned | — | `gs-8cq.1` |
@@ -50,7 +50,7 @@ flowchart LR
   gs_2uh_1 --> gs_2uh_4
   gs_2uh_5["gs-2uh.5: open"]
   gs_2uh_4 --> gs_2uh_5
-  gs_2uh_6["gs-2uh.6: open"]
+  gs_2uh_6["gs-2uh.6: in_progress"]
   gs_2uh_11 --> gs_2uh_6
   gs_2uh_2 --> gs_2uh_6
   gs_2uh_3 --> gs_2uh_6

@@ -94,3 +94,21 @@ The operator-facing guide cites current official client discovery documentation.
 Those pages establish documented locations, not actual success in a fresh agent
 session. Preserving this distinction is part of readiness, not omitted work hidden
 behind a test-count badge.
+
+
+## Follow-up: published-archive round trip accepted
+
+The full 0.7.0 → 0.7.1 install/update/start/stop/restore/remove sequence has now
+completed against the actual released archives. Every tracked prior-version file
+was restored byte-for-byte; removal retained the old versions outside discovery;
+the three subjects, one bundled capture and 2,288 observation points were unchanged.
+The observer now uses the actual `subject` schema rather than assuming that capture
+rows equal subject counts. The earlier blocked/unaccepted attempt above is retained
+as history, not the current result. See `execution-2026-10-14.json`.
+
+A native Claude Code cold session subsequently created and verified the synthetic
+workspace; a fresh native session stopped the same run. Independent process/HTTP/
+database checks confirmed both results. Automatic client discovery and Codex remain
+separate: the current Codex login returned token_revoked/401. No alternate account
+or permission bypass was used. Source task `gs-nah.5` is now accepted; broader
+installation/client qualification remains open under `gs-nah.2` and `gs-2uh.6`.

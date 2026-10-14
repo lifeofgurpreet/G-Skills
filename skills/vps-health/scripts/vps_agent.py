@@ -282,6 +282,8 @@ def verify_runtime(path):
         return {**result,'reason':'runtime_changed_during_readback'}
     return {**result,'state':'VERIFIED','http_verified':True,'dashboard_url':state['dashboard_url'],
             'synthetic':cfg['mode']=='demo','expected_subjects':len(expected),'read_only':True,
+            'stored_captures':payload.get('stored_captures'),
+            'collection_note':('Seeded synthetic observations are present. Zero real collection cycles does not mean the demo history is empty.' if cfg['mode']=='demo' else 'Collection counts and service-health acceptance are separate from viewer verification.'),
             'note':'The owned viewer responded for this workspace. This does not certify service health or provider responsibility.'}
 
 

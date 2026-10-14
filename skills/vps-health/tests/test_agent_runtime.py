@@ -179,6 +179,7 @@ class RuntimeTest(unittest.TestCase):
         d=self.begin();before=ws.status(self.root)['stored_captures'];result=agent.verify_runtime(self.root)
         self.assertEqual(result['state'],'VERIFIED');self.assertTrue(result['http_verified'])
         self.assertEqual(result['run_id'],d['run_id']);self.assertTrue(result['synthetic'])
+        self.assertGreater(result['stored_captures'],0);self.assertIn('does not mean',result['collection_note'])
         self.assertFalse(result['service_health_verified']);self.assertFalse(result['provider_cause_proven'])
         self.assertEqual(ws.status(self.root)['stored_captures'],before)
 
