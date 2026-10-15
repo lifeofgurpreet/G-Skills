@@ -111,3 +111,8 @@ public collection. Learning produces reviewed changes, not self-granted permissi
 ## Next three months
 
 The [October 14–January 14 execution plan](docs/plans/2026-10-14-quarter.md) separates collection readiness from each skill. It names target windows, accountable roles, preview gates and explicitly deferred work. Native Beads remains the task-state authority; passing source checks does not authorize a public announcement or imply every client/provider was qualified.
+
+
+### VPS Health launch kit
+
+A [caption-first product video, share-ready draft and precise preview scope](docs/skills/vps-health/launch.md) are available for the first published skill. These materials do not promote draft skills or imply that G-Skills is a single VPS application.

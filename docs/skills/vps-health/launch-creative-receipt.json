@@ -1,0 +1,26 @@
+{
+  "schema": "g-skills.launch-creative.v1",
+  "requested_model": "claude-opus-5-5",
+  "returned_models": [
+    "claude-opus-5-5"
+  ],
+  "native_cli_version": "2.1.300",
+  "result": "SUCCESS",
+  "trace_sha256": "4c4568e93912b30ebd8065ac94042d7f35c640d7a2e8a35552201b113922791b",
+  "model_tool_calls": [],
+  "contribution": "creative direction, caption-first storyboard and limits on marketing claims",
+  "rendered_video_by_model": false,
+  "private_source_material_sent": false,
+  "provider_contact": false,
+  "adopted": [
+    "Slow VPS. Wrong suspect? hook",
+    "Two views, one timeline",
+    "Missing data stays missing",
+    "Evidence before blame closing",
+    "Technical preview and demo labels; no fake native conversation"
+  ],
+  "modified": [
+    "The support screen is an explicitly editorial field summary, not an invented application view.",
+    "Routine next actions stay agent-owned; humans approve scope and consequences."
+  ]
+}

@@ -18,6 +18,7 @@ This repository hosts independent public skills. Root work is catalog/distributi
 | `gs-nah.3` Prepare a bounded community preview and maintainer feedback loop | closed | 1 | Gurpreet-and-community-maintainer | 2026-12-21 | `gs-nah.2` |
 | `gs-nah.4` Select the next independent skill from repeated real work | open | 1 | Gurpreet-and-product-agent | 2027-01-07 | — |
 | `gs-nah.5` Implement reversible selected-skill installation with preserved recovery state | closed | 1 | distribution-agent | 2026-10-28 | — |
+| `gs-nah.6` Produce verified community launch video and share-ready assets | in_progress | 1 | community-media-agent | 2026-10-16 | — |
 
 ## Skill programmes
 
@@ -101,6 +102,12 @@ Build the shared agent-callable offline plan/apply/status path for one selected 
 **Acceptance:** Fresh install, idempotent repeat, update, retained removal and prior-version restore pass with unrelated synthetic skills and the real VPS archive. Wrong hash/destination, source edits, symlinks and concurrent writers refuse. Actual process interruption has recoverable old files; a removed installation cannot reuse its old approval. Native Codex/Claude installation/discovery remains under gs-nah.2.
 
 **Receipt:** Actual published 0.7.0/0.7.1 archive installation, update, runtime start/stop, byte-identical restore and retained removal pass; three subjects and 2288 observation points unchanged. Shared source tests and interruption/security regressions pass. Exact entry handoff added from native-client findings. See docs/execution-2026-10-14.json. Automatic client discovery is still gs-nah.2, not inferred from filesystem acceptance.
+
+### gs-nah.6 — Produce verified community launch video and share-ready assets
+
+Create an actual short launch film for the selected VPS Health preview using real synthetic product captures, claim-safe editorial copy and an actual requested Opus 5.5 creative pass. Keep other collection entries independent. Prepare social copy, do not post it.
+
+**Acceptance:** Landscape/feed MP4s have visible demo/preview labels, captions, original or licensed audio, verified encoding and complete decode. Real product capture actions are checked and model contribution is precisely attributed. Original render source and reproduction are retained. No customer data, fake native chat, completed-field-trial claim or automatic public post.
 
 A second unrelated skill must be discoverable, independently validated and packaged without inheriting another skill's browser, runtime or safety policy. Draft scaffolds are not completed products.
 
