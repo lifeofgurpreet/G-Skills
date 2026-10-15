@@ -1,0 +1,87 @@
+{
+  "schema": "g-skills.publication-entry-proof.v1",
+  "owning_bead": "gs-2uh.17",
+  "prior_distribution": {
+    "release": "vps-health/v0.9.4",
+    "commit": "a166348af5e9ffe3dd0da01b5e947dbc25997a4f",
+    "artifact_matches_published_digest": true,
+    "skill_files": 60,
+    "skill_md_lines": 235,
+    "skill_md_words": 2101,
+    "local_markdown_links_checked": 39,
+    "missing_local_links": [],
+    "standalone_no_site_packages_version": "0.9.4",
+    "runtime_started": false,
+    "collector_started": false
+  },
+  "candidate": {
+    "artifact": {
+      "commit": "195c6265ad0c858cd903dfec343d14d1f0e2acab",
+      "files": {
+        "vps-health-v0.9.5.zip": {
+          "bytes": 248195,
+          "sha256": "08d4929a66c8ae5440267a688bc1dabca9316b38c89cd852af79e6f1aeb2216a"
+        }
+      },
+      "schema": "g-skills.skill-release.v1",
+      "skill": "vps-health",
+      "skill_files": 61,
+      "tag": "vps-health/v0.9.5",
+      "verification": "actual selected archive extraction and owning committed acceptance",
+      "version": "0.9.5"
+    },
+    "official_validator": "Skill is valid!",
+    "local_inline_targets_checked": 46,
+    "missing_local_targets": [],
+    "main_entry_lines": 255,
+    "main_entry_words": 2233
+  },
+  "official_validator_commit": "dbd4588f9e1033efb41dad4bef2f7947c8993d44",
+  "python_tests": 550,
+  "python_suites": [
+    11,
+    12,
+    8,
+    6,
+    36,
+    10,
+    82,
+    46,
+    56,
+    10,
+    27,
+    41,
+    17,
+    17,
+    49,
+    39,
+    28,
+    6,
+    12,
+    13,
+    15,
+    9
+  ],
+  "new_entry_package_tests": 6,
+  "javascript_contracts": 27,
+  "browser_groups": 45,
+  "runtime_logic_unchanged": true,
+  "ui_assets_unchanged": true,
+  "standalone_absolute_spaced_path_from_unrelated_cwd_verified": true,
+  "no_site_packages_needed": true,
+  "native_agent_behavior_evals_executed": false,
+  "skill_trigger_scores": null,
+  "unresolved_gates": [
+    "native-client task and trigger qualification",
+    "representative completed field pilots",
+    "inline temporal coverage UI",
+    "remote-viewer draft browser acceptance",
+    "external mail reconciliation for any advertised sending workflow"
+  ],
+  "sharing_position": "scoped technical preview only",
+  "universal_support_claimed": false,
+  "adoption_forecast": null,
+  "social_announcement_sent": false,
+  "provider_contact": false,
+  "pilot_modified": false
+}
