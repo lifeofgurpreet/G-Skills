@@ -63,12 +63,8 @@ def _safe_dir(root,create=False):
 
 
 def _read(path,default=None):
-    if path.is_symlink():raise core.InvalidEvidence('managed state file must not be a symbolic link')
-    if not path.exists():return default
-    ws.private_file(path)
-    if not path.is_file() or path.stat().st_size>256*1024:
-        raise core.InvalidEvidence('managed state is not a bounded regular file')
-    return core.read_json(path)
+    try:return ws.read_private_json(path,max_bytes=256*1024)
+    except FileNotFoundError:return default
 
 
 def _atomic(path,value):

@@ -27,6 +27,19 @@ account is needed to view local evidence.
   drafts. Actual connectors belong to the host agent, with native authentication
   and separate read/draft/send authorization.
 
+## The evidence workbench
+
+Read the selected node's actual finding and next useful check beside its linked
+measurements and coverage. **Review next step** pins the full assessment and exact
+private agent task while the viewer can refresh behind it. **Pause updates** freezes
+this tab, not the collector. Cmd/Ctrl+K searches local nodes and actions; mobile
+navigation uses the same views without squeezing them into a horizontal strip.
+
+A private derived snapshot is not a complete raw archive, and the minimal support
+report is a separate export. Missing data, held evidence and synthetic examples
+stay explicitly labeled. The [workbench guide](references/dashboard.md) describes
+the real controls; routine investigation still belongs to the agent, not the human.
+
 ## Preview status
 
 The Linux collector, retained evidence, local viewer and managed lifecycle have

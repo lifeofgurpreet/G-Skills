@@ -1,5 +1,20 @@
 # VPS Health changelog
 
+## 0.9.0 — Evidence workbench (technical preview)
+
+Rebuild the working viewer around the selected finding, one canonical next action,
+linked accounting/workload charts and observed coverage. Add a pinned full-window
+review, exact private agent handoff, local Cmd/Ctrl+K navigation and pause/resume
+for the view alone. Provider disclosures persist across refresh. Mobile navigation,
+modal focus, synthetic export labels and snapshot/support distinctions are tested.
+
+Full artifact checks exposed a concurrent private status-read failure; validate and
+read one opened inode with bounded atomic-replacement retries rather than weakening
+privacy checks. No CPU threshold, provider-contact permission or collector schedule
+changed. Existing field pilots remain independent installations and are not upgraded
+by this source release. The separate provider-diagnostics guidance below is retained.
+
+
 ## Unreleased — Provider diagnostics guidance for support tickets
 
 Add Contabo's primary diagnostics article (MTR and traceroute for a ticket, reviewed

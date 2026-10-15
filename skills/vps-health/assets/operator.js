@@ -4,6 +4,7 @@ const VpsOperator=(()=>{
  const knownProviders=new Set(['contabo','hetzner','digitalocean','akamai','aws','other']);
  const origins=new Set(['docs.contabo.com','docs.hetzner.com','docs.digitalocean.com','techdocs.akamai.com','docs.aws.amazon.com']);
  let acknowledged=new Set(),storageKey='',desktopEnabled=false,seen=new Set(),lastState=null,setupMode='local';
+ const providerOpen=new Map();
  const make=(tag,text='',cls='')=>{const node=document.createElement(tag);node.textContent=text;if(cls)node.className=cls;return node};
  const byId=id=>document.getElementById(id);
  const finite=x=>typeof x==='number'&&Number.isFinite(x);
@@ -46,7 +47,7 @@ const VpsOperator=(()=>{
   acknowledged.add(item.id);
   const active=new Set(lastState.operator.items.map(i=>i.id));acknowledged=new Set([...acknowledged].filter(id=>active.has(id)));
   try{sessionStorage.setItem(storageKey,JSON.stringify([...acknowledged]))}catch{}
-  renderInbox(lastState);byId('operator-feedback').textContent='Acknowledged in this tab. The evidence and any HOLD are unchanged.';
+  renderInbox(lastState);byId('inspect-finding-'+item.id)?.focus({preventScroll:true});byId('operator-feedback').textContent='Acknowledged in this tab. The evidence and any HOLD are unchanged.';
  }
  function inspect(node){setView('overview');location.hash='overview';chooseNode(node);byId('node-selector').focus({preventScroll:true})}
  function renderInbox(value){
@@ -63,37 +64,48 @@ const VpsOperator=(()=>{
    const evidence=make('div','','finding-evidence');
    evidence.append(make('span','Accounted '+pct(item.evidence.mean)),make('span','Coverage '+pct(item.evidence.coverage,0)),make('span',fixed(item.evidence.observed_hours)+'h observed'));
    article.append(evidence,make('p',item.next_action,'finding-next'));
-   const actions=make('div','','finding-actions'),look=make('button','Inspect evidence','button primary');look.type='button';look.onclick=()=>inspect(item.node);
+   const actions=make('div','','finding-actions'),look=make('button','Inspect evidence','button primary');look.type='button';look.id='inspect-finding-'+item.id;look.onclick=()=>inspect(item.node);
    const ack=make('button',acknowledged.has(item.id)?'Acknowledged':'Acknowledge','button');ack.type='button';ack.id='ack-'+item.id;ack.disabled=acknowledged.has(item.id);ack.onclick=()=>acknowledge(item);
    const handoff=make('button','Copy agent task','button');handoff.onclick=()=>copyTask(item);
    actions.append(look,ack,handoff);article.append(actions);grid.append(article);
   }
  }
- async function copyText(text){
-  try{await navigator.clipboard.writeText(text);byId('operator-feedback').textContent='Copied locally. Nothing was executed or sent.'}
-  catch{const box=byId('copy-fallback');box.hidden=false;box.value=text;box.focus();box.select();byId('operator-feedback').textContent='Clipboard unavailable. Copy the selected text manually.'}
+ async function copyText(text,options={}){
+  const message=options.feedback||byId('operator-feedback');
+  try{await navigator.clipboard.writeText(text);message.textContent='Copied locally. Nothing was executed or sent.';return true}
+  catch{
+   const box=options.fallback||byId('copy-fallback');box.hidden=false;box.value=text;
+   const disclosure=box.closest('details');if(disclosure)disclosure.open=true;
+   box.focus();box.select();message.textContent='Clipboard unavailable. The exact text is selected for manual copy; nothing was sent.';return false;
+  }
  }
- function copyTask(item){
-  const kind=lastState.synthetic?'This workspace is SYNTHETIC; demonstrate only.':'Use only the authorized private workspace.';
-  const draft=item.draft_eligible?'If I explicitly request a draft, use draft-email with my observed service impact. Do not send it.':'Do not prepare a real performance complaint from this evidence. A plan clarification can be requested separately.';
-  const task=`Read the installed vps-health/SKILL.md and its operator-playbook.md. ${kind}\nSubject: ${item.node}\nFinding: ${item.title}\nNext check: ${item.next_action}\nRun the read-only doctor first. Preserve captures and compare the same UTC window; do not change CPU limits, schedule a stress test, install a service or contact a provider. Report what is established and what is still unknown.\n${draft}`;
-  copyText(task);
- }
+ function copyTask(item){return copyText(VpsView.task(lastState,item.node))}
  function renderProviders(value){
   const selected=byId('provider-filter').value,ref=value.provider_reference;
   byId('provider-review').textContent=`Documentation reviewed ${ref.reviewed_on} · ${ref.review_state==='RECHECK_REQUIRED'?'Recheck the linked primary sources before relying on them.':'Dated reference, not live policy verification.'}`;
-  const grid=byId('provider-cards');grid.replaceChildren();
+  const grid=byId('provider-cards');
+  grid.querySelectorAll('[data-provider]').forEach(card=>providerOpen.set(card.dataset.provider,card.querySelector('details').open));
+  grid.replaceChildren();
   for(const provider of ref.providers.filter(p=>selected==='all'||p.id===selected)){
-   const card=make('article','','provider-card');card.append(make('span',provider.classes.join(' / '),'provider-class'),make('h3',provider.name),make('p',provider.summary));
-   const details=make('details'),summary=make('summary','Read the plan distinctions');details.append(summary);
+   const card=make('article','','provider-card');card.dataset.provider=provider.id;card.append(make('span',provider.classes.join(' / '),'provider-class'),make('h3',provider.name),make('p',provider.summary));
+   const details=make('details'),summary=make('summary','Read the plan distinctions');details.open=providerOpen.get(provider.id)||false;details.append(summary);
    for(const fact of provider.facts){const block=make('div','','policy-fact');block.append(make('strong',fact.scope+' · '+fact.kind.replaceAll('_',' ')),make('p',fact.text));const link=make('a','Primary documentation ↗');link.href=fact.source;link.target='_blank';link.rel='noopener noreferrer';block.append(link);details.append(block)}
    const list=make('ul');for(const check of provider.check_next)list.append(make('li',check));details.append(list);card.append(details,make('p',provider.not_a_promise,'policy-limit'));grid.append(card);
   }
  }
  const routes={
-  local:{title:'One server. One private workspace.',intro:'Use this on the authorized Linux VPS. No Prometheus installation, root access or stress workload is required.',steps:[['Configure','Record an alias and the exact provider/plan when known. Bootstrap does not collect.'],['Approve one collector','Use the foreground loop or a reviewed timer, not both. Two local ticks form the first measured interval.'],['Inspect and retain','Run doctor, follow the evidence gaps, and keep application-impact notes alongside the same UTC window.']],command:'python3 scripts/vps_health.py bootstrap --mode local --node my-vps --workspace "$HOME/vps-health"\npython3 scripts/vps_health.py doctor --workspace "$HOME/vps-health"\n# Only after approving recurring passive collection:\npython3 scripts/vps_health.py watch --workspace "$HOME/vps-health" --approve-collection --serve'},
-  prometheus:{title:'Bring the monitoring you already have.',intro:'Use an explicit expected-node profile and final trusted Prometheus/Loki endpoints. The profile is an inventory declaration, not cloud-account discovery.',steps:[['Bind the subjects','Use assets/profile.example.json as a starting point. Match each exporter label and preserve missing expected nodes.'],['Keep credentials private','Use named environment variables. Separate Prometheus and Loki tokens; never place values in a command.'],['Check before scheduling','Doctor diagnoses local setup. The first approved collect tests the actual endpoint. Start one schedule only after inspecting its results.']],command:'python3 scripts/vps_health.py bootstrap --mode prometheus --profile /private/profile.json --url https://metrics.example.invalid --token-env VPS_METRICS_TOKEN --workspace /private/vps-health\npython3 scripts/vps_health.py doctor --workspace /private/vps-health\n# Replace the example endpoint/profile and approve collection first.\npython3 scripts/vps_health.py collect --workspace /private/vps-health'},
-  demo:{title:'Understand the workflow before connecting anything.',intro:'The example includes stable accounting, concurrent pressure and missing observations. It uses no credentials and never reads your CPU counters.',steps:[['Create the example','Bootstrap a new demo directory. Synthetic and real observations cannot share a workspace.'],['Use the controls','Inspect the timeline, linked charts and attention inbox. Acknowledge an item and see that the HOLD remains.'],['Choose a real route','Use a different workspace for local or existing-monitoring collection. Archive evidence instead of overwriting it.']],command:'python3 scripts/vps_health.py bootstrap --mode demo --workspace /tmp/vps-demo\npython3 scripts/vps_health.py serve --workspace /tmp/vps-demo\n# Ctrl-C closes the viewer. No collector is running.'}
+  local:{title:'One authorized server. The agent owns setup.',intro:'The coding agent identifies the actual Linux VPS, reuses an existing workspace when suitable, and handles routine setup. No new monitoring stack or active workload is needed.',
+   steps:[['Resolve the target','Confirm the authorized host and private workspace. The coding-agent terminal may not be the VPS.'],['Approve one bounded plan','The agent runs agent-plan, obtains any missing approval once, and applies the matching plan. An existing run is reused, not duplicated.'],['Verify and hand over','The agent runs doctor and agent-verify, opens the reachable viewer, and retains the exact stop/handoff state.']],
+   command:'python3 scripts/vps_health.py agent-plan --mode local --node my-vps --workspace "$HOME/vps-health"\n# Agent: obtain authorization and use the matching returned plan hash.\npython3 scripts/vps_health.py agent-start --mode local --node my-vps --workspace "$HOME/vps-health" --approve-plan REVIEWED_PLAN_SHA256\npython3 scripts/vps_health.py doctor --workspace "$HOME/vps-health"\npython3 scripts/vps_health.py agent-verify --workspace "$HOME/vps-health"',
+   task:'Set up or resume the approved local Linux VPS investigation. Resolve the actual authorized target; do not assume this coding terminal is the VPS. Use the retained workspace or produce a bounded agent-plan, obtain any missing scope approval, apply it and verify the actual run and viewer. Do routine configuration and commands yourself. Preserve the exact stop and handoff state.'},
+  prometheus:{title:'Use the monitoring already in place.',intro:'The agent prepares the explicit expected-node profile and checks the existing trusted endpoints. A profile declares scope; it does not establish a full cloud-account inventory.',
+   steps:[['Bind the inventory','The agent resolves actual exporter labels, writes the private profile and preserves missing expected nodes.'],['Reuse approved access','Use existing trusted endpoints and named credential variables. Native authentication is a separate human consent step only when needed.'],['Plan, apply and verify','Run one bounded managed plan and verify the actual worker, endpoint results and reachable viewer. No second collector or new stack.']],
+   command:'python3 scripts/vps_health.py agent-plan --mode prometheus --profile /private/profile.json --url https://metrics.example.invalid --token-env VPS_METRICS_TOKEN --workspace /private/vps-health\n# Agent: replace placeholders, obtain authorization and apply the same arguments with agent-start --approve-plan REVIEWED_PLAN_SHA256.\npython3 scripts/vps_health.py doctor --workspace /private/vps-health\npython3 scripts/vps_health.py agent-verify --workspace /private/vps-health',
+   task:'Set up or resume observation from my authorized existing Prometheus/Loki source. Resolve the expected inventory and trusted endpoints, prepare the private profile yourself, reuse approved access or guide native authentication only when needed, then plan/apply/verify one bounded managed run. Keep missing subjects visible; do not install another stack or infer complete account coverage.'},
+  demo:{title:'Explore before connecting a server.',intro:'The agent builds a separate synthetic workspace. It uses no account access and does not measure the machine running the demo.',
+   steps:[['Create the demonstration','The agent uses a new private demo workspace, not an existing real investigation.'],['Run a bounded viewer','Use the managed demo plan where supported, or the portable foreground route. Verify the actual interface; no real collector is implied.'],['Keep the boundary visible','Explore linked evidence and the handoff. Use a separate approved workspace for real measurements.']],
+   command:'python3 scripts/vps_health.py agent-plan --mode demo --workspace /tmp/vps-demo --duration-seconds 180\n# Agent: after approving this synthetic scope, apply the same plan with agent-start --approve-plan REVIEWED_PLAN_SHA256.\npython3 scripts/vps_health.py agent-verify --workspace /tmp/vps-demo\n# A synthetic viewer does not collect real CPU observations.',
+   task:'Create a bounded synthetic VPS Health demo in a new private workspace. Read the skill, carry out setup and verify the actual viewer yourself. Use no host counters, credentials or provider services. Make the synthetic and no-real-collector boundaries explicit, retain stop instructions and do not overwrite an existing real workspace.'}
  };
  function renderSetup(value){
   const route=routes[setupMode];byId('setup-title').textContent=route.title;byId('setup-intro').textContent=route.intro;byId('setup-command').textContent=route.command;
@@ -180,10 +192,10 @@ const VpsOperator=(()=>{
  byId('open-inbox').onclick=()=>{setView('attention');location.hash='attention'};
  byId('enable-notifications').onclick=enableNotifications;
  byId('provider-filter').onchange=()=>renderProviders(lastState);
- byId('copy-setup').onclick=()=>copyText(routes[setupMode].command);
+ byId('copy-setup').onclick=()=>copyText('Read the installed vps-health/SKILL.md and references/agent-workflow.md. '+routes[setupMode].task+' Ask me only for missing scope, authentication or consequential approval. Do not contact a provider, run active probes, expose the viewer publicly or weaken host permissions.');
  document.querySelectorAll('[data-setup]').forEach(b=>b.onclick=()=>{setupMode=b.dataset.setup;renderSetup(lastState)});
  byId('copy-draft-instructions').onclick=()=>copyText('Read references/correspondence.md in the installed vps-health skill. First verify the exact provider, plan, service impact and UTC evidence window. Only after my explicit drafting request, run draft-email with --approve-draft and --impact. Use --example for synthetic or incomplete evidence. Ask one concise question, distinguish observations from inference, and never send the message or authorize a reboot/migration.');
  document.addEventListener('vps-status',()=>render(state));
  render(state);
- return {valid,render};
+ return {valid,render,copyText};
 })();

@@ -5,7 +5,7 @@ import argparse,hashlib,json,subprocess,sys,tempfile
 
 def validate_files(files):
     required={'SKILL.md','scripts/vps_health.py','scripts/vps_workspace.py','assets/chart-adapter.js',
-              'assets/workspace-dashboard.html','assets/vendor/uplot/manifest.json','assets/vendor/uplot/LICENSE','LICENSE',
+              'assets/workspace-dashboard.html','assets/view-model.js','assets/workbench.js','references/dashboard.md','assets/vendor/uplot/manifest.json','assets/vendor/uplot/LICENSE','LICENSE',
               'scripts/vps_ops.py','assets/operator.js','assets/operator.css','assets/provider-catalog.json',
               'references/first-hour.md','references/operator-playbook.md','references/support.md','references/workspace-recovery.md','tests/test_private_workspace.py',
               'scripts/vps_agent.py','scripts/vps_forensics.py','references/forensics.md','references/agent-workflow.md','references/agent-connectors.md'}
@@ -29,6 +29,10 @@ def cold_check(target):
         subprocess.run([sys.executable,entry,'bootstrap','--mode','demo','--workspace',str(workspace)],check=True,stdout=subprocess.DEVNULL,timeout=60)
         html=(workspace/'dashboard.html').read_text()
         if 'VpsCharts.mount' not in html or 'var uPlot=' not in html or '/*UPLOT_JS*/' in html:raise ValueError('exported chart runtime missing')
+        for control in ('review-dialog','command-dialog','pause-view','VpsView.review','VpsView.commands'):
+            if control not in html:raise ValueError('exported workbench control/module missing: '+control)
+        if any(marker in html for marker in ('/*WORKBENCH_JS*/','/*VIEW_MODEL*/')):
+            raise ValueError('unresolved workbench script in actual archive')
         subprocess.run([sys.executable,entry,'export','--workspace',str(workspace),'--out',str(Path(temp)/'report')],check=True,stdout=subprocess.DEVNULL,timeout=60)
         doctor=subprocess.run([sys.executable,entry,'doctor','--workspace',str(workspace)],capture_output=True,text=True,timeout=30)
         if doctor.returncode!=1 or not json.loads(doctor.stdout)['read_only']:raise ValueError('exported doctor did not preserve diagnosis semantics')

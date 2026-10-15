@@ -102,7 +102,7 @@ def main():
             expect(page.locator('#node-selector')).to_have_value('example-stable')
             expect(page.locator('#action-title')).to_have_text('Keep an eye on service impact')
             page.get_by_label('Inspect node',exact=True).select_option('example-offline')
-            expect(page.locator('#action-title')).to_have_text('Restore fresh observations')
+            expect(page.locator('#action-title')).to_have_text('Restore trustworthy collection')
             expect(page.locator('#chart-message')).to_contain_text('No observations')
             page.get_by_label('Inspect sample',exact=True).focus();page.keyboard.press('Home')
             first=page.locator('#sample-value').inner_text();page.keyboard.press('End')
@@ -145,6 +145,7 @@ def main():
             passed('drag zoom and reset inspect history without altering assessment')
 
             with page.expect_download() as event:page.get_by_role('button',name='Save chart image').click()
+            assert event.value.suggested_filename=='vps-demo-chart.png'
             image=Path(event.value.path()).read_bytes();assert image[:8]==b'\x89PNG\r\n\x1a\n' and len(image)>1000
             page.get_by_role('button',name='6h',exact=True).click()
             with page.expect_download() as event:page.get_by_role('button',name='Save displayed samples CSV').click()
@@ -436,12 +437,17 @@ def main():
             expect(page.locator('.chart-wrap .uplot')).to_have_count(2)
             assert not errors,errors
             assert all(url.startswith(base) or url.startswith('blob:') for url in requests),requests
+            import workbench_checks
+            workbench_checks.run(page,context,root,base,args.out,passed)
+            assert not errors,errors
             passed('no JavaScript errors or external asset requests')
             receipt={'schema':'g-skills.browser-proof.v1','template_sha256':hashlib.sha256((ROOT/'skills/vps-health/assets/workspace-dashboard.html').read_bytes()).hexdigest(),
                      'chart_vendor_sha256':hashlib.sha256((ROOT/'skills/vps-health/assets/vendor/uplot/uPlot.iife.min.js').read_bytes()).hexdigest(),
                      'chart_adapter_sha256':hashlib.sha256((ROOT/'skills/vps-health/assets/chart-adapter.js').read_bytes()).hexdigest(),
                      'operator_js_sha256':hashlib.sha256((ROOT/'skills/vps-health/assets/operator.js').read_bytes()).hexdigest(),
                      'operator_css_sha256':hashlib.sha256((ROOT/'skills/vps-health/assets/operator.css').read_bytes()).hexdigest(),
+                     'view_model_sha256':hashlib.sha256((ROOT/'skills/vps-health/assets/view-model.js').read_bytes()).hexdigest(),
+                     'workbench_sha256':hashlib.sha256((ROOT/'skills/vps-health/assets/workbench.js').read_bytes()).hexdigest(),
                      'checks':checks,'result':'PASS','synthetic_only':True,'route':'actual loopback workspace HTTP handler',
                      'not_claimed':['physical phone validation','independent model review','production fleet qualification']}
             if args.out:(args.out/'receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')

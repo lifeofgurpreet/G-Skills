@@ -15,3 +15,6 @@ test('CSV is bounded to the selected display window',()=>{const s=chart.csv(rows
 test('CSV preserves unknown fields and never inserts synthetic midpoint rows',()=>{const r=rows();r[2].execution=null;r[2].breaks.pressure=true;const s=chart.csv(r,0,Infinity).trim().split('\n');assert.equal(s.length,6);assert.ok(s[3].includes('0.95,,0.02'));});
 test('invalid observations have no apparent valid values in CSV',()=>{const r=rows();r[1].quality=true;assert.ok(chart.csv(r,0,Infinity).split('\n')[2].endsWith(',,,,,true'));});
 test('empty data remains empty, not a healthy default',()=>{assert.deepEqual(chart.prepare([]),{data:[[],[],[],[],[]],indices:[]});assert.equal(chart.csv([],0,1).trim().split('\n').length,1);});
+
+// One selected-skill UI acceptance entry, not another application runtime.
+require('./test_workbench.cjs');

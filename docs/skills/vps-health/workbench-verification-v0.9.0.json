@@ -1,0 +1,87 @@
+{
+  "schema": "g-skills.workbench-proof.v1",
+  "bead": "gs-2uh.14",
+  "version": "0.9.0",
+  "release_scope": "technical preview",
+  "python_suites": [
+    11,
+    12,
+    8,
+    6,
+    36,
+    64,
+    46,
+    56,
+    10,
+    41,
+    17,
+    49,
+    36,
+    28,
+    6,
+    6,
+    13,
+    9
+  ],
+  "python_total": 454,
+  "javascript_total": 27,
+  "new_presentation_contracts": 15,
+  "browser_scenarios": 39,
+  "browser_assets": {
+    "template_sha256": "c5cf70e9be946e9736d48871ae9f621f0873191d77503429e395a32c8b4b41a5",
+    "chart_vendor_sha256": "19c8d4c6ad88929a79f4ae49d6f7161566dfd0ba3d15cc495e974f787eb78f1f",
+    "chart_adapter_sha256": "e949c498daf5eb625c444f3852cc16c62363eb568b49cc10cd789945599fa554",
+    "operator_js_sha256": "9fb511a12fe4303ddae4dce5dbd859b9a4e22115ca7ad792306bd3187b783585",
+    "operator_css_sha256": "f85665242020d72e1664df74774ee5537cfc5f1d70cbef5f9a2b00669c164be1",
+    "view_model_sha256": "b51f2634861d0d1397e1df62451e4949d97dafef041e2299468dfbff56feaf3a",
+    "workbench_sha256": "9c3169a8f8d75b6166dc9e6d0aeded91804273f454b480ba237dccdab340e89c"
+  },
+  "baseline_failures": [
+    {
+      "case": "one authoritative next action",
+      "passed": false,
+      "actual": "Restore collection and inspect gaps before interpreting performance.",
+      "expected": "Run doctor, then inspect the collector schedule and its last error. Do not start a second collector."
+    },
+    {
+      "case": "expanded provider context survives refresh",
+      "passed": false
+    },
+    {
+      "case": "explicit pause for a reading session",
+      "passed": false
+    },
+    {
+      "case": "keyboard command navigation",
+      "passed": false
+    }
+  ],
+  "additional_regressions": [
+    "body data-view event bubbling closed mobile navigation",
+    "native modal Tab/Shift+Tab left the app control loop",
+    "atomic replacement could fail an otherwise private runtime status read"
+  ],
+  "study": [
+    {
+      "skill": "ui-polish",
+      "sha256": "60debbc2299a0bd94b700cd5075f13fba0385e42595e13bb45a929900196d798",
+      "read_scope": "entry and relevant applicability/interaction/accessibility sections; not every linked reference",
+      "application": "Replace a rejected layout rather than layer skins; inspect real desktop/mobile output and executable error/control flows."
+    },
+    {
+      "skill": "ux-audit",
+      "sha256": "a0c655861d406213fbe750cb35c7509c1c26cd0da594de9f1562705d2a59e21c",
+      "read_scope": "entry and relevant applicability/interaction/accessibility sections; not every linked reference",
+      "application": "Replace a rejected layout rather than layer skins; inspect real desktop/mobile output and executable error/control flows."
+    }
+  ],
+  "screenshot_data": "synthetic only",
+  "native_agent_execution_qualified_by_this_pass": false,
+  "physical_phone_qualification": false,
+  "running_pilot_changed": false,
+  "provider_contact": false,
+  "threshold_changes": false,
+  "claim_limit": "Executable interface and artifact checks are not an award, independent design review or completed real-world pilot.",
+  "private_snapshot_regressions": 8,
+  "setup_workflow": "The agent receives a natural setup task; managed-lifecycle commands are disclosed examples, not user homework."
+}
