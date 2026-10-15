@@ -31,11 +31,11 @@ import uuid
 
 import vps_health as core
 
-VERSION = '0.9.0'
+VERSION = '0.9.1'
 SCHEMA = 'g-skills.workspace.v1'
 SELF_HASH = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
 MAX_STORE_BYTES = 256 * 1024 * 1024
-COMMANDS = ('bootstrap','collect','watch','dashboard','serve','export','schedule','draft-email','capabilities','doctor','brief','providers','support-report','agent-plan','agent-start','agent-status','agent-verify','agent-stop','agent-request','agent-resolve','_agent-worker','forensic-snapshot','forensic-observe','forensic-compare')
+COMMANDS = ('bootstrap','collect','watch','dashboard','serve','export','schedule','draft-email','capabilities','doctor','brief','providers','support-report','agent-plan','agent-start','agent-status','agent-verify','agent-stop','agent-request','agent-resolve','_agent-worker','forensic-snapshot','forensic-observe','forensic-compare','viewer-handoff','viewer-plan','viewer-verify')
 SQL = '''
 CREATE TABLE IF NOT EXISTS state (key TEXT PRIMARY KEY, value TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS captures (
@@ -660,8 +660,9 @@ def export(root,out):
     return {'out':str(out),'files':5,'contains_credentials':False,'private':True}
 
 
-def make_server(root,port=8765):
+def make_server(root,port=8765,*,viewer_port=None):
     root,cfg=config_load(root);integer(port,0,65535,'port')
+    if viewer_port is not None:integer(viewer_port,1,65535,'viewer_port')
     class Handler(http.server.BaseHTTPRequestHandler):
         def setup(self):
             super().setup()
@@ -669,8 +670,11 @@ def make_server(root,port=8765):
         def log_message(self,*args):pass
         def do_GET(self):
             self.connection.settimeout(5)
-            expected=f'127.0.0.1:{self.server.server_port}'
-            if self.headers.get('Host')!=expected or self.headers.get('Origin') not in (None,'http://'+expected):
+            expected={f'127.0.0.1:{self.server.server_port}'}
+            if viewer_port is not None:expected.add(f'127.0.0.1:{viewer_port}')
+            hosts=self.headers.get_all('Host',[]);origins=self.headers.get_all('Origin',[])
+            if (len(hosts)!=1 or hosts[0] not in expected or origins not in ([],['http://'+hosts[0]])
+                    or self.headers.get('Sec-Fetch-Site') not in (None,'same-origin','none')):
                 self.send_error(403,'Use the printed loopback URL');return
             path=urllib.parse.urlsplit(self.path).path
             if path not in ('/','/api/status','/api/support') or '?' in self.path:
@@ -689,7 +693,9 @@ def make_server(root,port=8765):
             self.send_header('Cache-Control','no-store');self.send_header('X-Content-Type-Options','nosniff')
             self.send_header('Referrer-Policy','no-referrer');self.send_header('Cross-Origin-Resource-Policy','same-origin')
             self.send_header('Content-Security-Policy',"default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'")
-            self.send_header('Content-Length',str(len(data)));self.end_headers();self.wfile.write(data)
+            self.send_header('Content-Length',str(len(data)));self.end_headers()
+            try:self.wfile.write(data)
+            except (BrokenPipeError,ConnectionResetError):pass  # Viewer navigation may cancel an in-flight read.
     # Loopback-only, read-only convenience server, not an internet-facing service.
     server=http.server.ThreadingHTTPServer(('127.0.0.1',port),Handler)
     server.timeout=5
@@ -806,6 +812,8 @@ def learning_proposal(root,out):
 
 
 def register(sub):
+    import vps_viewer as viewer
+    viewer.register(sub)
     p=sub.add_parser('support-report',help='Offline minimal support summary; no identities, raw data or transmission');p.add_argument('--workspace',type=Path);p.add_argument('--out',type=Path)
     import vps_forensics as forensic
     forensic.register(sub)
@@ -836,6 +844,9 @@ def register(sub):
 
 
 def dispatch(args):
+    if args.cmd.startswith('viewer-'):
+        import vps_viewer as viewer
+        return viewer.dispatch(args)
     if args.cmd=='support-report':
         import vps_ops as ops
         report=ops.support_report(args.workspace)

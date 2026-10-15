@@ -21,7 +21,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-VERSION = '0.9.0'
+VERSION = '0.9.1'
 SCHEMA = 'g-skills.vps-capture.v1'
 ROOT = Path(__file__).resolve().parents[1]
 MAX_BYTES = 8 * 1024 * 1024
@@ -548,6 +548,7 @@ def main(argv=None):
             if args.cmd=='agent-plan':return 0 if result.get('ready') else 1
             if args.cmd=='agent-start':return 0 if result.get('state')=='RUNNING' and result.get('process_verified') else 1
             if args.cmd=='agent-verify':return 0 if result.get('state')=='VERIFIED' else 1
+            if args.cmd=='viewer-verify':return 0 if result.get('state')=='VIEWER_MATCHED' else 1
             if args.cmd=='agent-stop':return 1 if result.get('process_verified') else 0
             return 0
         if args.cmd=='demo':result=report(read_json(ROOT/'assets/demo-capture.json'),args.out)

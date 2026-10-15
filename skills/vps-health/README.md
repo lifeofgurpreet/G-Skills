@@ -71,6 +71,17 @@ a running worker is not three days of history, and a good CPU percentage is not
 a certificate of application health. See [first-hour recipes](references/first-hour.md),
 [operator playbook](references/operator-playbook.md) and [forensic context](references/forensics.md).
 
+## View an authorized VPS from another computer
+
+The agent can now prepare a private matching record, use the existing SSH route
+and verify the forwarded URL from the machine that will open it. An optional
+plan-bound client port supports a different laptop port without opening a public
+listener or accepting arbitrary web origins. The [remote viewer workflow](references/remote-viewer.md)
+keeps server readiness, browser reachability, SSH trust and measurement quality
+as separate checks. The agent does the connection work; users approve missing
+access rather than write tunnel/config commands themselves. The scripts do not
+launch SSH or create a background tunnel supervisor.
+
 ## Evidence and authority
 
 The default accounting preferences tolerate >=90%, watch 80–90% and investigate

@@ -107,6 +107,15 @@ class OriginTest(unittest.TestCase):
             self.assertEqual(response(server.server_port,'/workspace.json',{'Host':accepted})[0],404)
         finally:server.shutdown();server.server_close();thread.join(2)
 
+    def test_duplicate_host_origin_and_cross_site_reads_are_refused(self):
+        server=ws.make_server(self.root,0,viewer_port=19843);t=threading.Thread(target=server.serve_forever,daemon=True);t.start()
+        try:
+            for extra in ('Host: 127.0.0.1:19843','Origin: http://127.0.0.1:19843\r\nOrigin: http://127.0.0.1:19843','Sec-Fetch-Site: cross-site','Sec-Fetch-Site: same-site'):
+                with self.subTest(extra=extra),socket.create_connection(('127.0.0.1',server.server_port),timeout=3) as sock:
+                    request='GET /api/status HTTP/1.1\r\nHost: 127.0.0.1:19843\r\n'+extra+'\r\nConnection: close\r\n\r\n'
+                    sock.sendall(request.encode());self.assertIn(b'403',sock.recv(1024).split(b'\r\n')[0])
+        finally:server.shutdown();server.server_close();t.join(2)
+
     def test_invalid_viewer_port_does_not_bind_any_socket(self):
         for value in (0,-1,65536,True,'19843'):
             with self.subTest(value=value),mock.patch.object(ws.http.server,'ThreadingHTTPServer') as listener:
@@ -174,7 +183,7 @@ class PortableContractTest(unittest.TestCase):
     def test_mismatched_run_config_inventory_or_mode_is_never_verified(self):
         h=core.read_json(self.path)
         base={'schema':'g-skills.workspace-status.v1','as_of':time.time(),'configuration_sha256':h['configuration_sha256'],
-              'mode':'demo','synthetic':True,'expected_assets':1,'assets':[{'id':'example-node'}],
+              'mode':'demo','synthetic':True,'version':h['source_version'],'expected_assets':1,'assets':[{'id':'example-node'}],
               'agent_runtime':{'run_id':h['run_id'],'plan_sha256':h['plan_sha256'],'state':'RUNNING','process_verified':True}}
         variants=[{**base,'configuration_sha256':'a'*64},{**base,'assets':[{'id':'other'}]},
                   {**base,'mode':'local','synthetic':False},{**base,'as_of':time.time()-600},
@@ -188,13 +197,28 @@ class PortableContractTest(unittest.TestCase):
 
     def test_success_matches_identity_but_is_not_remote_kernel_or_ssh_attestation(self):
         h=core.read_json(self.path);payload={'schema':'g-skills.workspace-status.v1','as_of':time.time(),
-           'configuration_sha256':h['configuration_sha256'],'mode':'demo','synthetic':True,'expected_assets':1,
+           'configuration_sha256':h['configuration_sha256'],'mode':'demo','synthetic':True,'version':h['source_version'],'expected_assets':1,
            'assets':[{'id':'example-node'}],'agent_runtime':{'run_id':h['run_id'],'plan_sha256':h['plan_sha256'],
              'state':'RUNNING','process_verified':True}}
         with mock.patch.object(agent,'read_viewer',return_value=payload):result=self.viewer.verify(self.path)
         self.assertEqual(result['state'],'VIEWER_MATCHED');self.assertTrue(result['http_identity_matched'])
         self.assertFalse(result['ssh_connection_verified']);self.assertFalse(result['remote_kernel_independently_verified'])
         self.assertFalse(result['service_health_verified']);self.assertFalse(result['provider_cause_proven'])
+
+    def test_handoff_expiring_during_response_never_passes(self):
+        h=core.read_json(self.path);now=time.time();h['issued_at']=now-10;h['expires_at']=now+2
+        ws.atomic(self.path,core.canonical(h))
+        payload={'schema':'g-skills.workspace-status.v1','as_of':now,'version':h['source_version'],
+            'configuration_sha256':h['configuration_sha256'],'mode':'demo','synthetic':True,'expected_assets':1,
+            'assets':[{'id':'example-node'}],'agent_runtime':{'run_id':h['run_id'],'plan_sha256':h['plan_sha256'],'state':'RUNNING','process_verified':True}}
+        with mock.patch.object(agent,'read_viewer',return_value=payload),mock.patch.object(self.viewer.time,'time',side_effect=[now,now+3]):
+            result=self.viewer.verify(self.path)
+        self.assertEqual(result['state'],'NOT_VERIFIED');self.assertEqual(result['reason'],'handoff_expired_during_readback')
+
+    def test_handoff_is_not_a_script_and_code_version_drift_is_refused(self):
+        with mock.patch.object(agent,'read_viewer',return_value={'schema':'g-skills.workspace-status.v1','version':'different'}):
+            self.assertEqual(self.viewer.verify(self.path)['state'],'NOT_VERIFIED')
+        self.assertFalse(self.viewer.plan(self.path,'person@known-host')['external_actions_authorized'])
 
     def test_linux_kernel_checks_are_not_required_on_the_viewing_machine(self):
         with mock.patch.object(sys,'platform','darwin'),mock.patch.object(agent,'runtime_status') as status:
@@ -226,6 +250,18 @@ class OwnedHandoffTest(unittest.TestCase):
         r=self.start();agent.stop(self.root,r['run_id'],wait=8);out=Path(self.temp.name)/'bad.json'
         with self.assertRaises(core.InvalidEvidence):self.viewer.handoff(self.root,out)
         self.assertFalse(out.exists())
+    def test_auto_resume_preserves_the_explicit_viewer_port(self):
+        first=self.start(viewer_port=19843)
+        a=args(self.root,mode='auto');plan=agent.plan(a);self.assertEqual(plan['intent']['viewer_port'],19843)
+        a.approve_plan=plan['plan_sha256'];second=agent.start(a)
+        self.assertEqual(first['run_id'],second['run_id']);self.assertEqual(first['deadline_utc'],second['deadline_utc'])
+
+    def test_changed_viewer_port_cannot_replace_an_active_run(self):
+        first=self.start(viewer_port=19843);a=args(self.root,viewer_port=19844)
+        a.approve_plan=agent.plan(a)['plan_sha256']
+        with self.assertRaises(core.InvalidEvidence):agent.start(a)
+        self.assertEqual(agent.runtime_status(self.root)['run_id'],first['run_id'])
+
     def test_original_same_port_route_still_verifies(self):
         self.start();out=Path(self.temp.name)/'handoff.json';self.viewer.handoff(self.root,out)
         h=core.read_json(out);self.assertEqual(h['server_port'],h['viewer_port'])

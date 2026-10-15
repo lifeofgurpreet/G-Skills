@@ -1,5 +1,16 @@
 # VPS Health changelog
 
+## 0.9.1 — Reach the actual investigation from another machine
+
+A plan-bound optional client-side loopback port lets an authorized SSH forward
+use a different laptop port without a 403 response. Default origin restrictions
+remain unchanged. A private short-lived viewer handoff and portable plan/verify
+commands match the viewed run, configuration and full configured subject set.
+No SSH command is executed by the scripts, no public listener is opened and a
+matching HTTP response is not independent SSH or kernel attestation. The workbench,
+CPU decisions and the running qualification pilot are unchanged.
+
+
 ## 0.9.0 — Evidence workbench (technical preview)
 
 Rebuild the working viewer around the selected finding, one canonical next action,
