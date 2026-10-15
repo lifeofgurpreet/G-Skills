@@ -98,3 +98,19 @@ and its **27 JavaScript contracts**. The actual rendered reference cards were
 inspected independently of those assertions. The selected immutable archive and
 exact-head hosted CI remain the publication gates; no external supplier account
 or live VPS was exercised by these synthetic tests.
+
+
+### Actual distribution proof and task state
+
+The committed 50-file archive was extracted, exercised through all three new
+provider CLI/profile routes, and opened as both a live local workbench and an
+offline HTML snapshot. The four new provider browser groups passed on its actual
+installed modules, with no external requests. An initial private checker incorrectly
+expected the offline Refresh control to be disabled instead of absent; the check
+was corrected to the actual no-live-control contract and rerun. Product behavior
+was not changed for that assertion.
+
+The machine receipt is [provider-proof-v0.9.2.json](provider-proof-v0.9.2.json).
+`gs-8cq.5` is closed for the explicit provider-reference acceptance. The separate
+sparse-context defect stays blocked and is now a native dependency of the broader
+preview gate. Its passing provider tests cannot clear that evidence defect.

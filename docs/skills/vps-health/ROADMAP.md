@@ -14,7 +14,7 @@ This is one skill within G-Skills. Its work does not define the whole collection
 | `gs-2uh.10` Fix same-route Prometheus setup retries without scope drift | closed | 1 | runtime-agent | 2026-10-21 | — |
 | `gs-2uh.11` Verify cold and resumed client journeys from actual artifacts | closed | 1 | verification-agent | 2026-10-28 | — |
 | `gs-2uh.12` Audit private-state boundaries and release failure recovery | closed | 1 | safety-review-agent | 2026-11-07 | — |
-| `gs-2uh.13` Qualify the narrow passive preview before broader promotion | open | 1 | Gurpreet-and-quality-maintainer | 2026-11-14 | `gs-2uh.12`, `gs-2uh.6`, `gs-2uh.8`, `gs-nah.2` |
+| `gs-2uh.13` Qualify the narrow passive preview before broader promotion | open | 1 | Gurpreet-and-quality-maintainer | 2026-11-14 | `gs-2uh.12`, `gs-2uh.15`, `gs-2uh.6`, `gs-2uh.8`, `gs-nah.2` |
 | `gs-2uh.14` Deliver the evidence-first workbench from the design sprint | closed | 1 | design-implementation-agent | 2026-11-07 | — |
 | `gs-2uh.15` Qualify workload context by time and expose repeated shortfall evidence | blocked | 1 | evidence-implementation-agent | 2026-11-07 | — |
 | `gs-2uh.2` Manage collector and viewer beyond a terminal-agent session | closed | 1 | Unassigned | — | `gs-2uh.1` |
@@ -29,7 +29,7 @@ This is one skill within G-Skills. Its work does not define the whole collection
 | `gs-2uh.9` Make self-improvement a reviewed evidence-to-regression loop | open | 2 | quality-maintainer | 2027-01-07 | `gs-2uh.6`, `gs-2uh.8` |
 | `gs-8cq.3` Design approved active CPU, memory and storage experiments | open | 2 | experiment-method-agent | 2026-12-07 | `gs-8cq.1` |
 | `gs-8cq.4` Qualify authorized SSH fleet and bounded path diagnostics | open | 2 | fleet-verification-agent | 2027-01-07 | `gs-2uh.7` |
-| `gs-8cq.5` Extend provider playbooks from the supplied proposals with dated primary evidence | open | 2 | provider-research-agent | 2026-11-28 | — |
+| `gs-8cq.5` Extend provider playbooks from the supplied proposals with dated primary evidence | closed | 2 | provider-research-agent | 2026-11-28 | — |
 
 ```mermaid
 flowchart LR
@@ -41,6 +41,7 @@ flowchart LR
   gs_2uh_12["gs-2uh.12: closed"]
   gs_2uh_13["gs-2uh.13: open"]
   gs_2uh_12 --> gs_2uh_13
+  gs_2uh_15 --> gs_2uh_13
   gs_2uh_6 --> gs_2uh_13
   gs_2uh_8 --> gs_2uh_13
   gs_nah_2 --> gs_2uh_13
@@ -73,7 +74,7 @@ flowchart LR
   gs_8cq_1 --> gs_8cq_3
   gs_8cq_4["gs-8cq.4: open"]
   gs_2uh_7 --> gs_8cq_4
-  gs_8cq_5["gs-8cq.5: open"]
+  gs_8cq_5["gs-8cq.5: closed"]
 ```
 
 ## Acceptance and evidence
@@ -227,5 +228,7 @@ Treat SSH inventory expansion and network probes as approved targets/traffic, no
 The supplied Gemini proposals mention additional suppliers such as Vultr, OVH and Netcup. Treat these as requested coverage to research, not automatically detected brands or promises inferred from generic VPS terms. Preserve the existing unknown/other route until each exact plan distinction is supported.
 
 **Acceptance:** Add dated primary-source plan/allocation/usage references, clear missing-plan handling and an approved concise support-question route for each added provider. No unverified SLA, universal CPU floor, automatic IP lookup, migration demand or downtime consent is inferred. Tests keep supplier-specific terms separate from the chosen diagnostic thresholds.
+
+**Receipt:** Completed the explicit additional-provider reference acceptance: Vultr, OVHcloud and netcup primary sources checked 2026-10-15; product/allocation/availability distinctions and concise plan-question guidance shipped through CLI, profiles and workbench. Per-fact review dates prevent false freshness and existing Contabo diagnostics now render. 489 Python tests, 27 JS contracts, 43 actual browser scenarios and the actual extracted 50-file archive pass, including all three labelled unmeasured workspaces and offline references. No CPU floor, API discovery, active probe or consent invented. Prior peer-matrix/active-network ideas remain separately scoped to gs-8cq.3/.4. Exact-head CI is the release gate; docs/skills/vps-health/provider-verification-v0.9.2.md records scope and limits.
 
 Read the owning skill and current task before acting. Source tests, a running process, client integration and sustained real-world evidence are separate gates. Do not close the programme merely because the source exists.
