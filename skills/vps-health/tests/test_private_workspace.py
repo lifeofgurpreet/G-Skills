@@ -261,4 +261,64 @@ class RuntimeBoundaryTest(unittest.TestCase):
         with self.assertRaises(core.InvalidEvidence):agent.connection_request(self.root,'mail.draft','Another synthetic purpose')
         self.assertEqual(external.read_bytes(),before)
 
+class SnapshotReadTest(unittest.TestCase):
+    def setUp(self):
+        self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup)
+        self.base=Path(self.temp.name).resolve();self.path=self.base/'status.json'
+        core.save_json(self.path,{'version':1})
+
+    def replacement(self,value=2):
+        next_path=self.base/'next.json';core.save_json(next_path,{'version':value});os.replace(next_path,self.path)
+
+    def test_replaced_path_metadata_retries_instead_of_rejecting_normal_atomic_writer(self):
+        real=Path.lstat;observations=[]
+        def lstat(path,*a,**k):
+            if path==self.path and not observations:
+                fd=os.open(path,os.O_RDONLY)
+                try:
+                    self.replacement();info=os.fstat(fd);observations.append(info.st_nlink);return info
+                finally:os.close(fd)
+            return real(path,*a,**k)
+        with mock.patch.object(Path,'lstat',lstat):info=ws.private_file(self.path)
+        self.assertEqual(observations,[0]);self.assertEqual(info.st_nlink,1)
+
+    def test_descriptor_replaced_before_validation_reads_one_complete_new_record(self):
+        real=os.fstat;seen=[]
+        def fstat(fd):
+            if not seen:
+                self.replacement();seen.append(True)
+            return real(fd)
+        with mock.patch.object(os,'fstat',fstat):value=ws.read_private_json(self.path)
+        self.assertEqual(value,{'version':2})
+
+    def test_continuous_replacement_is_bounded_and_never_weakens_checks(self):
+        real=os.fstat;count=[]
+        def fstat(fd):
+            count.append(1);self.replacement(len(count)+1);return real(fd)
+        with mock.patch.object(os,'fstat',fstat):
+            with self.assertRaises(core.InvalidEvidence):ws.read_private_json(self.path)
+        self.assertEqual(len(count),3)
+
+    def test_hardlinked_record_stays_refused(self):
+        os.link(self.path,self.base/'alias.json');before=self.path.read_bytes()
+        with self.assertRaises(core.InvalidEvidence):ws.read_private_json(self.path)
+        self.assertEqual(self.path.read_bytes(),before)
+
+    def test_missing_record_keeps_the_callers_default(self):
+        self.path.unlink();sentinel={'not_managed':True}
+        self.assertIs(agent._read(self.path,sentinel),sentinel)
+
+    def test_oversized_runtime_record_is_refused_before_reading_it(self):
+        self.path.write_bytes(b' '*(256*1024+1))
+        with self.assertRaises(core.InvalidEvidence):agent._read(self.path)
+
+    def test_exposed_record_is_not_repaired(self):
+        self.path.chmod(0o644)
+        with self.assertRaises(core.InvalidEvidence):ws.read_private_json(self.path)
+        self.assertEqual(self.path.stat().st_mode&0o777,0o644)
+
+    def test_invalid_json_stays_invalid_not_a_missing_runtime(self):
+        self.path.write_text('{bad')
+        with self.assertRaises(core.InvalidEvidence):agent._read(self.path,{'not_managed':True})
+
 if __name__=='__main__':unittest.main()

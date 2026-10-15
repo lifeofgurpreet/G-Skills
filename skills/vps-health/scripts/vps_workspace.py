@@ -67,16 +67,45 @@ def private_directory(path):
         fail('workspace must be private and owned by this user; no permissions changed')
 
 
-def private_file(path,missing_ok=False):
-    try:info=Path(path).lstat()
-    except FileNotFoundError:
-        if missing_ok:return None
-        raise
+def checked_private_info(info):
     if not stat.S_ISREG(info.st_mode) or info.st_nlink!=1:
         fail('private state must be a regular single-link file; preserve it for inspection')
     if os.name=='posix' and (info.st_uid!=os.getuid() or info.st_mode&0o077):
         fail('private state is exposed or not owned by this user; no permissions changed')
     return info
+
+
+def private_file(path,missing_ok=False):
+    # A cooperating atomic writer may unlink the inode while stat gathers its
+    # fields. Retry only that transient state, never a hardlink or unsafe mode.
+    for _ in range(3):
+        try:info=Path(path).lstat()
+        except FileNotFoundError:
+            if missing_ok:return None
+            raise
+        if stat.S_ISREG(info.st_mode) and info.st_nlink==0:continue
+        return checked_private_info(info)
+    fail('private state changed repeatedly; inspect again rather than weaken its checks')
+
+
+def read_private_json(path,max_bytes=core.MAX_BYTES):
+    """Read the same opened inode whose privacy was checked, with bounded retries."""
+    for _ in range(3):
+        prior=private_file(path)
+        flags=os.O_RDONLY|getattr(os,'O_NOFOLLOW',0)|getattr(os,'O_NONBLOCK',0)
+        fd=os.open(path,flags)
+        with os.fdopen(fd,'rb') as handle:
+            current=os.fstat(handle.fileno())
+            if current.st_nlink==0 or (prior.st_dev,prior.st_ino)!=(current.st_dev,current.st_ino):
+                continue
+            checked_private_info(current)
+            if current.st_size>max_bytes:fail('private JSON exceeds its bounded size')
+            raw=bytearray()
+            while chunk:=handle.read(min(4096,max_bytes+1-len(raw))):
+                raw.extend(chunk)
+                if len(raw)>max_bytes:fail('private JSON exceeds its bounded size')
+            return core.decode(bytes(raw))
+    fail('private state changed repeatedly; no coherent snapshot was accepted')
 
 
 def sync_directory(path):
@@ -114,8 +143,8 @@ def public_path(path):
 def config_load(path):
     root=public_path(path)
     if not root.is_dir():fail('workspace not found; run bootstrap first')
-    private_directory(root);private_file(root/'workspace.json')
-    return root,validate_config(core.read_json(root/'workspace.json'))
+    private_directory(root)
+    return root,validate_config(read_private_json(root/'workspace.json'))
 
 
 def validate_config(cfg):
