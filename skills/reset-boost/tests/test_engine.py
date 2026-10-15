@@ -273,6 +273,14 @@ class LiveSessionSafetyTests(unittest.TestCase):
         self.assertNotIn("private", state["modal"])
         self.assertEqual(rb.menu_rows(state["modal"])[-1], (3, "High (current)", True))
 
+    def test_advanced_reasoning_screen_is_a_picker(self):
+        text = ('private conversation\n  Advanced Reasoning\n  \u26a0 Consumes usage limits faster\n'
+                '\u203a 1. Max    For difficult problems when quality matters more than speed \u00b7 higher\n            usage\n'
+                '  2. Ultra  For demanding work using multiple agents \u00b7 highest usage\n  enter default \u00b7 s session \u00b7 esc back\n')
+        state = rb.ui_state(text)
+        self.assertNotIn("private", state["modal"])
+        self.assertEqual([row[1].split()[0] for row in rb.menu_rows(state["modal"])], ["Max", "Ultra"])
+
     def test_old_visible_model_text_is_not_current_footer_proof(self):
         text = 'GPT-6.1-Sol high\n' + 'old output\n' * 20 + '› unfinished draft\nGPT-6.1-Sol …\n'
         self.assertIsNone(rb.ui_state(text)["footer"])

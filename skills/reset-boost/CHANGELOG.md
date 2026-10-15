@@ -4,7 +4,10 @@
 
 First releasable preview. The panel now plans accounts with no quota left at
 the baseline they actually stay at, instead of showing the boost target and
-then "skipped" (regression test added). Already in 0.2.0 and now covered by
+then "skipped" (regression test added). Live switching follows Codex's new
+"Advanced Reasoning" screen for Max and Ultra (before this every switch to
+Ultra failed and left the picker open), and tmux panes shorter than 16 rows
+are zoomed while the picker is used and unzoomed afterwards. Already in 0.2.0 and now covered by
 this release: the panel's credit-guard switch and floor override the config
 default when changes are applied, and on phones the sessions table drops the
 account and quota columns so the state column is not clipped.

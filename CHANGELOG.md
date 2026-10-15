@@ -27,8 +27,9 @@ own checks under `tools/skills/reset-boost/` and is not released; see
 ## Reset Boost 0.2.1 preview
 
 [Reset Boost](skills/reset-boost/README.md) is marked ready for an independent
-preview release: out-of-quota accounts show at the baseline they stay at, and
-the panel's credit-guard setting wins over the config. See
+preview release: out-of-quota accounts show at the baseline they stay at,
+the panel's credit-guard setting wins over the config, and switching to Max or
+Ultra works through Codex's new Advanced Reasoning screen. See
 [its changelog](skills/reset-boost/CHANGELOG.md).
 
 

@@ -593,7 +593,7 @@ def ui_state(text):
     footer_area = "\n".join(text.splitlines()[-8:])
     footers = re.findall(r"^\s*(GPT-[\w.\-]+)\s+(high|xhigh|low|medium|ultra|max)\b", footer_area, re.M | re.I)
     info = telemetry(text)
-    modal = re.search(r"(?ms)^\s*Select (?:Model(?: and Effort)?|[^\n]*Reasoning[^\n]*)\n.*?^\s*enter [^\n]*esc [^\n]*", text)
+    modal = re.search(r"(?ms)^\s*(?:Select (?:Model(?: and Effort)?|[^\n]*Reasoning[^\n]*)|Advanced Reasoning)\n.*?^\s*enter [^\n]*esc [^\n]*", text)
     # Never append /model to an existing user draft. Known built-in placeholders
     # are safe to replace; unrecognized composers are held for manual control.
     composer = re.findall(r"^\s*›\s*(.*)$", text, re.M)
@@ -730,8 +730,11 @@ def live_setting(terminal, args):
                 return dict(row, status="held_working")
             send(terminal, keys=["C-c"])
             time.sleep(.5)
+        zoomed = zoom(terminal)
         send(terminal, text="/model", keys=["Enter"])
         state = wait_ui(terminal, lambda value: bool(value["modal"]))
+    else:
+        zoomed = False
     opened = bool(state["modal"])
     try:
         if not opened:
@@ -760,6 +763,24 @@ def live_setting(terminal, args):
                 break
             send(terminal, keys=["Escape"])
             time.sleep(.15)
+        if zoomed:
+            execute(["tmux", "-S", terminal["socket"], "resize-pane", "-Z", "-t", terminal["pane"]], terminal["user"])
+
+
+def zoom(terminal, rows=16):
+    """Zoom a tmux pane too short to show the model picker; True when we zoomed it (caller unzooms)."""
+    if terminal["backend"] != "tmux":
+        return False
+    try:
+        height, zoomed = execute(["tmux", "-S", terminal["socket"], "display-message", "-p", "-t", terminal["pane"],
+                                  "#{pane_height} #{window_zoomed_flag}"], terminal["user"]).split()
+        if int(height) >= rows or zoomed == "1":
+            return False
+        execute(["tmux", "-S", terminal["socket"], "resize-pane", "-Z", "-t", terminal["pane"]], terminal["user"])
+        time.sleep(.4)
+        return True
+    except (ValueError, RuntimeError, OSError, subprocess.SubprocessError):
+        return False
 
 
 PROGRESS_PREFIX = "RESET-BOOST-PROGRESS "
