@@ -18,7 +18,7 @@ This repository hosts independent public skills. Root work is catalog/distributi
 | `gs-nah.3` Prepare a bounded community preview and maintainer feedback loop | closed | 1 | Gurpreet-and-community-maintainer | 2026-12-21 | `gs-nah.2` |
 | `gs-nah.4` Select the next independent skill from repeated real work | open | 1 | Gurpreet-and-product-agent | 2027-01-07 | — |
 | `gs-nah.5` Implement reversible selected-skill installation with preserved recovery state | closed | 1 | distribution-agent | 2026-10-28 | — |
-| `gs-nah.6` Produce verified community launch video and share-ready assets | in_progress | 1 | community-media-agent | 2026-10-16 | — |
+| `gs-nah.6` Produce verified community launch video and share-ready assets | closed | 1 | community-media-agent | 2026-10-16 | — |
 
 ## Skill programmes
 
@@ -108,6 +108,8 @@ Build the shared agent-callable offline plan/apply/status path for one selected 
 Create an actual short launch film for the selected VPS Health preview using real synthetic product captures, claim-safe editorial copy and an actual requested Opus 5.5 creative pass. Keep other collection entries independent. Prepare social copy, do not post it.
 
 **Acceptance:** Landscape/feed MP4s have visible demo/preview labels, captions, original or licensed audio, verified encoding and complete decode. Real product capture actions are checked and model contribution is precisely attributed. Original render source and reproduction are retained. No customer data, fake native chat, completed-field-trial claim or automatic public post.
+
+**Receipt:** Delivered two 53-second caption-first H.264/AAC launch films with persistent demo/preview labels, caption sidecar, original synthetic instrumental audio and poster. Actual Opus 5.5 creative response verified; renderer/operator work is separate. GitHub media run 38661868521 rendered from a tree identical to merged e4c6b73, verified encodings/streaming metadata and fully decoded both files. Output hashes independently checked after download and keyframes visually inspected. Share-ready short copy and interactive synthetic demo are included. No social/public announcement, provider contact, private capture or fake native-agent trace. Source and repro: docs/skills/vps-health/launch.md and tools/skills/vps-health/launch_media.py.
 
 A second unrelated skill must be discoverable, independently validated and packaged without inheriting another skill's browser, runtime or safety policy. Draft scaffolds are not completed products.
 

@@ -1,0 +1,63 @@
+{
+  "schema": "g-skills.community-media-receipt.v1",
+  "owning_bead": "gs-nah.6",
+  "media_status": "DELIVERED_TECHNICAL_PREVIEW",
+  "source_commit": "e4c6b73debf58a877a4da3b448209b8ce12ee48f",
+  "ci_render_source": "03d8b1aca8aaeed15980419293ac81755aff4c32",
+  "source_trees_identical": true,
+  "renderer_sha256": "15f3a0b499edecadfc8e9f42db1fa2c8f9bfd6ba037775fbe2b2d328b60b0b08",
+  "workflow_run": 38661868521,
+  "artifact_id": 11939162843,
+  "videos": {
+    "landscape": {
+      "width": 1920,
+      "height": 1080,
+      "video_codec": "h264",
+      "pixel_format": "yuv420p",
+      "fps": "24/1",
+      "audio_codec": "aac",
+      "duration_seconds": 53.0,
+      "fast_start": true,
+      "bytes": 1943202,
+      "sha256": "a1a9970d3d9f5538df8a655705980d4ef25bd11dde8e7109754b5bde25ec9381",
+      "full_video_decode": "PASS"
+    },
+    "portrait": {
+      "width": 1080,
+      "height": 1350,
+      "video_codec": "h264",
+      "pixel_format": "yuv420p",
+      "fps": "24/1",
+      "audio_codec": "aac",
+      "duration_seconds": 53.0,
+      "fast_start": true,
+      "bytes": 1635744,
+      "sha256": "76b9a47f8a8a5726333a715675b4531b80fc986a8b998915a14fe900e25d29fb",
+      "full_video_decode": "PASS"
+    }
+  },
+  "captions_and_poster": true,
+  "synthetic_only": true,
+  "visual_keyframe_review": true,
+  "independent_download_hash_check": true,
+  "native_agent_execution_shown": false,
+  "opus_contribution": "Actual requested claude-opus-5-5 provided creative direction and claim review; did not render or verify the product.",
+  "opus_receipt": "launch-creative-receipt.json",
+  "model_traces_public": false,
+  "fonts_redistributed": false,
+  "pilot": {
+    "mode": "passive local qualification on authorized development Linux host",
+    "started_at": "2026-10-15T00:29:45Z",
+    "deadline_utc": "2026-10-18T00:29:45Z",
+    "cadence_seconds": 300,
+    "observed_cycles": 6,
+    "failed_cycles": 0,
+    "process_verified": true,
+    "completed_72_hours": false,
+    "companion_prometheus_route_qualified": false,
+    "note": "Development and rendering workload is our workload context, not provider attribution."
+  },
+  "social_post_sent": false,
+  "provider_contact": false,
+  "stable_release_claim": false
+}
