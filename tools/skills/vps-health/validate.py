@@ -40,6 +40,7 @@ def main():
     subprocess.run([sys.executable,str(ROOT/'tools/skills/vps-health/test_vendor.py')],check=True)
     subprocess.run([sys.executable,str(ROOT/'tools/skills/vps-health/test_release_package.py')],check=True)
     subprocess.run([sys.executable,str(ROOT/'tools/skills/vps-health/test_client_journey.py')],check=True)
+    subprocess.run([sys.executable,str(ROOT/'tools/skills/vps-health/test_agent_eval.py')],check=True)
     subprocess.run([sys.executable,str(ROOT/'tools/skills/vps-health/test_launch_media.py')],check=True)
     with tempfile.TemporaryDirectory() as directory:
         # Test the actual exported folder, not only imports from this repository.

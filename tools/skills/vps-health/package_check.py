@@ -6,13 +6,18 @@ import argparse,hashlib,json,subprocess,sys,tempfile
 def validate_files(files):
     required={'SKILL.md','scripts/vps_health.py','scripts/vps_workspace.py','assets/chart-adapter.js',
               'assets/workspace-dashboard.html','assets/view-model.js','assets/workbench.js','references/dashboard.md','references/providers.md','tests/test_provider_reference.py','assets/vendor/uplot/manifest.json','assets/vendor/uplot/LICENSE','LICENSE',
-              'scripts/vps_evidence.py','references/time-evidence.md','scripts/vps_ops.py','assets/operator.js','assets/operator.css','assets/provider-catalog.json',
+              'evals/evals.json','evals/trigger-evals.json','references/agent-actions.md','scripts/vps_evidence.py','references/time-evidence.md','scripts/vps_ops.py','assets/operator.js','assets/operator.css','assets/provider-catalog.json',
               'references/first-hour.md','references/operator-playbook.md','references/support.md','references/workspace-recovery.md','tests/test_private_workspace.py',
               'scripts/vps_agent.py','scripts/vps_forensics.py','references/forensics.md','references/agent-workflow.md','references/agent-connectors.md'}
     if not required<=set(files):raise ValueError('installable skill is missing required runtime/license files')
     if any(name.startswith(('skills/','.github/','tools/')) for name in files):
         raise ValueError('repository content incorrectly nested inside the skill ZIP')
+    import yaml
+    header=yaml.safe_load(files['SKILL.md'].decode().split('---',2)[1])
+    if not isinstance(header,dict) or header.get('name')!='vps-health' or not isinstance(header.get('description'),str):
+        raise ValueError('actual exported skill discovery metadata is invalid')
     meta=json.loads(files['skill.json'])
+    if header.get('metadata',{}).get('version')!=meta['version']:raise ValueError('exported discovery version differs')
     for code in ('scripts/vps_health.py','scripts/vps_workspace.py'):
         if ("VERSION = '"+meta['version']+"'") not in files[code].decode():raise ValueError('skill manifest/runtime versions differ')
     manifest=json.loads(files['assets/vendor/uplot/manifest.json'])

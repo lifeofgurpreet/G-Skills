@@ -1,10 +1,17 @@
 ---
 name: vps-health
-description: Take ownership of a user's VPS investigation: discover authorized targets, scaffold or resume a private workspace, run bounded monitoring with a live dashboard, handle missing access through the host agent's connector flow, retain evidence and report actionable uncertainty. The agent performs routine setup; the human supplies scope, authentication and approval for external changes.
+description: >-
+  Investigate slow or inconsistent VPS performance with a private evidence workbench.
+  Use when a user asks to check a VPS, compare CPU delivery with workload pressure,
+  resume a VPS investigation, understand missing monitoring evidence, prepare a
+  requested hosting-plan question, or troubleshoot this skill's own setup and reports.
+  The coding agent resolves authorized targets, performs routine setup and verifies
+  real results; the human supplies scope, authentication and consequential approvals.
+  Do not use for unrelated email, arbitrary app debugging or account quota management.
 license: MIT
 compatibility: Python 3.10+ and SQLite. Managed lifecycle and passive local collection currently qualify Linux; demo/offline/foreground views remain portable. Use the terminal agent's actual authorized host, browser and connector tools. No bundled OAuth service, provider sender, root service or public dashboard exposure.
 metadata:
-  version: "0.9.3"
+  version: "0.9.4"
   author: lifeofgurpreet
 ---
 
@@ -14,6 +21,14 @@ Your user should not assemble a monitoring stack or follow a shell tutorial.
 Carry the workflow from their goal to a functioning private dashboard and retained
 evidence. Ask for target clarification, authentication and consequential approvals
 only when necessary. Execute routine authorized operations yourself.
+
+## Pick the shortest useful route
+
+For operational questions, read [the UI / CLI / host action map](references/agent-actions.md)
+first. It maps the user's goal to existing commands, required evidence and the few
+choices only the human can make. A skill software-support issue is not a VPS-provider
+complaint, a local draft needs no Gmail, and an uncertain send needs reconciliation
+rather than a duplicate. Use the deeper references only for the selected route.
 
 ## First decision: what is the actual target?
 
@@ -200,6 +215,12 @@ raw database. Preserve host/source epochs. `learn` proposes sanitized improvemen
 it cannot alter thresholds, grant permissions, publish observations or apply its
 own changes. Turn recurring friction into a synthetic failing regression, fix
 the owning script, test the actual workflow and obtain maintainer review.
+
+For skill improvement, use [the evaluation workflow](references/evaluation.md).
+It separates discovery parsing, artifact outcomes, trigger behavior and actual
+runtime/connector trials. Preserve failed and blocked attempts; an expired session
+is not a model score. The bundled evals follow Anthropic skill-creator formats and
+are optional maintenance inputs, not extra work for ordinary monitoring users.
 
 Use relevant installed pstack/JSM guidance and record which sections were applied;
 never claim to have executed every framework or copy licensed skill content.

@@ -1,0 +1,82 @@
+[
+  {
+    "query": "This small shared VPS gets slow every evening. Check whether missing CPU time coincides with our own workload, without stressing the host.",
+    "should_trigger": true
+  },
+  {
+    "query": "I already have Prometheus and Loki. Reuse those to investigate CPU delivery across the explicitly listed VPS nodes and show a private dashboard.",
+    "should_trigger": true
+  },
+  {
+    "query": "Can you continue the VPS investigation from the existing HANDOFF.md without starting a duplicate monitor?",
+    "should_trigger": true
+  },
+  {
+    "query": "The workbench says 96% accounted CPU but pressure data covers only five minutes. Explain what we can actually conclude.",
+    "should_trigger": true
+  },
+  {
+    "query": "Our VPS provider offered a migration. Record the offer and plan a comparable before/after evidence window; do not reboot anything.",
+    "should_trigger": true
+  },
+  {
+    "query": "Please prepare a local question about our exact VPS plan and CPU-credit policy, not a complaint and not an email send.",
+    "should_trigger": true
+  },
+  {
+    "query": "The VPS Health offline dashboard has blank charts. Prepare minimal software diagnostics for its maintainer, not a hosting ticket.",
+    "should_trigger": true
+  },
+  {
+    "query": "A teammate has only one Linux VPS and no metrics stack. Set up bounded private passive monitoring after confirming the authorized target.",
+    "should_trigger": true
+  },
+  {
+    "query": "The provider-mail send timed out during this VPS investigation. Help reconcile delivery without another message or private attachments.",
+    "should_trigger": true
+  },
+  {
+    "query": "Compare the recorded CPU shortfall runs for these authorized servers, keeping missing nodes and scrape gaps visible.",
+    "should_trigger": true
+  },
+  {
+    "query": "Boost all Codex accounts before their usage quota resets, then return them to normal afterwards.",
+    "should_trigger": false
+  },
+  {
+    "query": "Send this reviewed restaurant reservation email; nothing here is about a VPS investigation.",
+    "should_trigger": false
+  },
+  {
+    "query": "Design a CPU dashboard mockup for our marketing page using fictional numbers. Do not build a monitoring system.",
+    "should_trigger": false
+  },
+  {
+    "query": "Explain how modern laptop CPUs differ before I buy a new computer.",
+    "should_trigger": false
+  },
+  {
+    "query": "Our React component throws a TypeError after a refactor. Debug this source file; there is no hosting or CPU-delivery question.",
+    "should_trigger": false
+  },
+  {
+    "query": "Turn my meeting notes into a concise summary and follow-up email.",
+    "should_trigger": false
+  },
+  {
+    "query": "Help me pay the hosting invoice and update the card in the provider billing portal, not measure the server.",
+    "should_trigger": false
+  },
+  {
+    "query": "Review this generic SQL query execution plan to fix a missing index. Do not start infrastructure monitoring.",
+    "should_trigger": false
+  },
+  {
+    "query": "Translate this provider terms paragraph into plain English only; do not run an investigation or create a workspace.",
+    "should_trigger": false
+  },
+  {
+    "query": "Clean up the CSS of a unrelated sales dashboard. No VPS Health installation or observations are involved.",
+    "should_trigger": false
+  }
+]

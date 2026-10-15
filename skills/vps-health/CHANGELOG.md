@@ -1,5 +1,17 @@
 # VPS Health changelog
 
+## 0.9.4 — Parseable discovery and agent-evaluation contracts
+
+Fix invalid YAML in the public skill description. A real frontmatter parser now
+checks names/versions and rejects duplicate or unsupported metadata during
+collection verification; the actual exported folder is parsed too. Add an
+Anthropic skill-creator-compatible artifact suite, balanced trigger queries and
+a UI/CLI/host operation map. Clarify local software support versus provider
+correspondence and unknown delivery reconciliation. Native paired trials were
+attempted but blocked by expired existing OAuth before inference; no behavior
+score or trigger qualification is claimed. Runtime observation policy is unchanged.
+
+
 ## 0.9.3 — Qualify context by its own measured time
 
 Sparse/stale quiet pressure or throttling averages no longer describe a long CPU

@@ -1,0 +1,2 @@
+# Collection metadata validation only; never a user skill runtime dependency.
+PyYAML==6.0.3
