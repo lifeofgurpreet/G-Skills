@@ -17,10 +17,15 @@ VPS observation, multi-resource context and private evidence reports. Its Linux
 worker, dashboard, provider guidance and roadmap belong to that skill. Other
 skills can be entirely different and need not use Python, a dashboard or VPS concepts.
 
-**Draft:** [Reset Boost](skills/reset-boost/README.md) — turn every coding-agent
-account in a fleet up for a provider usage reset and back down when it lands,
-with launch-config and live-session readback and an HTML dashboard. Draft
-skills are not released and have not been qualified on other people's estates.
+**Draft:** [Reset Boost](skills/reset-boost/README.md) — turn every Codex
+session in a fleet up for a provider usage reset and back down when it lands,
+from a local live control panel that reads each session's own status line,
+with a credit guard and agent hand-off for what the buttons could not fix.
+Draft skills are not released and have not been qualified on other people's
+estates.
+
+Skills that serve an operator page can share one look: the
+[operator-ui design kit](docs/design/guide.md).
 
 The human supplies the goal, authorized scope and consequential decisions. The
 agent should do routine setup and verification rather than hand the human a

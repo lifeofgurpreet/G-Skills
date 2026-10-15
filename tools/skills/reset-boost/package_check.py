@@ -7,16 +7,20 @@ agent configuration, terminals or processes.
 """
 from pathlib import Path
 import argparse
+import http.client
 import json
 import os
 import subprocess
 import sys
 import tempfile
+import time
+from urllib.parse import urlparse
 
 REQUIRED = {"SKILL.md", "skill.json", "README.md", "CHANGELOG.md", "scripts/reset_boost.py", "scripts/boost_lifecycle.py",
-            "scripts/boost_dashboard.py", "scripts/install-watch.sh", "scripts/model-policy-guard.py", "scripts/presets.json",
+            "scripts/boost_dashboard.py", "scripts/boost_agent.py", "scripts/boost_server.py", "scripts/install-watch.sh", "scripts/model-policy-guard.py", "scripts/presets.json",
             "references/usage-source.md", "references/configuration.md", "references/live-sessions.md",
-            "assets/usage.example.json", "assets/config.example.json", "tests/test_engine.py", "tests/test_lifecycle.py"}
+            "assets/usage.example.json", "assets/config.example.json", "assets/console.html", "assets/operator-ui.css",
+            "tests/test_engine.py", "tests/test_lifecycle.py", "tests/test_panel.py"}
 
 
 def validate_files(files, require_license=True):
@@ -37,6 +41,56 @@ def run(entry, env, *argv, expect=0):
     if result.returncode != expect:
         raise ValueError(f"{' '.join(argv)} exited {result.returncode}: {result.stderr[-2000:]}")
     return result.stdout
+
+
+def panel_check(entry, env, state_dir):
+    """Start the exported control panel on a free port, read /api/state with its token, then stop it."""
+    process = subprocess.Popen([sys.executable, str(entry), "serve", "--port", "0", "--no-loop"], env=env,
+                               stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True)
+    try:
+        link = state_dir / "serve-url"
+        for _ in range(100):
+            if link.exists() and link.read_text().strip() or process.poll() is not None:
+                break
+            time.sleep(0.1)
+        if process.poll() is not None or not link.exists():
+            raise ValueError("control panel did not start: " + (process.stderr.read()[-2000:] if process.poll() is not None else "no serve-url"))
+        if (link.stat().st_mode & 0o777) != 0o600 or ((state_dir / "serve-token").stat().st_mode & 0o777) != 0o600:
+            raise ValueError("panel link or token is readable by other accounts")
+        url = urlparse(link.read_text().strip())
+        token = url.fragment.split("t=", 1)[1]
+
+        def get(path, **headers):
+            connection = http.client.HTTPConnection("127.0.0.1", url.port, timeout=10)
+            connection.request("GET", path, headers=dict({"Host": f"127.0.0.1:{url.port}"}, **headers))
+            response = connection.getresponse()
+            body = response.read()
+            connection.close()
+            return response.status, body
+
+        if get("/api/state")[0] != 401:
+            raise ValueError("control panel served state without its token")
+        if get("/api/state", **{"X-Reset-Boost-Token": token, "Host": "attacker.example.test"})[0] != 403:
+            raise ValueError("control panel accepted a non-local Host header")
+        status, body = get("/api/state", **{"X-Reset-Boost-Token": token})
+        snapshot = json.loads(body)
+        if status != 200 or snapshot.get("phase") != "idle" or "astra-ultra-fast" not in snapshot.get("presets", {}):
+            raise ValueError("control panel state is wrong: " + body[:300].decode(errors="replace"))
+        if "rows" not in snapshot.get("sessions", {}) or snapshot.get("credit_guard", {}).get("enabled") is not True:
+            raise ValueError("control panel state lacks session telemetry or the credit guard")
+        status, body = get("/")
+        if status != 200 or b"Reset Boost" not in body or b'href="/operator-ui.css"' not in body:
+            raise ValueError("control panel page did not load")
+        status, body = get("/operator-ui.css")
+        if status != 200 or b"--ui-accent" not in body:
+            raise ValueError("control panel stylesheet did not load")
+    finally:
+        process.terminate()
+        try:
+            process.wait(10)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            process.wait(10)
 
 
 def cold_check(target):
@@ -95,6 +149,10 @@ def cold_check(target):
         if events[0] != "boost" or "done" not in events or events[-1] != "idle":
             raise ValueError("event log does not record the lifecycle")
         run(entry, env, "done", "--dry-run")
+        observed = json.loads(run(entry, env, "observe", "--json"))
+        if observed.get("hosts") != {}:
+            raise ValueError("observe on a zero-host estate reported sessions")
+        panel_check(entry, env, temp / "state")
         result = subprocess.run([sys.executable, str(Path(target) / "scripts/model-policy-guard.py")], capture_output=True, text=True, timeout=30)
         if result.returncode == 0:
             raise ValueError("launch guard accepted a missing command")
@@ -108,7 +166,7 @@ def main():
              if f.is_file() and "__pycache__" not in f.parts}
     validate_files(files)
     cold_check(options.skill_dir)
-    print("PASS: isolated Reset Boost package: boost, failed-usage hold, reset auto-down, cooling, dashboard and event log")
+    print("PASS: isolated Reset Boost package: boost, failed-usage hold, reset auto-down, cooling, dashboard, event log, observe and control panel")
 
 
 if __name__ == "__main__":

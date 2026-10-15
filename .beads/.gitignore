@@ -4,3 +4,8 @@
 *.log
 .sync*
 metadata.json
+.br_history/
+.br_recovery/
+beads.base.jsonl
+beads.db.fsqlite-migration-state
+last-touched

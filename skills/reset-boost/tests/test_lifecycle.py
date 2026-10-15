@@ -15,7 +15,7 @@ import reset_boost as rb  # noqa: E402
 import boost_lifecycle  # noqa: E402
 import boost_dashboard  # noqa: E402
 
-ASTRA = {"model": "gpt-6-astra", "effort": "ultra", "tier": "fast"}
+ASTRA = {"model": "gpt-6-astra", "effort": "ultra", "tier": "priority"}
 SOL = {"model": "gpt-6.1-sol", "effort": "medium", "tier": "default"}
 
 

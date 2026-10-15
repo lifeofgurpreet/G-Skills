@@ -31,7 +31,7 @@ def main():
         files = {f.relative_to(target).as_posix(): f.read_bytes() for f in target.rglob("*") if f.is_file()}
         package_check.validate_files(files, require_license=False)
         package_check.cold_check(target)
-    print("PASS: reset-boost unit tests, privacy scan and cold exported-folder lifecycle")
+    print("PASS: reset-boost unit tests, privacy scan and cold exported-folder lifecycle and control panel")
     return 0
 
 

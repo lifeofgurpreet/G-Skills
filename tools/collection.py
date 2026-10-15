@@ -82,6 +82,30 @@ def discover(root=ROOT):
     return rows
 
 
+DESIGN_KIT='docs/design/operator-ui.css'
+RAW_COLOUR=re.compile(r'#[0-9a-fA-F]{3,8}\b|\b(?:rgba?|hsla?)\(',re.I)
+
+
+def design_kit(root=ROOT):
+    """Skill copies of the shared operator-ui kit equal the collection copy; pages linking it add no raw colours.
+
+    Using the kit is optional. A skill that ships operator-ui.css ships this exact file, and a page
+    that links it keeps every colour in the kit's --ui-* tokens rather than in its own <style>.
+    """
+    root=Path(root);kit=root/DESIGN_KIT;base=root/'skills'
+    copies=sorted(p for p in base.rglob('operator-ui.css') if '__pycache__' not in p.parts)
+    if copies and not kit.is_file():raise ValueError('a skill ships operator-ui.css but the collection kit is missing: '+DESIGN_KIT)
+    for path in copies:
+        if path.read_bytes()!=kit.read_bytes():raise ValueError('operator-ui.css differs from '+DESIGN_KIT+': '+path.relative_to(root).as_posix())
+    for page in sorted(base.rglob('*.html')):
+        text=page.read_text()
+        if 'operator-ui.css' not in text:continue
+        for style in re.findall(r'<style[^>]*>(.*?)</style>',text,re.S|re.I):
+            found=RAW_COLOUR.search(style)
+            if found:raise ValueError(f'raw colour {found.group(0)!r} in {page.relative_to(root).as_posix()}; use the --ui-* tokens')
+    return len(copies)
+
+
 def catalog(rows):
     return {'schema':'g-skills.catalog.v1','purpose':'Independent public skills curated by Gurpreet; no collection runtime or shared skill version.',
             'skills':[{**{key:row[key] for key in ('name','title','summary','version','category','status')},

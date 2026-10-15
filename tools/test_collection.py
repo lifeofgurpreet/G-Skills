@@ -42,6 +42,24 @@ class CollectionTest(unittest.TestCase):
         for name in ('../outside','Upper','a/b','a b',''):
             with self.subTest(name=name),self.assertRaises(ValueError):self.new(name)
 
+    def test_design_kit_copies_must_match_and_pages_use_tokens(self):
+        p=self.new();self.assertEqual(collection.design_kit(self.root),0)
+        (p/'assets').mkdir();(p/'assets/operator-ui.css').write_text(':root{--ui-ink:#fff}\n')
+        with self.assertRaises(ValueError):collection.design_kit(self.root)
+        (self.root/'docs/design').mkdir(parents=True);(self.root/'docs/design/operator-ui.css').write_text(':root{--ui-ink:#fff}\n')
+        self.assertEqual(collection.design_kit(self.root),1)
+        (p/'assets/operator-ui.css').write_text(':root{--ui-ink:#eee}\n')
+        with self.assertRaises(ValueError):collection.design_kit(self.root)
+        (p/'assets/operator-ui.css').write_text(':root{--ui-ink:#fff}\n')
+        page=p/'assets/page.html';page.write_text('<link rel="stylesheet" href="/operator-ui.css"><style>.a{color:var(--ui-ink)}</style><svg fill="#000"></svg>')
+        self.assertEqual(collection.design_kit(self.root),1)
+        for raw in ('.a{color:#123456}','.a{background:rgba(0,0,0,.2)}','.a{color:HSL(1,2%,3%)}'):
+            with self.subTest(raw=raw):
+                page.write_text('<link rel="stylesheet" href="/operator-ui.css"><style>'+raw+'</style>')
+                with self.assertRaises(ValueError):collection.design_kit(self.root)
+        page.write_text('<style>.own-design{color:#123456}</style>')  # pages not using the kit keep their own look
+        self.assertEqual(collection.design_kit(self.root),1)
+
     def test_missing_declared_check_fails(self):
         self.new();(self.root/'tools/skills/meeting-notes/validate.py').unlink()
         with self.assertRaises(ValueError):collection.discover(self.root)

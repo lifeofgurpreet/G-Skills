@@ -1,0 +1,725 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reset Boost</title>
+<link rel="stylesheet" href="/operator-ui.css">
+<style>
+/* Page layout only; every colour, type and component comes from operator-ui.css. */
+.liveview { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 0; min-height: calc(100vh - 76px); }
+.liveview > .left { min-width: 0; padding-right: 32px; }
+.liveview > .right { border-left: 1px solid var(--ui-line); padding-left: 32px; display: grid; gap: 26px; align-content: start; }
+.liveview.wide { grid-template-columns: minmax(0, 1fr); } .liveview.wide > .right { display: none; } .liveview.wide > .left { padding-right: 0; }
+@media (max-width: 1250px) { .liveview { grid-template-columns: minmax(0, 1fr); } .liveview > .left { padding-right: 0; } .liveview > .right { border-left: 0; padding-left: 0; margin-top: 30px; } }
+.head { display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap; margin-bottom: 30px; }
+.clock { text-align: right; color: var(--ui-ink-2); font-size: 13px; line-height: 1.9; }
+.headline { display: flex; align-items: center; gap: 18px; margin: 26px 0 16px; }
+.alert { margin-top: 14px; display: flex; align-items: center; gap: 10px; color: var(--ui-warn); font-size: 13px; }
+.lever { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 16px 18px 16px 22px; margin: 30px 0 14px; }
+.lever .pill { padding: 0 12px; height: 44px; gap: 8px; }
+.lever .pill .chev { right: 12px; }
+.lever .pill select { font-size: 14px; padding-right: 20px; }
+.lever .eyebrow { letter-spacing: .22em; margin-right: 6px; }
+.lever .divider-v { margin: 0 4px; }
+.lever .action-label { letter-spacing: .18em; font-size: 12px; }
+.lever .go { display: flex; align-items: center; gap: 14px; margin-left: 4px; }
+.downrow { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 0 0 28px 4px; color: var(--ui-muted); font-size: 13px; }
+.downrow select { background: transparent; border: 1px solid var(--ui-line-strong); border-radius: 99px; padding: 4px 10px; }
+.cardhead { display: flex; align-items: flex-end; gap: 18px; flex-wrap: wrap; }
+.cardhead .tabs { flex: 1; margin-bottom: 0; border-bottom: 0; }
+.cardhead .field { width: 220px; margin-bottom: 10px; }
+.sessions .tabs-line { border-bottom: 1px solid var(--ui-line); margin-top: -1px; }
+.model { white-space: nowrap; }
+.why { font-size: 11px; color: var(--ui-warn); margin-top: 2px; }
+.why.bad { color: var(--ui-bad); }
+.plan { font-size: 11px; color: var(--ui-muted); margin-top: 2px; }
+.actions-cell { white-space: nowrap; text-align: right; }
+.sessions .table th, .sessions .table td { padding-left: 10px; padding-right: 10px; }
+.sname { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sessions .table td:nth-child(3) { max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.statgrid { display: flex; gap: 28px; align-items: center; }
+.stats { display: grid; gap: 26px; border-left: 1px solid var(--ui-line-strong); padding-left: 26px; }
+.stats .eyebrow { margin: 6px 0 10px; font-size: 10px; }
+.acct-row { display: grid; grid-template-columns: 18px minmax(56px, 1fr) 60px max-content; gap: 12px; align-items: center; padding: 10px 0; }
+.acct-row .who { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.acct-row .val { font-size: 12px; color: var(--ui-ink-2); text-align: right; white-space: nowrap; }
+.moon-card { display: flex; align-items: center; gap: 22px; cursor: pointer; }
+.moon-card .eyebrow { line-height: 2; }
+.page-title { font-family: var(--ui-display); font-weight: 300; font-size: 34px; margin: 18px 0 24px; letter-spacing: -.01em; }
+.accounts-full .acct-row { grid-template-columns: 22px minmax(0, 1.4fr) minmax(0, 1fr) 140px 120px; border-top: 1px solid var(--ui-line); padding: 16px 0; }
+.models-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); gap: 14px; }
+.preset { cursor: pointer; } .preset:hover { border-color: var(--ui-accent); }
+.settings { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: 18px; align-items: start; }
+.setting { display: flex; align-items: center; gap: 14px; padding: 12px 0; border-top: 1px solid var(--ui-line); }
+.setting:first-of-type { border-top: 0; }
+.setting label { flex: 1; color: var(--ui-ink-2); }
+.setting input[type=range] { width: 160px; }
+.setting .v { width: 56px; text-align: right; }
+.sig { padding: 12px 0; border-top: 1px solid var(--ui-line); }
+.run pre { white-space: pre-wrap; word-break: break-word; font-size: 12px; color: var(--ui-ink-2); max-height: 240px; overflow: auto; }
+textarea.ask { width: 100%; min-height: 80px; resize: vertical; background: var(--ui-surface); border: 1px solid var(--ui-line); border-radius: 12px; padding: 12px; }
+.detail dl { display: grid; grid-template-columns: 130px minmax(0, 1fr); gap: 8px 14px; margin: 0; font-size: 13px; }
+.detail dt { color: var(--ui-muted); } .detail dd { margin: 0; word-break: break-word; }
+.hidden { display: none !important; }
+.table tr.data.flash td { animation: rowflash 1.8s ease-out; }
+@media (max-width: 600px) {
+  .lever .divider-v { display: none; }
+  .cardhead .field { width: 100%; }
+  .sessions .table th, .sessions .table td { padding-left: 5px; padding-right: 5px; }
+  .sname { max-width: 120px; }
+  /* Phones: session, model and state; account and quota live in the row's details. */
+  .sessions .table th:nth-child(3), .sessions .table td:nth-child(3), .sessions .table th:nth-child(6), .sessions .table td:nth-child(6) { display: none; }
+}
+@keyframes rowflash { from { background: var(--ui-accent-soft); } to { background: transparent; } }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute">
+  <symbol id="i-mark" viewBox="0 0 54 28"><path d="M14 4a10 10 0 1 0 0 20c6 0 9-6 13-10s7-10 13-10a10 10 0 1 1 0 20c-6 0-9-6-13-10S20 4 14 4z" fill="none" stroke="currentColor" stroke-width="2.4"/></symbol>
+  <symbol id="i-sessions" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M7 9l3 3-3 3M12 15h5"/></symbol>
+  <symbol id="i-accounts" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M18.5 14.8c1.6.8 2.6 2.5 3 5.2"/></symbol>
+  <symbol id="i-models" viewBox="0 0 24 24"><path d="M12 2.8l8.5 4.7v9L12 21.2l-8.5-4.7v-9z"/><path d="M3.5 7.5L12 12l8.5-4.5M12 12v9.2"/></symbol>
+  <symbol id="i-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v2.4M12 19.1v2.4M4.6 4.6l1.7 1.7M17.7 17.7l1.7 1.7M2.5 12h2.4M19.1 12h2.4M4.6 19.4l1.7-1.7M17.7 6.3l1.7-1.7"/></symbol>
+  <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.6 2.5 3.8 5.5 3.8 9S14.6 18.5 12 21c-2.6-2.5-3.8-5.5-3.8-9S9.4 5.5 12 3z"/></symbol>
+  <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 19V5M5.5 11.5L12 5l6.5 6.5"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 5v14M5.5 12.5L12 19l6.5-6.5"/></symbol>
+  <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 2.5L4.5 13.5H12l-1 8 8.5-11H12z"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+  <symbol id="i-right" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></symbol>
+  <symbol id="i-filter" viewBox="0 0 24 24"><path d="M4 7h16M7 12h10M10 17h4"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><path d="M5 20V12M10 20V6M15 20v-9M20 20V9"/></symbol>
+  <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/></symbol>
+  <symbol id="i-card" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="14" rx="2.5"/><path d="M3.5 9.5h17M7 14h4"/></symbol>
+  <symbol id="i-warn" viewBox="0 0 24 24"><path d="M12 3.5l9.5 16.5h-19z"/><path d="M12 10v4.5M12 17.2v.3"/></symbol>
+</svg>
+
+<div class="ui-shell">
+  <aside class="ui-rail">
+    <div class="ui-brand"><svg class="mark"><use href="#i-mark"/></svg><div class="name">Reset Boost</div><div class="sub">Codex fleet</div></div>
+    <nav class="ui-nav" id="nav">
+      <button data-view="live" class="on"><span class="live-dot" id="liveDot"></span>Live</button>
+      <button data-view="sessions"><svg class="i"><use href="#i-sessions"/></svg>Sessions</button>
+      <button data-view="accounts"><svg class="i"><use href="#i-accounts"/></svg>Accounts</button>
+      <button data-view="models"><svg class="i"><use href="#i-models"/></svg>Models</button>
+      <button data-view="settings"><svg class="i"><use href="#i-settings"/></svg>Settings</button>
+    </nav>
+    <div class="motto"><hr><div class="eyebrow" style="font-size:10px;line-height:2">Build<br>a more<br>capable<br>tomorrow</div></div>
+  </aside>
+
+  <main class="ui-main">
+    <div class="head">
+      <div class="eyebrow" id="viewEyebrow">Global compute fleet</div>
+      <div class="clock"><div class="row" style="justify-content:flex-end;gap:8px"><svg class="i" style="width:15px;height:15px"><use href="#i-globe"/></svg><span id="tz"></span></div><div id="now"></div></div>
+    </div>
+
+    <!-- LIVE + SESSIONS -->
+    <section class="liveview" id="viewLive">
+      <div class="left">
+        <div id="heroBlock">
+          <div class="headline"><h1 class="display" id="headline">Reading the fleet…</h1><span class="dot lg live" id="headDot"></span></div>
+          <div class="lede" id="lede"></div>
+          <div class="alert hidden" id="alert"></div>
+
+          <div class="card lever">
+            <span class="eyebrow">Set all to</span>
+            <label class="pill" id="pModel"><span class="ring-ico" id="modelRing"></span><select id="lModel"></select><svg class="i chev"><use href="#i-chev"/></svg></label>
+            <label class="pill"><select id="lEffort"></select><svg class="i chev"><use href="#i-chev"/></svg></label>
+            <label class="pill" id="pFast"><svg class="i" style="width:16px;height:16px"><use href="#i-bolt"/></svg><select id="lFast"><option value="off">Normal</option><option value="fast">Fast</option></select><svg class="i chev"><use href="#i-chev"/></svg></label>
+            <span class="divider-v"></span>
+            <div class="go"><button class="round-action" id="goBtn" title="Apply"><svg class="i"><use href="#i-up"/></svg></button><span class="action-label" id="goLabel"></span></div>
+          </div>
+          <div class="downrow">
+            <span>Come back down</span>
+            <span class="segmented" id="downChoice"></span>
+            <select id="downAfter" class="hidden"><option>1h</option><option>2h</option><option selected>6h</option><option>12h</option><option>24h</option></select>
+            <span class="spacer"></span>
+            <button class="btn link" id="allDown"></button>
+          </div>
+        </div>
+
+        <div class="card sessions">
+          <div class="cardhead">
+            <div class="tabs" id="tabs"></div>
+            <label class="field"><svg class="i" style="width:16px;height:16px;color:var(--ui-muted)"><use href="#i-search"/></svg><input id="search" placeholder="Search"></label>
+            <button class="btn icon" id="filterBtn" title="Filter" style="margin-bottom:10px"><svg class="i"><use href="#i-filter"/></svg></button>
+          </div>
+          <div class="tabs-line"></div>
+          <div id="tabBody"></div>
+        </div>
+      </div>
+
+      <aside class="right" id="rightCol">
+        <div class="eyebrow" style="line-height:2.2">Good systems<br>compound freedom.</div>
+        <div class="statgrid">
+          <div class="ring" id="ring"></div>
+          <div class="stats">
+            <div class="stat"><div class="n num" id="hostN">–</div><div class="eyebrow">Hosts</div><div class="dots" id="hostDots"></div></div>
+            <div class="stat"><div class="n num" id="modelN">–</div><div class="eyebrow">Models</div><div class="dots" id="modelDots"></div></div>
+          </div>
+        </div>
+        <hr style="width:30px;border:0;border-top:1px solid var(--ui-line-strong);margin:4px 0 0">
+        <div class="quote" id="quote"></div>
+        <div class="card tight"><div class="card-title">Accounts &amp; Resets <span class="spacer"></span><button class="btn link small" data-go="accounts">All</button></div><div id="acctMini"></div></div>
+        <div class="card moon-card" data-go="settings"><div class="moon"></div><div><div class="eyebrow">Higher<br>useful<br>kinder</div><div class="small muted" id="agentLine" style="margin-top:6px"></div></div><span class="spacer"></span><svg class="i"><use href="#i-right"/></svg></div>
+      </aside>
+    </section>
+
+    <section id="viewAccounts" class="hidden">
+      <h2 class="page-title">Accounts &amp; resets</h2>
+      <p class="muted" style="max-width:640px;margin-top:-10px">Quota and resets belong to accounts. Lock keeps every session on an account at normal, even during a boost. Click an account to see its sessions.</p>
+      <div class="card accounts-full" id="acctFull"></div>
+    </section>
+
+    <section id="viewModels" class="hidden">
+      <h2 class="page-title">Models</h2>
+      <div class="eyebrow" style="margin-bottom:14px">Running now</div>
+      <div class="models-grid" id="modelsNow"></div>
+      <div class="eyebrow" style="margin:34px 0 14px">Quick picks for “Set all to”</div>
+      <div class="models-grid" id="presetGrid"></div>
+    </section>
+
+    <section id="viewSettings" class="hidden">
+      <h2 class="page-title">Settings</h2>
+      <div class="settings">
+        <div class="card"><div class="card-title">Needs attention</div><div id="signals"></div></div>
+        <div class="card"><div class="card-title">Agents</div><div class="small muted" id="agentState" style="margin-bottom:10px"></div>
+          <div class="setting"><label>When a button can’t fix something</label><span class="segmented" id="fPilot"></span></div>
+          <div class="setting"><label>Hand over after</label><input type="range" id="fAfter" min="0" max="60" step="5"><span class="v num" id="vAfter"></span></div>
+          <div class="setting"><label>At most, per hour</label><input type="range" id="fMax" min="1" max="10" step="1"><span class="v num" id="vMax"></span></div>
+          <div class="setting"><label>Agents may interrupt a running turn</label><button class="switch" id="fInterrupt"></button></div>
+          <textarea class="ask" id="ask" placeholder="Ask the agent anything about the fleet…"></textarea>
+          <div style="margin-top:10px"><button class="btn primary" id="askBtn">Send to agent</button></div>
+          <div id="runs"></div></div>
+        <div class="card"><div class="card-title">Coming back down</div>
+          <div class="setting"><label>Accounts whose reset must land</label><input type="range" id="fQuorum" min="10" max="100" step="5"><span class="v num" id="vQuorum"></span></div>
+          <div class="setting"><label>Usage drop that counts as a reset</label><input type="range" id="fDrop" min="5" max="60" step="5"><span class="v num" id="vDrop"></span></div>
+          <div class="setting"><label>Back one account down at usage</label><input type="range" id="fCeiling" min="50" max="100" step="5"><span class="v num" id="vCeiling"></span></div></div>
+        <div class="card"><div class="card-title">Credits &amp; reading</div>
+          <div class="setting"><label>Never turn up a session that spends credits or has no quota left</label><button class="switch" id="fGuard"></button></div>
+          <div class="setting"><label>Count as out of quota at or below</label><input type="range" id="fFloor" min="0" max="20" step="1"><span class="v num" id="vFloor"></span></div>
+          <div class="setting"><label>Read every session every</label><input type="range" id="fObserve" min="20" max="300" step="10"><span class="v num" id="vObserve"></span></div>
+          <div class="setting"><label>Re-apply the plan every</label><input type="range" id="fTick" min="2" max="60" step="1"><span class="v num" id="vTick"></span></div>
+          <div class="setting"><label>Next re-apply <span class="muted" id="nextTick"></span></label><button class="btn" id="tickNow">Re-apply now</button></div>
+          <div class="setting"><label>Theme</label><span class="segmented" id="theme"></span></div></div>
+        <div class="card"><div class="card-title">Activity</div><div id="feed"></div></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="dock" id="dock">
+  <b id="dockCount"></b>
+  <label class="pill" style="height:38px"><select id="sModel"></select><svg class="i chev"><use href="#i-chev"/></svg></label>
+  <label class="pill" style="height:38px"><select id="sEffort"></select><svg class="i chev"><use href="#i-chev"/></svg></label>
+  <label class="pill" style="height:38px"><select id="sFast"><option value="off">Normal</option><option value="fast">Fast</option></select><svg class="i chev"><use href="#i-chev"/></svg></label>
+  <button class="btn primary" id="sApply">Apply when idle</button>
+  <button class="btn danger" id="sInterrupt">Interrupt &amp; apply</button>
+  <button class="btn" id="sFollow">Back to fleet setting</button>
+  <button class="btn link" id="sClear">Clear</button>
+</div>
+<div class="menu" id="menu"></div>
+<div class="modal" id="modal"><div class="box"><h3 id="mTitle"></h3><div id="mBody" class="muted"></div>
+  <div class="row" style="justify-content:flex-end;margin-top:22px"><button class="btn" id="mCancel">Cancel</button><button class="btn primary" id="mOk">Confirm</button></div></div></div>
+<div class="toasts" id="toasts"></div>
+
+<script>
+(function () {
+  "use strict";
+  var MODELS = [["gpt-6-luna", "Luna"], ["gpt-6.1-sol", "Sol"], ["gpt-6-astra", "Astra"]];
+  var EFFORTS = [["low", "Low"], ["medium", "Medium"], ["high", "High"], ["xhigh", "Extra high"], ["max", "Max"], ["ultra", "Ultra"]];
+  var $ = function (id) { return document.getElementById(id); };
+  var hash = new URLSearchParams(location.hash.slice(1));
+  var token = hash.get("t") || get("resetBoostToken") || "";
+  if (hash.get("t")) { set("resetBoostToken", token); history.replaceState(null, "", location.pathname); }
+  var S = null, job = null, view = "live", tab = "sessions", filter = "all", query = "", account = null, selected = {}, flash = {};
+  var lever = {touched: false}, sel = {model: "gpt-6-astra", effort: "high", fast: false}, down = "reset";
+  var lastBoost = parse(get("resetBoostLastBoost")) || {model: "gpt-6-astra", effort: "ultra", tier: "priority"};
+  var renderedSig = "";
+
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  function parse(v) { try { return JSON.parse(v || "null"); } catch (e) { return null; } }
+  function esc(v) { return String(v == null ? "" : v).replace(/[&<>"']/g, function (c) { return {"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]; }); }
+  function icon(id, style) { return '<svg class="i"' + (style ? ' style="' + style + '"' : "") + '><use href="#i-' + id + '"/></svg>'; }
+  function mname(m) { var f = MODELS.find(function (x) { return x[0] === m; }); return f ? f[1] : (m ? m.replace(/^gpt-/, "") : "Unreadable"); }
+  function ename(e) { var f = EFFORTS.find(function (x) { return x[0] === e; }); return f ? f[1] : (e || ""); }
+  function fam(m) { return !m ? "none" : /astra/.test(m) ? "astra" : /luna/.test(m) ? "luna" : "sol"; }
+  function label(m, e, f) { return m ? mname(m) + " " + ename(e) + (f ? " ⚡" : "") : "Unreadable"; }
+  function tlabel(t) { return t ? label(t.model, t.effort, t.tier === "priority") : ""; }
+  function colored(m, e, f) { return '<span class="model m-' + fam(m) + '">' + esc(label(m, e, f)) + "</span>"; }
+  function dur(s) { s = Math.max(0, s); return s >= 172800 ? (s / 86400).toFixed(1) + "d" : s >= 3600 ? Math.floor(s / 3600) + "h " + Math.floor(s % 3600 / 60) + "m" : Math.max(1, Math.ceil(s / 60)) + "m"; }
+  function until(iso) { if (!iso) return "–"; var s = (new Date(iso) - Date.now()) / 1000; return s <= 0 ? "now" : dur(s); }
+  function ago(iso) { if (!iso) return "–"; var s = (Date.now() - new Date(iso)) / 1000; return s < 60 ? Math.max(0, Math.round(s)) + "s ago" : dur(s) + " ago"; }
+  function toast(t, k) { var el = document.createElement("div"); el.className = "toast " + (k || ""); el.textContent = t; $("toasts").appendChild(el); setTimeout(function () { el.remove(); }, k === "bad" ? 9000 : 4000); }
+  function api(name, body) {
+    return fetch("/api/" + name, {method: "POST", headers: {"Content-Type": "application/json", "X-Reset-Boost-Token": token}, body: JSON.stringify(body || {})})
+      .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error(j.error || r.status); return j; }); })
+      .catch(function (e) { toast(e.message, "bad"); throw e; });
+  }
+  function confirmBox(title, html, ok, okLabel) {
+    $("mTitle").textContent = title; $("mBody").innerHTML = html; $("mOk").textContent = okLabel || "Confirm"; $("modal").classList.add("on");
+    $("mOk").onclick = function () { $("modal").classList.remove("on"); if (ok) ok(); };
+    $("mCancel").onclick = function () { $("modal").classList.remove("on"); };
+    $("mOk").classList.toggle("hidden", !ok);
+  }
+  function options(el, list, value) { el.innerHTML = list.map(function (o) { return '<option value="' + esc(o[0]) + '"' + (o[0] === value ? " selected" : "") + ">" + esc(o[1]) + "</option>"; }).join(""); }
+  function seg(el, list, value, pick) {
+    el.innerHTML = list.map(function (o) { return '<button data-v="' + esc(o[0]) + '" class="' + (o[0] === value ? "on" : "") + '">' + esc(o[1]) + "</button>"; }).join("");
+    el.onclick = function (e) { var b = e.target.closest("button"); if (b) pick(b.getAttribute("data-v")); };
+  }
+
+  // ---------- derived state
+  function rows() { return S ? S.sessions.rows : []; }
+  function base() { return S.baseline.target; }
+  function same(a, b) { return a && b && a.model === b.model && a.effort === b.effort && (a.tier || "default") === (b.tier || "default"); }
+  function isUp(t) { var b = base(); if (!t || same(t, b)) return false; var o = EFFORTS.map(function (e) { return e[0]; });
+    if (t.model === b.model && t.tier !== "priority") return o.indexOf(t.effort) > o.indexOf(b.effort); return true; }
+  function shortName(v) { return v ? String(v).split("@")[0] : v; }
+  function safe(p) { return p ? p.replace(/[^A-Za-z0-9._-]/g, "_") : null; }
+  function acctOf(profile) { return S.accounts.find(function (a) { return a.profile && safe(a.profile) === profile; }); }
+  function leverT() { return {model: lever.model, effort: lever.effort, tier: lever.fast ? "priority" : "default"}; }
+  function affected(t) {
+    var up = isUp(t), r = {up: up, will: 0, credit: 0, lock: 0, unknown: 0, already: 0};
+    rows().forEach(function (x) {
+      var a = acctOf(x.profile);
+      if (a && (a.mode === "locked" || a.mode === "pin")) return r.lock++;
+      if (up && x.on_credits) return r.credit++;
+      if (!x.readable) return r.unknown++;
+      if (x.model === t.model && x.effort === t.effort && !!x.fast === (t.tier === "priority")) return r.already++;
+      r.will++;
+    });
+    return r;
+  }
+  function problems() { return (S.signals || []).filter(function (s) { return s.severity === "bad"; }); }
+  function aboveBase() { return rows().filter(function (r) { return r.readable && !(r.model === base().model && r.effort === base().effort && !r.fast); }).length; }
+
+  // ---------- header, clock
+  function tick() {
+    var d = new Date(), tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
+    var city = tz.split("/").pop().replace(/_/g, " ");
+    var short = (d.toLocaleTimeString([], {timeZoneName: "short"}).split(" ").pop()) || "";
+    $("tz").textContent = city + " (" + short + ")";
+    $("now").textContent = d.toLocaleDateString([], {weekday: "short", day: "numeric", month: "short"}) + "  ·  " + d.toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"});
+    if (S) $("lede").innerHTML = ledeText();
+  }
+  function ledeText() {
+    var hosts = {}; rows().forEach(function (r) { hosts[r.host] = 1; });
+    return '<span class="num">' + rows().length + "</span> sessions &nbsp;·&nbsp; <span class=\"num\">" + Object.keys(hosts).length + "</span> hosts &nbsp;·&nbsp; " +
+      (job && !job.quiet ? '<span class="caps">' + esc(job.label) + "</span>" : '<span class="caps">Right now</span> <span class="faint small">&nbsp;read ' + esc(ago(S.sessions.at)) + "</span>");
+  }
+
+  // ---------- hero
+  function renderHero() {
+    var bad = problems().length, running = job && !job.quiet;
+    var title = running ? "Switching sessions." : S.phase === "boosted" ? "Cranked up." : S.phase === "cooling" ? "Coming back down." : bad ? bad + (bad === 1 ? " thing needs you." : " things need you.") : "All systems go.";
+    $("headline").textContent = title;
+    $("headDot").className = "dot lg " + (bad ? "bad" : S.phase === "boosted" ? "accent" : "ok live");
+    $("lede").innerHTML = ledeText();
+    var credit = rows().filter(function (r) { return r.on_credits; }).length;
+    $("alert").classList.toggle("hidden", !credit);
+    $("alert").innerHTML = credit ? icon("warn", "width:16px;height:16px") + "<span>" + credit + (credit === 1 ? " session is on an account" : " sessions are on accounts") + " out of quota or spending credits. They are never cranked up.</span><button class=\"btn link small\" id=\"seeCredit\">See them</button>" : "";
+    if ($("seeCredit")) $("seeCredit").onclick = function () { filter = "credits"; tab = "sessions"; renderSessions(); };
+    if (!lever.touched) {
+      var cur = S.phase === "boosted" ? S.boost.boost_target : lastBoost;
+      lever.model = cur.model; lever.effort = cur.effort; lever.fast = cur.tier === "priority";
+    }
+    options($("lModel"), MODELS, lever.model); options($("lEffort"), EFFORTS, lever.effort);
+    $("lFast").value = lever.fast ? "fast" : "off";
+    $("pFast").classList.toggle("on", lever.fast);
+    $("modelRing").style.color = "var(--ui-" + fam(lever.model) + ")";
+    var t = leverT(), a = affected(t), atBase = same(t, base());
+    var btn = $("goBtn");
+    btn.disabled = !!running || a.will === 0 && !(S.phase === "boosted");
+    btn.classList.toggle("down", !a.up);
+    btn.innerHTML = icon(a.up ? "up" : "down");
+    $("goLabel").textContent = S.phase === "boosted" ? "Change · " + a.will : atBase ? "All down · " + aboveBase() : a.up ? "Crank up " + a.will : "Set " + a.will;
+    btn.title = [a.already && a.already + " already there", a.credit && a.credit + " skipped: out of quota", a.lock && a.lock + " skipped: locked", a.unknown && a.unknown + " unreadable"].filter(Boolean).join(" · ");
+    seg($("downChoice"), [["reset", "When the reset lands"], ["until", "After"], ["manual", "Only when I say"]], down, function (v) { down = v; renderHero(); if (S.phase === "boosted") applyDown(); });
+    $("downAfter").classList.toggle("hidden", down !== "until");
+    var above = aboveBase();
+    $("allDown").textContent = above ? "Bring everything back down (" + above + ")" : "";
+    $("allDown").disabled = running;
+  }
+  function applyDown() {
+    var body = down === "reset" ? {reset: "on", until: "off"} : down === "until" ? {reset: "off", until: $("downAfter").value} : {reset: "off", until: "off"};
+    api("rules", body).then(function () { toast("Updated how it comes back down", "ok"); });
+  }
+  function downText() {
+    var a = S.auto_down;
+    if (S.phase !== "boosted") return down === "reset" ? "Come back down<br>when the reset lands." : down === "until" ? "Come back down<br>after " + esc($("downAfter").value) + "." : "Stay up<br>until I say.";
+    if (a.until) return "Coming back down<br>in " + esc(until(a.until)) + ".";
+    if (a.reset) { var landed = S.accounts.filter(function (x) { return x.reset; }).length; return "Coming back down<br>when the reset lands <span class=\"small muted\">(" + landed + " of " + S.snapshot_size + ")</span>."; }
+    return "Staying up<br>until you say.";
+  }
+  $("lModel").onchange = function () { lever.model = this.value; lever.touched = true; renderHero(); };
+  $("lEffort").onchange = function () { lever.effort = this.value; lever.touched = true; renderHero(); };
+  $("lFast").onchange = function () { lever.fast = this.value === "fast"; lever.touched = true; renderHero(); };
+  $("downAfter").onchange = function () { if (S.phase === "boosted" && down === "until") applyDown(); renderRight(); };
+  $("goBtn").onclick = function () {
+    var t = leverT(), a = affected(t);
+    if (same(t, base()) && S.phase !== "boosted") return $("allDown").onclick();
+    var body = {model: t.model, effort: t.effort, tier: t.tier, down: down, auto_reset: down === "reset", until: down === "until" ? $("downAfter").value : null,
+                quorum: S.auto_down.quorum, ceiling: S.auto_down.ceiling};
+    var preset = Object.keys(S.presets).find(function (n) { var p = S.presets[n]; return same({model: p.model, effort: p.effort, tier: p.tier || "default"}, t); });
+    if (preset) body.preset = preset;
+    var downDesc = down === "reset" ? "It comes back down by itself when the reset lands." : down === "until" ? "It comes back down by itself after " + esc($("downAfter").value) + "." : "It stays up until you bring it down.";
+    confirmBox((a.up ? "Crank up to " : "Set everything to ") + tlabel(t) + "?",
+      "<b>" + a.will + "</b> sessions switch now; busy ones switch the moment they go idle, and new sessions start this way.<br>" +
+      (a.credit ? "<b>" + a.credit + "</b> are skipped because their account is out of quota or spending credits.<br>" : "") +
+      (a.lock ? "<b>" + a.lock + "</b> are skipped because their account is locked.<br>" : "") + (a.up ? "<br>" + downDesc : ""),
+      function () { api("boost", body).then(function () { lastBoost = t; set("resetBoostLastBoost", JSON.stringify(t)); lever.touched = false; toast("Switching sessions…", "ok"); }); }, a.up ? "Crank up" : "Apply");
+  };
+  $("allDown").onclick = function () {
+    confirmBox("Bring everything back down?", "Every session returns to " + esc(tlabel(base())) + ". Busy ones switch the moment they go idle. Per-session settings are cleared; locked accounts stay locked.",
+      function () { api("done", {reason: "operator: back down (panel)"}).then(function () { lever.touched = false; toast("Bringing everything back down…", "ok"); }); }, "Bring down");
+  };
+
+  // ---------- sessions card
+  function visible(r) {
+    if (account && r.profile !== account) return false;
+    if (filter === "working" && r.activity !== "working") return false;
+    if (filter === "idle" && r.activity !== "idle") return false;
+    if (filter === "credits" && !r.on_credits) return false;
+    if (filter === "off" && (r.matches || !r.planned)) return false;
+    if (query) { var hay = [r.folder, r.cwd, r.account, r.profile, r.host, r.pane, label(r.model, r.effort, r.fast)].join(" ").toLowerCase(); if (hay.indexOf(query) < 0) return false; }
+    return true;
+  }
+  function keys() { return Object.keys(selected).filter(function (k) { return rows().some(function (r) { return r.key === k; }); }); }
+  function stateCell(r) {
+    var a = r.activity;
+    if (!r.readable) return '<span class="status bad"><span class="dot"></span>Unreadable</span>';
+    return a === "working" ? '<span class="status ok"><span class="dot"></span>Working</span>' : a === "draft" ? '<span class="status warn"><span class="dot"></span>Draft</span>' : '<span class="status idle"><span class="dot"></span>Idle</span>';
+  }
+  function why(r) {
+    if (r.on_credits && isUp(r.planned)) return '<div class="why bad">skipped: out of quota</div>';
+    var s = r.status || "";
+    if (s === "held_working" || r.activity === "working") return '<div class="why">switches when idle</div>';
+    if (s === "held_unrecognized_or_occupied_composer") return '<div class="why">waits: text in its prompt</div>';
+    if (s === "held_profile_unknown") return '<div class="why">held: account unknown</div>';
+    if (s === "held_picker_unavailable" || s === "live_readback_unknown" || s === "error") return '<div class="why bad">switch failed</div>';
+    return '<div class="why">next re-apply</div>';
+  }
+  function quota(r) {
+    var q = function (v, n) { return v == null ? "" : '<span class="' + (v <= 0 ? "m-none" : "") + '" style="' + (v <= 0 ? "color:var(--ui-bad)" : "") + '">' + n + " " + Math.round(v) + "%</span>"; };
+    var p = [q(r.five_hour_left, "5h"), q(r.weekly_left, "wk")].filter(Boolean);
+    if (r.credits) p.push('<span style="color:var(--ui-bad)">' + esc(r.credits) + "</span>");
+    return p.join(" · ") || '<span class="faint">–</span>';
+  }
+  function renderSessions() {
+    var all = rows(), sel = keys().length;
+    var tabsHtml = [["sessions", "Sessions", sel ? sel + " selected" : all.length], ["hosts", "Hosts", Object.keys(groupBy(all, "host")).length], ["models", "Models", Object.keys(groupBy(all, function (r) { return label(r.model, r.effort, r.fast); })).length]]
+      .map(function (t) { return '<button data-tab="' + t[0] + '" class="' + (tab === t[0] ? "on" : "") + '">' + t[1] + '<span class="count">' + t[2] + "</span></button>"; }).join("");
+    $("tabs").innerHTML = tabsHtml;
+    var html;
+    if (tab === "hosts") html = hostsTable(all);
+    else if (tab === "models") html = modelsTable(all);
+    else html = sessionsTable(all);
+    $("tabBody").innerHTML = html;
+    flash = {};
+    renderDock();
+  }
+  function groupBy(list, key) { var g = {}; list.forEach(function (r) { var k = typeof key === "function" ? key(r) : r[key]; (g[k] = g[k] || []).push(r); }); return g; }
+  function sessionsTable(all) {
+    var shown = all.filter(visible), groups = groupBy(shown, "host"), errors = S.sessions.errors || {};
+    Object.keys(errors).forEach(function (h) { groups[h] = groups[h] || []; });
+    var body = Object.keys(groups).sort().map(function (h) {
+      var list = groups[h], allSel = list.length && list.every(function (r) { return selected[r.key]; });
+      return '<tr class="group"><td><input type="checkbox" class="check" data-host="' + esc(h) + '"' + (allSel ? " checked" : "") + (list.length ? "" : " disabled") + "></td>" +
+        '<td colspan="6">' + esc(h) + " &nbsp;(" + list.length + ")" + (errors[h] ? ' &nbsp;<span style="color:var(--ui-bad);letter-spacing:0;text-transform:none">unreachable</span>' : "") + "</td></tr>" +
+        list.map(function (r) {
+          var plan = !r.planned ? "" : r.matches ? '<div class="plan">✓ as planned</div>' : '<div class="plan">→ ' + esc(tlabel(r.planned)) + "</div>" + why(r);
+          return '<tr class="data' + (selected[r.key] ? " sel" : "") + (flash[r.key] ? " flash" : "") + '" data-key="' + esc(r.key) + '">' +
+            '<td><input type="checkbox" class="check" data-key="' + esc(r.key) + '"' + (selected[r.key] ? " checked" : "") + "></td>" +
+            '<td><div class="row" style="gap:12px;flex-wrap:nowrap"><span class="dot ' + (r.activity === "working" ? "ok" : r.readable ? "" : "bad") + '"></span><div style="min-width:0"><div class="sname" title="' + esc(r.cwd || "") + '">' + esc(r.folder || r.pane) + '</div><div class="sub">' + esc(r.host + " · " + r.pane) + "</div></div></div></td>" +
+            '<td title="' + esc(r.account || "") + '"><div>' + esc(shortName(r.account || r.profile) || "unknown") + '</div><div class="sub">' + esc(r.plan || "") + (r.own ? " · own setting" : "") + "</div></td>" +
+            "<td>" + colored(r.model, r.effort, r.fast) + plan + "</td>" +
+            "<td>" + stateCell(r) + "</td>" +
+            '<td class="small num" style="white-space:nowrap">' + quota(r) + "</td>" +
+            '<td class="actions-cell"><button class="btn icon" data-detail="' + esc(r.key) + '" title="Details">' + icon("chart") + '</button><button class="btn icon" data-menu="' + esc(r.key) + '" title="More">' + icon("more") + "</button></td></tr>";
+        }).join("");
+    }).join("");
+    var sel = keys().length;
+    return '<div class="table-wrap"><table class="table"><thead><tr><th style="width:32px"></th><th>Session</th><th>Account</th><th>Model</th><th>State</th><th>Quota left</th><th style="text-align:right">Actions</th></tr></thead><tbody>' +
+      (body || '<tr><td colspan="7" class="empty">' + (all.length ? "Nothing matches." : "No sessions read yet.") + "</td></tr>") + "</tbody></table></div>" +
+      '<div class="table-foot"><span>' + (sel ? sel + " of " + all.length + " selected" : shown.length + " of " + all.length + " shown" + (filter !== "all" ? " · filter: " + esc(filterName(filter)) : "") + (account ? " · one account" : "")) + "</span><span class=\"spacer\"></span>" +
+      ((filter !== "all" || account || query) ? '<button class="btn link" data-clearfilter>Show all</button>' : "") +
+      (sel ? '<button class="btn link" data-bulk>Bulk actions (' + sel + ") " + icon("right", "width:14px;height:14px") + "</button>" : '<span class="faint">Select sessions for bulk actions</span>') + "</div>";
+  }
+  function hostsTable(all) {
+    var groups = groupBy(all, "host"), errors = S.sessions.errors || {};
+    Object.keys(errors).forEach(function (h) { groups[h] = groups[h] || []; });
+    return '<table class="table"><thead><tr><th>Host</th><th>Sessions</th><th>Working</th><th>Not on plan</th><th>Status</th><th></th></tr></thead><tbody>' +
+      Object.keys(groups).sort().map(function (h) {
+        var l = groups[h];
+        return "<tr><td>" + esc(h) + '</td><td class="num">' + l.length + '</td><td class="num">' + l.filter(function (r) { return r.activity === "working"; }).length + '</td><td class="num">' +
+          l.filter(function (r) { return r.planned && !r.matches; }).length + "</td><td>" + (errors[h] ? '<span class="status bad"><span class="dot"></span>' + esc(errors[h]) + "</span>" : '<span class="status ok"><span class="dot"></span>Reachable</span>') +
+          '</td><td style="text-align:right"><button class="btn" data-converge="' + esc(h) + '">Re-apply plan</button></td></tr>';
+      }).join("") + "</tbody></table>";
+  }
+  function modelsTable(all) {
+    var groups = groupBy(all, function (r) { return r.readable ? r.model + "|" + r.effort + "|" + (r.fast ? 1 : 0) : "?"; });
+    return '<table class="table"><thead><tr><th>Model</th><th>Sessions</th><th>Working</th><th>Hosts</th><th></th></tr></thead><tbody>' +
+      Object.keys(groups).sort(function (a, b) { return groups[b].length - groups[a].length; }).map(function (k) {
+        var l = groups[k], p = k.split("|"), hosts = Object.keys(groupBy(l, "host")).sort().join(", ");
+        return "<tr><td>" + (k === "?" ? '<span class="m-none">Unreadable</span>' : colored(p[0], p[1], p[2] === "1")) + '</td><td class="num">' + l.length + '</td><td class="num">' +
+          l.filter(function (r) { return r.activity === "working"; }).length + '</td><td class="muted small">' + esc(hosts) + '</td><td style="text-align:right"><button class="btn" data-selectgroup="' + esc(k) + '">Select these</button></td></tr>';
+      }).join("") + "</tbody></table>";
+  }
+  function filterName(f) { return {working: "working", idle: "idle", credits: "out of quota", off: "not on plan"}[f] || f; }
+  $("tabs").onclick = function (e) { var b = e.target.closest("[data-tab]"); if (b) { tab = b.getAttribute("data-tab"); renderSessions(); } };
+  $("search").oninput = function () { query = this.value.trim().toLowerCase(); tab = "sessions"; renderSessions(); };
+  $("filterBtn").onclick = function () {
+    var c = function (f) { return rows().filter(f).length; };
+    showMenu($("filterBtn"), '<div class="label">Show</div>' + [["all", "All sessions", rows().length], ["working", "Working", c(function (r) { return r.activity === "working"; })],
+      ["idle", "Idle", c(function (r) { return r.activity === "idle"; })], ["off", "Not on plan", c(function (r) { return r.planned && !r.matches; })],
+      ["credits", "Out of quota", c(function (r) { return r.on_credits; })]].map(function (f) { return '<button data-f="' + f[0] + '">' + (filter === f[0] ? "✓ " : "") + esc(f[1]) + '<span class="spacer"></span><span class="muted num">' + f[2] + "</span></button>"; }).join(""),
+      function (b) { filter = b.getAttribute("data-f"); tab = "sessions"; renderSessions(); });
+  };
+  $("tabBody").addEventListener("click", function (e) {
+    var t = e.target;
+    var d = t.closest("[data-detail]"); if (d) return showDetail(d.getAttribute("data-detail"));
+    var m = t.closest("[data-menu]"); if (m) return rowMenu(m, m.getAttribute("data-menu"));
+    var c = t.closest("input[data-key]"); if (c) { if (c.checked) selected[c.getAttribute("data-key")] = 1; else delete selected[c.getAttribute("data-key")]; return renderSessions(); }
+    var h = t.closest("input[data-host]"); if (h) { rows().filter(visible).forEach(function (r) { if (r.host === h.getAttribute("data-host")) { if (h.checked) selected[r.key] = 1; else delete selected[r.key]; } }); return renderSessions(); }
+    if (t.closest("[data-bulk]")) { $("dock").classList.add("on"); return; }
+    if (t.closest("[data-clearfilter]")) { filter = "all"; account = null; query = ""; $("search").value = ""; return renderSessions(); }
+    var cv = t.closest("[data-converge]"); if (cv) return api("converge", {hosts: cv.getAttribute("data-converge")}).then(function () { toast("Re-applying on " + cv.getAttribute("data-converge"), "ok"); });
+    var g = t.closest("[data-selectgroup]"); if (g) { var k = g.getAttribute("data-selectgroup"); rows().forEach(function (r) { var rk = r.readable ? r.model + "|" + r.effort + "|" + (r.fast ? 1 : 0) : "?"; if (rk === k) selected[r.key] = 1; }); tab = "sessions"; renderSessions(); $("dock").classList.add("on"); return; }
+    var tr = t.closest("tr.data"); if (tr) { var key = tr.getAttribute("data-key"); if (selected[key]) delete selected[key]; else selected[key] = 1; renderSessions(); }
+  });
+
+  // ---------- dock (bulk)
+  function renderDock() {
+    var n = keys().length;
+    if (!n) $("dock").classList.remove("on");
+    $("dockCount").textContent = n + " selected";
+    options($("sModel"), MODELS, sel.model); options($("sEffort"), EFFORTS, sel.effort); $("sFast").value = sel.fast ? "fast" : "off";
+  }
+  $("sModel").onchange = function () { sel.model = this.value; };
+  $("sEffort").onchange = function () { sel.effort = this.value; };
+  $("sFast").onchange = function () { sel.fast = this.value === "fast"; };
+  function setSessions(interrupt) {
+    var k = keys(), t = {model: sel.model, effort: sel.effort, tier: sel.fast ? "priority" : "default"};
+    var credit = isUp(t) ? rows().filter(function (r) { return selected[r.key] && r.on_credits; }).length : 0;
+    var go = function () { api("session", {sessions: k, setting: t.model, effort: t.effort, tier: t.tier, interrupt: interrupt}).then(function () { toast("Setting " + k.length + " sessions…", "ok"); selected = {}; renderSessions(); }); };
+    var text = "<b>" + k.length + "</b> sessions → " + esc(tlabel(t)) + ". They keep this until you change it or bring everything down." + (credit ? "<br><b>" + credit + "</b> are out of quota and will be skipped." : "");
+    if (interrupt) confirmBox("Interrupt and switch now?", text + "<br><br>Any running turn is cancelled first; the session stays open.", go, "Interrupt & switch");
+    else confirmBox("Switch these sessions?", text + "<br><br>Busy ones switch the moment they go idle.", go, "Switch");
+  }
+  $("sApply").onclick = function () { setSessions(false); };
+  $("sInterrupt").onclick = function () { setSessions(true); };
+  $("sFollow").onclick = function () { var k = keys(); api("session", {sessions: k, setting: "follow"}).then(function () { toast(k.length + " sessions back on the fleet setting", "ok"); selected = {}; renderSessions(); }); };
+  $("sClear").onclick = function () { selected = {}; renderSessions(); };
+
+  // ---------- menus and details
+  function showMenu(anchor, html, pick) {
+    var m = $("menu"); m.innerHTML = html; m.classList.add("on");
+    var r = anchor.getBoundingClientRect();
+    m.style.left = Math.max(12, Math.min(r.right - m.offsetWidth, window.innerWidth - m.offsetWidth - 12)) + "px";
+    m.style.top = Math.min(r.bottom + 6, window.innerHeight - m.offsetHeight - 12) + "px";
+    m.onclick = function (e) { var b = e.target.closest("button"); if (!b) return; m.classList.remove("on"); pick(b); };
+  }
+  document.addEventListener("mousedown", function (e) { if (!e.target.closest("#menu") && !e.target.closest("[data-menu]") && !e.target.closest("#filterBtn")) $("menu").classList.remove("on"); });
+  function find(key) { return rows().find(function (x) { return x.key === key; }); }
+  function rowMenu(anchor, key) {
+    var r = find(key); if (!r) return;
+    var sig = (S.signals || []).find(function (s) { return s.host === r.host && s.evidence && s.evidence.pane === r.pane; });
+    showMenu(anchor, '<div class="label">' + esc((r.folder || r.pane) + " · " + r.host) + "</div>" +
+      (r.planned && !r.matches ? '<button data-x="retry">Switch now to ' + esc(tlabel(r.planned)) + '</button><button data-x="interrupt">Interrupt &amp; switch…</button>' : "") +
+      '<button data-x="select">Select for a different setting</button>' + (r.own ? '<button data-x="follow">Back to fleet setting</button>' : "") +
+      (S.autopilot.configured ? '<button data-x="agent">Ask an agent to look at it</button>' : ""), function (b) {
+      var x = b.getAttribute("data-x");
+      if (x === "retry") api("pane", {host: r.host, pane: r.pane});
+      if (x === "interrupt") confirmBox("Interrupt and switch?", "Cancels the running turn in <b>" + esc(r.folder || r.pane) + "</b> on " + esc(r.host) + ", then switches it to " + esc(tlabel(r.planned)) + ". The session stays open.", function () { api("pane", {host: r.host, pane: r.pane, interrupt: true}); }, "Interrupt & switch");
+      if (x === "select") { selected[r.key] = 1; renderSessions(); $("dock").classList.add("on"); }
+      if (x === "follow") api("session", {sessions: [r.key], setting: "follow"});
+      if (x === "agent") api("agent", sig ? {signal: sig.id} : {request: "Look at Codex session " + r.pane + " on " + r.host + " (account " + (r.profile || "unknown") + "). It reads " + label(r.model, r.effort, r.fast) + (r.planned ? ", planned " + tlabel(r.planned) : ", no plan for it") + ", status " + (r.status || "?") + ". Explain what you see; change it only with reset_boost.py verbs and only if clearly safe."}).then(function () { toast("Sent to an agent", "ok"); });
+    });
+  }
+  function showDetail(key) {
+    var r = find(key); if (!r) return;
+    var dl = [["Session", r.host + " · " + r.pane + " (" + (r.backend || "?") + ")"], ["Folder", r.cwd || "–"], ["Account", (r.account || r.profile || "unknown") + (r.plan ? " · " + r.plan : "")],
+      ["Running", label(r.model, r.effort, r.fast)], ["Planned", r.planned ? tlabel(r.planned) + (r.own ? " (its own setting)" : "") : "left as is"], ["State", r.activity || "?"],
+      ["5-hour quota left", r.five_hour_left == null ? "–" : Math.round(r.five_hour_left) + "%"], ["Weekly quota left", r.weekly_left == null ? "–" : Math.round(r.weekly_left) + "%"],
+      ["Credits", r.credits || (r.on_credits ? "account out of quota" : "none")], ["Last switch result", r.status || "–"], ["Read", ago(r.observed_at)]];
+    confirmBox(r.folder || r.pane, '<div class="detail"><dl>' + dl.map(function (x) { return "<dt>" + esc(x[0]) + "</dt><dd>" + esc(x[1]) + "</dd>"; }).join("") + "</dl></div>", null);
+    $("mCancel").textContent = "Close";
+  }
+
+  // ---------- right column
+  function renderRight() {
+    var all = rows(), fams = {astra: 0, sol: 0, luna: 0, none: 0};
+    all.forEach(function (r) { fams[r.readable ? fam(r.model) : "none"]++; });
+    var total = all.length || 1, R = 88, C = 2 * Math.PI * R, offset = 0;
+    var arcs = ["astra", "sol", "luna", "none"].filter(function (f) { return fams[f]; }).map(function (f) {
+      var len = C * fams[f] / total, gap = all.length > 1 ? 4 : 0;
+      var s = '<circle cx="100" cy="100" r="' + R + '" fill="none" stroke="var(--ui-' + (f === "none" ? "faint" : f) + ')" stroke-width="7" stroke-linecap="round" stroke-dasharray="' + Math.max(0, len - gap) + " " + C + '" stroke-dashoffset="' + (-offset) + '"/>';
+      offset += len; return s;
+    }).join("");
+    $("ring").innerHTML = '<svg viewBox="0 0 200 200"><circle cx="100" cy="100" r="' + R + '" fill="none" stroke="var(--ui-surface-2)" stroke-width="7"/>' + arcs + "</svg>" +
+      '<div class="center"><div><div class="big num">' + all.length + '</div><div class="eyebrow" style="font-size:10px;margin-top:8px;line-height:1.8">Sessions<br>live</div></div></div>';
+    var hosts = S.configured_hosts || [], errors = S.sessions.errors || {};
+    $("hostN").textContent = hosts.length;
+    $("hostDots").innerHTML = hosts.map(function (h) { return '<span class="dot ' + (errors[h] ? "bad" : "ok") + '" title="' + esc(h + (errors[h] ? ": unreachable" : "")) + '"></span>'; }).join("");
+    var used = ["astra", "sol", "luna"].filter(function (f) { return fams[f]; });
+    $("modelN").textContent = used.length;
+    $("modelDots").innerHTML = used.map(function (f) { return '<span class="dot" style="background:var(--ui-' + f + ')" title="' + f + ": " + fams[f] + '"></span>'; }).join("");
+    $("quote").innerHTML = "“" + downText() + "”";
+    var accts = S.accounts.filter(function (a) { return !a.disabled; }).map(function (a) { a._n = rows().filter(function (r) { return r.profile === safe(a.profile); }).length; return a; })
+      .sort(function (a, b) { return b._n - a._n; }).slice(0, 6);
+    $("acctMini").innerHTML = accts.map(acctRow).join("");
+    var running = (S.agent_runs || []).filter(function (r) { return r.status === "running"; }).length, last = (S.agent_runs || [])[0];
+    $("agentLine").textContent = !S.autopilot.configured ? "No agent connected" : running ? running + " agent run working" : last ? "Agent connected · last ran " + ago(last.started_at) : "Agent connected · on call";
+  }
+  function acctRow(a) {
+    var w = a.weekly || {}, used = w.used, locked = a.mode === "locked" || a.mode === "pin", out = used >= 100 || (a.session || {}).used >= 100;
+    var who = shortName(a.profile && a.profile !== a.label ? a.profile : a.label);
+    return '<div class="acct-row" data-acct="' + esc(safe(a.profile) || "") + '" style="cursor:pointer">' + icon(locked ? "lock" : "card", "color:var(--ui-muted)") +
+      '<span class="who" title="' + esc(a.label) + '">' + esc(who) + "</span>" +
+      (locked ? '<span class="small muted">' + (a.mode === "locked" ? "Always normal" : "Locked normal") + "</span>" : '<div class="bar' + (out ? " hot" : "") + '"><i style="width:' + Math.min(100, used || 0) + '%"></i></div>') +
+      '<span class="val num">' + (used == null ? "–" : Math.round(used) + "%") + " · " + esc(until(w.resets_at)) + "</span></div>";
+  }
+  document.addEventListener("click", function (e) {
+    var a = e.target.closest("[data-acct]");
+    if (a && !e.target.closest("[data-lock]")) { account = a.getAttribute("data-acct") || null; filter = "all"; tab = "sessions"; go("sessions"); }
+    var g = e.target.closest("[data-go]"); if (g) go(g.getAttribute("data-go"));
+  });
+
+  // ---------- other views
+  function renderAccounts() {
+    $("acctFull").innerHTML = '<div class="acct-row" style="border-top:0;padding-top:0"><span></span><span class="eyebrow" style="font-size:10px">Account</span><span class="eyebrow" style="font-size:10px">Weekly use</span><span class="eyebrow" style="font-size:10px">Resets</span><span></span></div>' +
+      S.accounts.filter(function (a) { return !a.disabled; }).map(function (a) {
+        var w = a.weekly || {}, s = a.session || {}, n = rows().filter(function (r) { return r.profile === safe(a.profile); }).length, out = w.used >= 100 || s.used >= 100;
+        return '<div class="acct-row" data-acct="' + esc(safe(a.profile) || "") + '" style="cursor:pointer">' + icon(a.mode === "locked" || a.mode === "pin" ? "lock" : "card", "color:var(--ui-muted)") +
+          '<div class="who"><div>' + esc(a.label) + '</div><div class="small faint">' + esc((a.profile || "") + " · " + (a.plan || "") + " · " + n + " sessions") + "</div></div>" +
+          '<div><div class="bar' + (out ? " hot" : "") + '"><i style="width:' + Math.min(100, w.used || 0) + '%"></i></div><div class="small muted" style="margin-top:6px">' + (w.used == null ? "–" : Math.round(w.used) + "% of week") + (s.used != null ? " · 5h " + Math.round(s.used) + "%" : "") + (out ? ' · <span style="color:var(--ui-bad)">out of quota</span>' : "") + "</div></div>" +
+          '<span class="small muted">in ' + esc(until(w.resets_at)) + (a.reset ? ' · <span style="color:var(--ui-ok)">reset ✓</span>' : "") + "</span>" +
+          (a.mode === "locked" ? '<span class="tag">Always normal</span>' : '<button class="btn" data-lock="' + esc(a.profile || "") + '" data-on="' + (a.mode === "pin" ? 1 : 0) + '">' + icon("lock", "width:14px;height:14px") + (a.mode === "pin" ? "Unlock" : "Lock normal") + "</button>") + "</div>";
+      }).join("");
+  }
+  $("acctFull").addEventListener("click", function (e) {
+    var l = e.target.closest("[data-lock]"); if (!l) return;
+    e.stopPropagation();
+    var p = l.getAttribute("data-lock"), on = l.getAttribute("data-on") === "1";
+    api("channel", {profile: p, setting: on ? "follow" : "pin"}).then(function () { toast(on ? p + " follows the fleet again" : p + " locked at normal", "ok"); });
+  }, true);
+  function renderModels() {
+    var groups = groupBy(rows(), function (r) { return r.readable ? r.model + "|" + r.effort + "|" + (r.fast ? 1 : 0) : "?"; });
+    $("modelsNow").innerHTML = Object.keys(groups).sort(function (a, b) { return groups[b].length - groups[a].length; }).map(function (k) {
+      var p = k.split("|");
+      return '<div class="card tight"><div class="stat"><div class="n num">' + groups[k].length + '</div></div><div style="margin-top:8px">' + (k === "?" ? '<span class="m-none">Unreadable</span>' : colored(p[0], p[1], p[2] === "1")) + "</div></div>";
+    }).join("");
+    $("presetGrid").innerHTML = Object.keys(S.presets).map(function (n) {
+      var p = S.presets[n];
+      return '<div class="card tight preset" data-preset="' + esc(n) + '">' + colored(p.model, p.effort, p.tier === "priority") + '<div class="small muted" style="margin-top:6px">' + esc(p.description || "") + "</div></div>";
+    }).join("");
+  }
+  $("presetGrid").onclick = function (e) { var c = e.target.closest("[data-preset]"); if (!c) return; var p = S.presets[c.getAttribute("data-preset")];
+    lever.model = p.model; lever.effort = p.effort; lever.fast = p.tier === "priority"; lever.touched = true; go("live"); toast("Set all to " + label(p.model, p.effort, lever.fast) + " — press the round button to apply", "ok"); };
+
+  var debounce = {};
+  function later(k, fn) { clearTimeout(debounce[k]); debounce[k] = setTimeout(fn, 500); }
+  function range(id, vid, value, fmt, send) {
+    var el = $(id); if (document.activeElement !== el) el.value = value; $(vid).textContent = fmt(+el.value);
+    el.oninput = function () { $(vid).textContent = fmt(+el.value); later(id, function () { send(+el.value); }); };
+  }
+  function sw(el, on, flip) { el.classList.toggle("on", !!on); el.onclick = function () { flip(!el.classList.contains("on")); }; }
+  function describe(e) {
+    switch (e.event) {
+      case "boost": return "Cranked up: " + (e.name || "") + (e.note ? " (" + e.note + ")" : "");
+      case "done": return "Back down: " + (e.reason || "");
+      case "session": return "Set " + (e.sessions || []).length + " sessions → " + (typeof e.setting === "string" ? e.setting : tlabel(e.setting));
+      case "channel": return (e.profile || "") + (e.mode === "pin" ? " locked at normal" : e.mode === "follow" ? " follows the fleet" : " → " + (e.name || ""));
+      case "pane": return "Switch " + (e.host || "") + " " + (e.pane || "") + ": " + (e.status || "");
+      case "applied": case "converged": case "audited": return ({applied: "Applied", converged: "Re-applied", audited: "Checked every host"})[e.event] + (e.exit === 0 ? ": all on plan" : e.exit === 2 ? ": some still switching" : e.exit === 1 ? ": a host had errors" : "");
+      case "agent_started": return "Agent started: " + (e.code || "question");
+      case "agent_finished": return "Agent " + e.status + ": " + (e.code || "question");
+      case "idle": return "Back at normal: " + (e.outcome || "");
+      default: return e.event.replace(/_/g, " ");
+    }
+  }
+  function renderSettings() {
+    var a = S.auto_down, boosted = S.phase === "boosted", p = S.autopilot, g = S.credit_guard;
+    $("signals").innerHTML = (S.signals || []).filter(function (s) { return s.code !== "DRIFT"; }).map(function (s) {
+      var busy = (S.agent_runs || []).some(function (r) { return r.signal === s.id && r.status === "running"; });
+      return '<div class="sig"><div class="status ' + (s.severity === "bad" ? "bad" : s.severity === "warn" ? "warn" : "idle") + '"><span class="dot"></span>' + esc(s.title) + '</div><div class="small muted" style="margin:4px 0 8px">' + esc(s.host + " · " + s.subject + " — " + s.detail) + "</div>" +
+        (busy ? '<span class="small"><span class="spin"></span> agent working</span>' : p.configured ? '<button class="btn" data-sig="' + esc(s.id) + '">Send to agent</button>' : "") + "</div>";
+    }).join("") || '<div class="muted">Nothing. Everything the buttons touched is where it should be.</div>';
+    $("agentState").innerHTML = p.configured ? "An agent is connected. Anything the buttons can’t fix can go to it, with the evidence and strict rules (it never turns anything up)." : "No agent configured (agent.steps in the config).";
+    seg($("fPilot"), [["off", "Do nothing"], ["suggest", "Ask me"], ["auto", "Send it"]], p.mode, function (v) { api("autopilot", {mode: v}); });
+    range("fAfter", "vAfter", p.after_minutes, function (v) { return v + "m"; }, function (v) { api("autopilot", {after_minutes: v}); });
+    range("fMax", "vMax", p.max_per_hour, String, function (v) { api("autopilot", {max_per_hour: v}); });
+    sw($("fInterrupt"), p.allow_interrupt, function (on) { api("autopilot", {allow_interrupt: on}); });
+    $("askBtn").disabled = !p.configured;
+    $("runs").innerHTML = (S.agent_runs || []).slice(0, 5).map(function (r) {
+      return '<div class="sig run"><div class="row"><span>' + esc(r.title) + '</span><span class="spacer"></span><span class="small ' + (r.status === "failed" ? "" : "muted") + '" style="' + (r.status === "failed" ? "color:var(--ui-bad)" : "") + '">' + (r.status === "running" ? '<span class="spin"></span> working' : esc(r.status)) + " · " + esc(ago(r.started_at)) + "</span></div>" +
+        '<div class="small faint">' + esc(r.subject) + "</div>" + (r.result ? '<details><summary class="small">What it found</summary><pre>' + esc(r.result) + "</pre></details>" : "") + "</div>";
+    }).join("");
+    range("fQuorum", "vQuorum", Math.round((a.quorum || .5) * 100), function (v) { return v + "%"; }, function (v) { if (boosted) api("rules", {quorum: v / 100}); });
+    range("fDrop", "vDrop", a.drop_points || 15, function (v) { return v + " pts"; }, function (v) { if (boosted) api("rules", {drop_points: v}); });
+    range("fCeiling", "vCeiling", a.ceiling == null ? 100 : a.ceiling, function (v) { return v >= 100 ? "off" : v + "%"; }, function (v) { if (boosted) api("rules", {ceiling: v >= 100 ? "off" : String(v)}); });
+    sw($("fGuard"), g.enabled, function (on) { api("guard", {enabled: on}); });
+    range("fFloor", "vFloor", g.floor || 0, function (v) { return v + "%"; }, function (v) { api("guard", {floor: v}); });
+    range("fObserve", "vObserve", S.observe_seconds, function (v) { return v < 60 ? v + "s" : Math.round(v / 6) / 10 + "m"; }, function (v) { api("loop", {observe_seconds: v}); });
+    range("fTick", "vTick", S.loop.tick_minutes, function (v) { return v + "m"; }, function (v) { api("loop", {tick_minutes: v}); });
+    $("nextTick").textContent = S.loop.enabled ? "in " + until(S.loop.next_tick_at) : "(loop off)";
+    seg($("theme"), [["auto", "Auto"], ["dark", "Dark"], ["light", "Light"]], get("resetBoostTheme") || "auto", function (v) { set("resetBoostTheme", v); applyTheme(); renderSettings(); });
+    $("feed").innerHTML = (S.events || []).slice(0, 30).map(function (e) { return '<div class="sig small"><span class="faint">' + esc(ago(e.at)) + "</span> &nbsp; " + esc(describe(e)) + "</div>"; }).join("");
+  }
+  $("signals").onclick = function (e) { var b = e.target.closest("[data-sig]"); if (b) api("agent", {signal: b.getAttribute("data-sig")}).then(function () { toast("Sent to an agent", "ok"); }); };
+  $("askBtn").onclick = function () { var t = $("ask").value.trim(); if (t) api("agent", {request: t}).then(function () { $("ask").value = ""; toast("Sent to an agent", "ok"); }); };
+  $("tickNow").onclick = function () { api("converge", {}).then(function () { toast("Re-applying the plan…", "ok"); }); };
+  function applyTheme() { var t = get("resetBoostTheme"); if (t === "dark" || t === "light") document.documentElement.setAttribute("data-theme", t); else document.documentElement.removeAttribute("data-theme"); }
+
+  // ---------- navigation
+  function go(v) {
+    view = v;
+    document.querySelectorAll("#nav button").forEach(function (b) { b.classList.toggle("on", b.getAttribute("data-view") === v); });
+    $("viewLive").classList.toggle("hidden", v !== "live" && v !== "sessions");
+    $("viewLive").classList.toggle("wide", v === "sessions");
+    $("heroBlock").classList.toggle("hidden", v === "sessions");
+    $("viewAccounts").classList.toggle("hidden", v !== "accounts");
+    $("viewModels").classList.toggle("hidden", v !== "models");
+    $("viewSettings").classList.toggle("hidden", v !== "settings");
+    $("viewEyebrow").textContent = {live: "Global compute fleet", sessions: "Sessions", accounts: "Accounts", models: "Models", settings: "Settings"}[v];
+    render(true);
+    window.scrollTo(0, 0);
+  }
+  $("nav").onclick = function (e) { var b = e.target.closest("[data-view]"); if (b) go(b.getAttribute("data-view")); };
+
+  // ---------- render (only what changed and only what is visible)
+  function render(force) {
+    if (!S) return;
+    var sig = JSON.stringify([S.sessions.at, S.phase, S.events.length && S.events[0].at, S.agent_runs.length && S.agent_runs[0].status, S.usage.at, S.job && S.job.status, view, S.signals.length]);
+    if (!force && sig === renderedSig) return;
+    renderedSig = sig;
+    if (view === "live" || view === "sessions") { if (view === "live") { renderHero(); renderRight(); } renderSessions(); }
+    if (view === "accounts") renderAccounts();
+    if (view === "models") renderModels();
+    if (view === "settings") renderSettings();
+  }
+  function connect() {
+    if (!token) { $("headline").textContent = "Open the link printed by reset_boost.py serve (it carries the access key)."; return; }
+    var es = new EventSource("/api/stream?t=" + encodeURIComponent(token));
+    es.addEventListener("open", function () { $("liveDot").style.background = "var(--ui-accent)"; });
+    es.addEventListener("error", function () { $("liveDot").style.background = "var(--ui-faint)"; });
+    es.addEventListener("snapshot", function (e) {
+      var next = JSON.parse(e.data);
+      if (S) { var old = {}; S.sessions.rows.forEach(function (r) { old[r.key] = r.model + r.effort + r.fast; });
+        next.sessions.rows.forEach(function (r) { if (old[r.key] !== undefined && old[r.key] !== r.model + r.effort + r.fast) flash[r.key] = 1; }); }
+      S = next; job = S.job && S.job.status === "running" ? S.job : null; render(false);
+    });
+    es.addEventListener("job", function (e) {
+      var j = JSON.parse(e.data); job = j.status === "running" ? j : null;
+      if (j.status !== "running" && !j.quiet) toast(j.label + (j.status === "done" ? " — done" : " — failed: " + (j.detail || "")), j.status === "done" ? "ok" : "bad");
+      if (S && view === "live" && !j.quiet) renderHero();
+    });
+  }
+  applyTheme(); tick(); setInterval(tick, 15000); connect();
+})();
+</script>
+</body>
+</html>

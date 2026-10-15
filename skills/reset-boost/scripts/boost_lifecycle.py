@@ -16,11 +16,14 @@ import json
 import os
 from pathlib import Path
 import re
+import shutil
 import subprocess
 import sys
 import urllib.request
 
 PHASES = ("idle", "boosted", "cooling")
+# The control panel sets this during a job to stream per-host and per-session progress.
+progress_hook = None
 DEFAULT_AUTO_DOWN = {"reset": True, "quorum": 0.5, "drop_points": 15.0, "ceiling": None, "until": None}
 COOLING_HOURS = 12
 IDLE_AUDIT_HOURS = 6
@@ -70,7 +73,9 @@ def fetch_usage(config):
             with urllib.request.urlopen(request, timeout=source.get("timeout", 30)) as response:
                 raw = json.load(response)
         elif kind == "command":
-            result = subprocess.run(source["argv"], capture_output=True, text=True, timeout=source.get("timeout", 60))
+            argv = list(source["argv"])
+            argv[0] = argv[0] if os.path.isabs(argv[0]) else (shutil.which(argv[0]) or argv[0])
+            result = subprocess.run(argv, close_fds=False, capture_output=True, text=True, timeout=source.get("timeout", 60))
             if result.returncode:
                 raise RuntimeError("usage command exit " + str(result.returncode))
             raw = json.loads(result.stdout)
@@ -175,6 +180,14 @@ def evaluate(state, accounts):
 # ---------------------------------------------------------------- state
 
 
+def server_alive(store):
+    try:
+        beat = json.loads((store.dir / "serve.json").read_text())
+    except (OSError, ValueError):
+        return False
+    return beat.get("loop") and (parse_time(beat.get("at")) or now() - dt.timedelta(days=1)) > now() - dt.timedelta(minutes=3)
+
+
 class Store:
     def __init__(self, fm):
         self.dir = fm.state_dir()
@@ -221,22 +234,121 @@ class Store:
 # ---------------------------------------------------------------- apply
 
 
-def boost_plan(state):
-    """Host target plus per-profile pins for excluded and backed-down accounts."""
-    baseline = state["baseline_target"]
-    pins = {profile: baseline for profile in list(state.get("exclude") or []) + list(state.get("backed_down") or {})}
-    return state["boost_target"], pins, bool(pins)
+def ensure_baseline(fm, config, state):
+    if not state.get("baseline_target"):
+        state["baseline_name"], state["baseline_target"] = baseline(fm, config)
+    state.setdefault("hosts", list(config["hosts"]))
+    state.setdefault("channels", {})
+    return state
 
 
-def converge(fm, config, state, store, quiet=True):
-    if state["phase"] == "boosted":
-        target, pins, hold = boost_plan(state)
-        label = "boost " + state["boost_name"]
+def pinned_profiles(state):
+    channels = state.get("channels") or {}
+    return sorted(set(state.get("exclude") or []) | set(state.get("backed_down") or {}) |
+                  {profile for profile, channel in channels.items() if channel.get("mode") == "pin"})
+
+
+def exhausted_profiles(accounts):
+    """Accounts with no plan quota left in a window: anything more they spend is paid credits."""
+    result = set()
+    for account in (accounts or {}).values():
+        if account.get("profile") and any((window or {}).get("used", 0) >= 100 for window in (account.get("windows") or {}).values()):
+            result.add(account["profile"])
+    return result
+
+
+def plan(state, exhausted=()):
+    """(host target, per-profile targets, hold unknown panes, label) for the current phase.
+
+    Boosted: every account follows the boost except pinned/backed-down ones, and accounts
+    with no plan quota left (never boosted onto paid credits), which stay at baseline;
+    solo channels keep their own target. Otherwise everything sits at the baseline except
+    solo channels, which an operator set explicitly.
+    """
+    base = state["baseline_target"]
+    customs = {profile: channel["target"] for profile, channel in (state.get("channels") or {}).items() if channel.get("mode") == "custom"}
+    if state.get("phase") == "boosted":
+        host, label = state["boost_target"], "boost " + str(state.get("boost_name"))
+        profiles = {profile: base for profile in set(pinned_profiles(state)) | set(exhausted)}
     else:
-        target, pins, hold = state["baseline_target"], {}, False
-        label = "baseline " + state["baseline_name"]
-    report = fm.run_fleet(config, state["hosts"], target, apply=True, live=state.get("live", True), interrupt=state.get("interrupt", False),
-                          profiles=pins, hold_unknown=hold, quiet=quiet, label=label)
+        host, label, profiles = base, "baseline " + str(state.get("baseline_name")), {}
+    profiles.update({profile: target for profile, target in customs.items() if profile not in exhausted or not is_up_target(target, base)})
+    hold = any(target != host for target in profiles.values())
+    return host, profiles, hold, label
+
+
+def is_up_target(target, base):
+    return target != base
+
+
+def session_targets(state):
+    """{host: {pane: target}} from per-session settings."""
+    result = {}
+    for key, value in (state.get("sessions") or {}).items():
+        host, _, pane = key.partition("|")
+        result.setdefault(host, {})[pane] = value["target"]
+    return result
+
+
+def sessions_path(store):
+    return store.dir / "sessions.json"
+
+
+def record_sessions(store, report):
+    """Keep the freshest telemetry per host for the panel (observe passes and every apply)."""
+    path = sessions_path(store)
+    try:
+        current = json.loads(path.read_text())
+    except (OSError, ValueError):
+        current = {"hosts": {}}
+    at = report.get("created_at") or iso(now())
+    for host, value in (report.get("hosts") or {}).items():
+        if value.get("skipped"):
+            continue
+        rows = value.get("terminals") or []
+        old = current["hosts"].get(host) or {}
+        if value.get("errors") and not rows and not value.get("configs"):
+            current["hosts"][host] = dict(old, error=value["errors"][0].get("error"), error_at=at)
+            continue
+        if isinstance(report.get("only_panes"), dict) or report.get("partial"):
+            merged = {row["pane"]: row for row in old.get("rows") or []}
+            merged.update({row["pane"]: row for row in rows})
+            rows = list(merged.values())
+        current["hosts"][host] = {"at": at, "rows": rows, "error": None}
+    current["at"] = at
+    temporary = path.with_suffix(".tmp")
+    temporary.write_text(json.dumps(current, indent=1))
+    os.replace(temporary, path)
+    return current
+
+
+def fleet_options(fm, config, store, state):
+    """Common run_fleet inputs: baseline, credit guard, accounts on credits, session targets."""
+    usage = json.loads(store.usage_path.read_text()) if store.usage_path.exists() else {}
+    exhausted = exhausted_profiles(usage.get("accounts"))
+    # The panel's Settings switch (state) overrides the config default.
+    guard = dict({"enabled": True, "floor": 0.0}, **(config.get("credit_guard") or {}), **(state.get("credit_guard") or {}))
+    return {"baseline": state["baseline_target"], "credit_guard": guard, "credit_profiles": {fm.safe_profile(p) for p in exhausted},
+            "pane_targets": session_targets(state)}, exhausted
+
+
+def boost_plan(state):
+    host, profiles, hold, _ = plan(state)
+    return host, profiles, hold
+
+
+def converge(fm, config, state, store, quiet=True, hosts=None):
+    extra, exhausted = fleet_options(fm, config, store, state)
+    target, profiles, hold, label = plan(state, exhausted)
+    report = fm.run_fleet(config, hosts or state["hosts"], target, apply=True, live=state.get("live", True), interrupt=state.get("interrupt", False),
+                          profiles=profiles, hold_unknown=hold, quiet=quiet, label=label, progress=progress_hook, **extra)
+    record_sessions(store, dict(report, partial=bool(hosts)))
+    if hosts and state.get("last_report") and Path(state["last_report"]).exists():
+        # A partial run updates only its hosts in the latest full picture.
+        merged = json.loads(Path(state["last_report"]).read_text())
+        merged["hosts"].update(report["hosts"])
+        Path(report["_path"]).write_text(json.dumps(merged, indent=2) + "\n")
+        report = dict(merged, _path=report["_path"])
     state["last_report"], state["last_report_at"] = report["_path"], report["created_at"]
     state["last_exit"] = fm.report_exit(report)
     return report
@@ -288,10 +400,13 @@ def cmd_boost(fm, options, config, store):
     else:
         snap = snapshot(accounts)
     exclude = sorted(set(config.get("exclude_profiles") or []) | set(options.exclude or []))
-    state = {"phase": "boosted", "boost_name": name, "boost_target": target, "baseline_name": base_name, "baseline_target": base_target,
+    keep = {key: state[key] for key in ("channels", "sessions", "autopilot", "loop", "last_report", "last_report_at", "last_exit") if key in state}
+    backed = state.get("backed_down", {}) if state.get("phase") == "boosted" else {}
+    state = dict(keep, **{"phase": "boosted", "boost_name": name, "boost_target": target, "baseline_name": base_name, "baseline_target": base_target,
              "started_at": iso(started), "hosts": hosts_option(options, config), "exclude": exclude, "auto_down": rules,
-             "snapshot": snap, "backed_down": {}, "live": not options.no_live, "interrupt": options.interrupt_current_turn,
-             "usage_error": usage_error, "note": options.note}
+             "snapshot": snap, "backed_down": backed, "live": not options.no_live, "interrupt": options.interrupt_current_turn,
+             "usage_error": usage_error, "note": options.note})
+    state.setdefault("channels", {})
     if options.dry_run:
         print(json.dumps({key: state[key] for key in ("boost_name", "boost_target", "baseline_name", "hosts", "exclude", "auto_down")}, indent=2))
         print(f"usage accounts in snapshot: {len(snap)}" + (f" (usage source: {usage_error})" if usage_error else ""))
@@ -321,8 +436,15 @@ def print_auto_down(state, usage_error):
 
 
 def end_boost(fm, config, state, store, reason, quiet):
-    state.update(phase="cooling", ended_at=iso(now()), end_reason=reason,
+    solos = [profile for profile, channel in (state.get("channels") or {}).items() if channel.get("mode") == "custom"]
+    if state.get("sessions"):
+        store.event("sessions_cleared", count=len(state["sessions"]))
+    state["sessions"] = {}
+    state["channels"] = {profile: channel for profile, channel in (state.get("channels") or {}).items() if channel.get("mode") != "custom"}
+    state.update(phase="cooling", ended_at=iso(now()), end_reason=reason, backed_down={},
                  cooling_until=iso(now() + dt.timedelta(hours=config.get("cooling_hours", COOLING_HOURS))))
+    if solos:
+        store.event("channels_cleared", profiles=solos)
     store.event("done", reason=reason, baseline=state["baseline_target"])
     store.save(state)
     report = converge(fm, config, state, store, quiet=quiet)
@@ -336,9 +458,10 @@ def cmd_done(fm, options, config, store):
     if state.get("phase") != "boosted":
         # Turning down is always allowed, even with no recorded boost: it is the safe direction.
         base_name, base_target = baseline(fm, config)
-        state = {"phase": "boosted", "boost_name": None, "boost_target": base_target, "baseline_name": base_name, "baseline_target": base_target,
+        keep = {key: state[key] for key in ("channels", "sessions", "autopilot", "loop", "last_report", "last_report_at", "last_exit") if key in state}
+        state = dict(keep, **{"phase": "boosted", "boost_name": None, "boost_target": base_target, "baseline_name": base_name, "baseline_target": base_target,
                  "started_at": None, "hosts": hosts_option(options, config), "exclude": [], "auto_down": DEFAULT_AUTO_DOWN, "snapshot": {},
-                 "backed_down": {}, "live": True, "interrupt": False}
+                 "backed_down": {}, "live": True, "interrupt": False})
     elif options.hosts:
         state["hosts"] = hosts_option(options, config)
     if options.dry_run:
@@ -378,12 +501,18 @@ def cmd_watch(fm, options, config, store):
             outcome = "verified at baseline everywhere reachable" if state.get("last_exit") == 0 else "cooling period ended with gaps; see dashboard"
             state["phase"] = "idle"
             store.event("idle", outcome=outcome)
+    elif any(channel.get("mode") == "custom" for channel in (state.get("channels") or {}).values()):
+        ensure_baseline(fm, config, state)
+        if options.converge:
+            converge(fm, config, state, store, quiet=options.quiet)
+            store.event("converged", phase="idle", report=state["last_report"], exit=state["last_exit"])
     else:
         last = parse_time(state.get("last_report_at"))
-        if options.converge and (last is None or now() - last > dt.timedelta(hours=IDLE_AUDIT_HOURS)):
+        if options.converge and (options.force_audit or last is None or now() - last > dt.timedelta(hours=IDLE_AUDIT_HOURS)):
             # Read-only drift audit against the baseline; never changes anything while idle.
             base_name, base_target = baseline(fm, config)
-            report = fm.run_fleet(config, list(config["hosts"]), base_target, quiet=True, label="idle audit " + base_name)
+            report = fm.run_fleet(config, list(config["hosts"]), base_target, quiet=True, label="idle audit " + base_name, progress=progress_hook)
+            record_sessions(store, report)
             state.update(last_report=report["_path"], last_report_at=report["created_at"], last_exit=fm.report_exit(report),
                          baseline_name=base_name, baseline_target=base_target)
             store.event("audited", report=report["_path"], exit=state["last_exit"])
@@ -428,6 +557,195 @@ def cmd_status(fm, options, config, store):
     return 0
 
 
+def latest_report(state):
+    path = state.get("last_report")
+    if path and Path(path).exists():
+        return json.loads(Path(path).read_text())
+    return None
+
+
+def cmd_converge(fm, options, config, store):
+    """Re-apply the current plan now (all hosts, or --hosts)."""
+    state = ensure_baseline(fm, config, store.load())
+    hosts = hosts_option(options, config) if options.hosts else None
+    converge(fm, config, state, store, quiet=options.quiet, hosts=hosts)
+    store.save(state)
+    store.event("converged", phase=state.get("phase", "idle"), hosts=hosts or "all", report=state["last_report"], exit=state["last_exit"])
+    return state["last_exit"]
+
+
+def cmd_channel(fm, options, config, store):
+    """One account's channel: follow the fleet, pin at baseline, or solo at its own target."""
+    if not fm.PROFILE_RE.fullmatch(options.profile):
+        raise ValueError("profile must contain only letters, digits and ._@+-")
+    state = ensure_baseline(fm, config, store.load())
+    setting = options.setting
+    if setting == "follow":
+        state["channels"].pop(options.profile, None)
+        (state.get("backed_down") or {}).pop(options.profile, None)
+        if options.profile in (state.get("exclude") or []) and options.profile not in (config.get("exclude_profiles") or []):
+            state["exclude"].remove(options.profile)
+        channel = {"mode": "follow"}
+    elif setting == "pin":
+        channel = state["channels"][options.profile] = {"mode": "pin"}
+    else:
+        preset = options.preset or (setting if setting in fm.presets() else None)
+        model = None if preset else setting
+        target = fm.resolve_target(model, options.effort, preset, options.tier)
+        if not fm.MODEL_ID_RE.fullmatch(target["model"]):
+            raise ValueError("model must contain only safe provider ID characters")
+        channel = state["channels"][options.profile] = {"mode": "custom", "name": preset or f"{target['model']}/{target['effort']}", "target": target}
+    store.event("channel", profile=options.profile, **{key: value for key, value in channel.items() if key != "target"}, target=channel.get("target"))
+    store.save(state)
+    if not options.no_apply:
+        converge(fm, config, state, store, quiet=options.quiet)
+        store.save(state)
+    return state.get("last_exit", 0)
+
+
+def cmd_rules(fm, options, config, store):
+    state = store.load()
+    if state.get("phase") != "boosted":
+        raise ValueError("no boost is running; pass these with `boost`")
+    rules = state["auto_down"]
+    if options.reset is not None:
+        rules["reset"] = options.reset == "on"
+    if options.quorum is not None:
+        rules["quorum"] = max(0.05, min(1.0, options.quorum))
+    if options.drop_points is not None:
+        rules["drop_points"] = max(1.0, options.drop_points)
+    if options.ceiling is not None:
+        rules["ceiling"] = None if options.ceiling == "off" else float(options.ceiling)
+    if options.until is not None:
+        rules["until"] = None if options.until == "off" else iso(parse_until(options.until, now()))
+    store.event("rules", **rules)
+    store.save(state)
+    print(json.dumps(rules))
+    return 0
+
+
+def cmd_pane(fm, options, config, store):
+    """Retry one live session at its planned target; --interrupt cancels its running turn first."""
+    if options.host not in config["hosts"]:
+        raise ValueError("unknown host " + options.host)
+    state = ensure_baseline(fm, config, store.load())
+    extra, exhausted = fleet_options(fm, config, store, state)
+    target, profiles, hold, label = plan(state, exhausted)
+    report = fm.run_fleet(config, [options.host], target, apply=True, live=True, interrupt=options.interrupt, profiles=profiles, hold_unknown=hold,
+                          quiet=True, label="pane " + options.pane, progress=progress_hook, only_panes={options.host: [options.pane]}, save=False, **extra)
+    record_sessions(store, dict(report, partial=True))
+    rows = report["hosts"][options.host].get("terminals") or []
+    latest = latest_report(state)
+    if latest and rows:
+        panes = latest["hosts"].setdefault(options.host, {"configs": [], "terminals": [], "errors": []})["terminals"]
+        for row in rows:
+            match = next((index for index, old in enumerate(panes) if old.get("pane") == row.get("pane")), None)
+            if match is None:
+                panes.append(row)
+            else:
+                panes[match] = row
+        Path(state["last_report"]).write_text(json.dumps(latest, indent=2) + "\n")
+        state["last_exit"] = fm.report_exit(latest)
+        store.save(state)
+    status = rows[0]["status"] if rows else "pane not found (closed, or no Codex session there)"
+    store.event("pane", host=options.host, pane=options.pane, interrupt=options.interrupt, status=status)
+    print(f"{options.host} {options.pane}: {status}")
+    return 0 if rows and rows[0]["status"] == "verified" else 2
+
+
+def cmd_session(fm, options, config, store):
+    """Set specific live sessions (HOST|PANE ...) to a target, or back to following the fleet."""
+    state = ensure_baseline(fm, config, store.load())
+    state.setdefault("sessions", {})
+    keys = []
+    for item in options.sessions:
+        host, sep, pane = item.partition("|")
+        if not sep or host not in config["hosts"] or not pane or len(pane) > 64:
+            raise ValueError("sessions are HOST|PANE with a configured host: " + item)
+        keys.append((host, pane))
+    if options.setting == "follow":
+        for host, pane in keys:
+            state["sessions"].pop(host + "|" + pane, None)
+        target = None
+    else:
+        preset = options.preset or (options.setting if options.setting in fm.presets() else None)
+        target = fm.resolve_target(None if preset else options.setting, options.effort, preset, options.tier)
+        if not fm.MODEL_ID_RE.fullmatch(target["model"]):
+            raise ValueError("model must contain only safe provider ID characters")
+        for host, pane in keys:
+            state["sessions"][host + "|" + pane] = {"target": target, "set_at": iso(now()), "name": preset or f"{target['model']}/{target['effort']}"}
+    store.event("session", sessions=[h + "|" + p for h, p in keys], setting=options.setting if target is None else (preset or target), interrupt=options.interrupt)
+    store.save(state)
+    extra, exhausted = fleet_options(fm, config, store, state)
+    host_target, profiles, hold, label = plan(state, exhausted)
+    only = {}
+    for host, pane in keys:
+        only.setdefault(host, []).append(pane)
+    report = fm.run_fleet(config, list(only), host_target, apply=True, live=True, interrupt=options.interrupt, profiles=profiles, hold_unknown=hold,
+                          quiet=True, label="sessions", progress=progress_hook, only_panes=only, save=False, **extra)
+    record_sessions(store, dict(report, partial=True))
+    rows = [dict(row, host=host) for host, value in report["hosts"].items() for row in value.get("terminals") or []]
+    for row in rows:
+        print(f"{row['host']} {row['pane']}: {row['status']}")
+    return 0 if rows and all(row["status"] == "verified" for row in rows) else 2
+
+
+def cmd_observe(fm, options, config, store):
+    """Read every live session's status line (model, effort, fast, run state, quota, credits). Changes nothing."""
+    state = ensure_baseline(fm, config, store.load())
+    extra, exhausted = fleet_options(fm, config, store, state)
+    target, profiles, hold, label = plan(state, exhausted)
+    hosts = hosts_option(options, config) if getattr(options, "hosts", None) else list(config["hosts"])
+    report = fm.run_fleet(config, hosts, target, profiles=profiles, hold_unknown=hold, quiet=True, label="observe", progress=progress_hook,
+                          observe=True, save=False, **extra)
+    current = record_sessions(store, report)
+    if getattr(options, "json", False):
+        print(json.dumps(current, indent=2))
+    else:
+        for host, value in current["hosts"].items():
+            for row in value.get("rows") or []:
+                info = row.get("telemetry") or {}
+                print(f"{host:8} {row['pane']:10} {str(row.get('profile'))[:16]:16} {info.get('model') or '?':14} {info.get('effort') or '?':7} "
+                      f"{'fast' if info.get('fast') else '    '} {row.get('activity') or '':8} 5h {info.get('five_hour_left')} wk {info.get('weekly_left')} {info.get('credits') or ''}")
+    return 0
+
+
+def cmd_signals(fm, options, config, store):
+    import boost_agent
+    state = store.load()
+    items = boost_agent.track(store, boost_agent.signals(state, latest_report(state), state.get("usage_error")))
+    if options.json:
+        print(json.dumps(items, indent=2))
+        return 0
+    for item in items:
+        print(f"{item['severity']:4} {item['code']:20} {item['host']:8} {item['subject'][:24]:24} {item['detail'][:90]}")
+    if not items:
+        print("no signals")
+    return 0
+
+
+def cmd_agent(fm, options, config, store):
+    import boost_agent
+    state = store.load()
+    signal = None
+    if options.signal:
+        items = boost_agent.track(store, boost_agent.signals(state, latest_report(state), state.get("usage_error")))
+        signal = next((item for item in items if item["id"] == options.signal), None)
+        if signal is None:
+            raise ValueError("no current signal with id " + options.signal)
+    run = boost_agent.start(config, store, state, signal=signal, request=" ".join(options.request or []), wait=not options.background)
+    finished = next((item for item in boost_agent.load_runs(store) if item["name"] == run["name"]), run)
+    print(f"{finished['name']}: {finished['status']}")
+    if finished.get("result"):
+        print(finished["result"])
+    return 0 if finished["status"] in ("done", "running") else 1
+
+
+def cmd_serve(fm, options, config, store):
+    import boost_server
+    return boost_server.serve(fm, config, store, options)
+
+
 def fmt_pct(value):
     return "-" if value is None else f"{value:.0f}%"
 
@@ -467,7 +785,7 @@ def target_arguments(parser):
     parser.add_argument("model", nargs="?", help="alias (astra, sol, luna) or exact model ID")
     parser.add_argument("effort", nargs="?", choices=("low", "medium", "high", "xhigh", "max", "ultra"))
     parser.add_argument("--preset", help="named preset, e.g. astra-ultra-fast, sol-high, luna-high")
-    parser.add_argument("--tier", choices=("default", "fast", "ultrafast", "flex", "priority"), help="Codex service tier (fast mode)")
+    parser.add_argument("--tier", choices=("default", "fast", "priority", "flex"), help="Codex service tier: fast (= priority) or default")
 
 
 def main(argv, fm):
@@ -492,6 +810,50 @@ def main(argv, fm):
     watch = commands.add_parser("watch", help="one tick: read usage, auto-down, converge, refresh dashboard (run from a timer)")
     watch.add_argument("--no-converge", dest="converge", action="store_false", help="read usage and render only")
     watch.add_argument("--quiet", action="store_true")
+    watch.add_argument("--audit", dest="force_audit", action="store_true", help="when idle, audit now instead of every 6 hours")
+    watch.add_argument("--even-if-served", action="store_true", help="run even while the control panel's loop is alive")
+    converge = commands.add_parser("converge", help="re-apply the current plan now")
+    converge.add_argument("--hosts")
+    converge.add_argument("--quiet", action="store_true")
+    channel = commands.add_parser("channel", help="one account: follow the fleet, pin at baseline, or solo at its own target")
+    channel.add_argument("profile")
+    channel.add_argument("setting", help="follow | pin | a preset name | a model alias or ID (then effort)")
+    channel.add_argument("effort", nargs="?", choices=("low", "medium", "high", "xhigh", "max", "ultra"))
+    channel.add_argument("--preset")
+    channel.add_argument("--tier", choices=("default", "fast", "priority", "flex"))
+    channel.add_argument("--no-apply", action="store_true", help="record only; apply on the next tick")
+    channel.add_argument("--quiet", action="store_true")
+    rules = commands.add_parser("rules", help="tune auto-down while a boost runs")
+    rules.add_argument("--reset", choices=("on", "off"))
+    rules.add_argument("--quorum", type=float)
+    rules.add_argument("--drop-points", type=float)
+    rules.add_argument("--ceiling", help="percent, or off")
+    rules.add_argument("--until", help="6h, ISO time, or off")
+    pane = commands.add_parser("pane", help="retry one live session at its planned target")
+    pane.add_argument("host")
+    pane.add_argument("pane")
+    pane.add_argument("--interrupt", action="store_true", help="cancel its running turn first (never restarts it)")
+    session = commands.add_parser("session", help="set live sessions (HOST|PANE ...) to a target, or follow the fleet")
+    session.add_argument("setting", help="follow | a preset | a model alias or ID (then --effort)")
+    session.add_argument("sessions", nargs="+", help="HOST|PANE, as shown by `observe`")
+    session.add_argument("--effort", choices=("low", "medium", "high", "xhigh", "max", "ultra"))
+    session.add_argument("--preset")
+    session.add_argument("--tier", choices=("default", "fast", "priority", "flex"))
+    session.add_argument("--interrupt", action="store_true", help="cancel a running turn first instead of waiting for idle")
+    observe = commands.add_parser("observe", help="read every live session's status line; changes nothing")
+    observe.add_argument("--hosts")
+    observe.add_argument("--json", action="store_true")
+    sig = commands.add_parser("signals", help="problems the buttons could not fix, worst first")
+    sig.add_argument("--json", action="store_true")
+    agent = commands.add_parser("agent", help="hand a signal or a request to the configured agent")
+    agent.add_argument("request", nargs="*")
+    agent.add_argument("--signal", help="signal id from `signals`")
+    agent.add_argument("--background", action="store_true")
+    serve = commands.add_parser("serve", help="run the live control panel (local web UI + loop)")
+    serve.add_argument("--port", type=int, default=8786)
+    serve.add_argument("--bind", default="127.0.0.1")
+    serve.add_argument("--open", action="store_true")
+    serve.add_argument("--no-loop", action="store_true", help="UI only; leave ticks to the watcher")
     status = commands.add_parser("status", help="show phase, targets and per-account reset progress")
     status.add_argument("--json", action="store_true")
     status.add_argument("--refresh", action="store_true", help="read the usage source now")
@@ -501,8 +863,13 @@ def main(argv, fm):
     options = parser.parse_args(argv)
     config = fm.load_config()
     store = Store(fm)
-    handler = {"boost": cmd_boost, "done": cmd_done, "watch": cmd_watch, "status": cmd_status, "dashboard": cmd_dashboard}[options.command]
-    if options.command in ("status", "dashboard"):
+    handler = {"boost": cmd_boost, "done": cmd_done, "watch": cmd_watch, "status": cmd_status, "dashboard": cmd_dashboard, "converge": cmd_converge,
+               "channel": cmd_channel, "rules": cmd_rules, "pane": cmd_pane, "signals": cmd_signals, "agent": cmd_agent, "serve": cmd_serve,
+               "session": cmd_session, "observe": cmd_observe}[options.command]
+    if options.command == "watch" and not options.even_if_served and server_alive(store):
+        print("the control panel's loop is running; it does the ticks")
+        return 0
+    if options.command in ("status", "dashboard", "signals", "agent", "serve", "observe"):
         try:
             return handler(fm, options, config, store)
         except ValueError as error:

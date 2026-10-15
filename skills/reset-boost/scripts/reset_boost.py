@@ -5,11 +5,14 @@ Changes Codex launch defaults (model, reasoning effort, service tier), NTM
 templates and idle live Herdr/tmux sessions. Never sends an inference prompt,
 reads a transcript, restarts a session or changes accounts or credentials.
 
+Control panel:   reset_boost.py serve --help
+Agent verbs:     reset_boost.py {signals,pane,converge,channel,rules,agent} --help
 Boost lifecycle: reset_boost.py {boost,done,watch,status,dashboard} --help
 One-off policy:  reset_boost.py {audit,set,presets} --help
 """
 import argparse
 import base64
+import concurrent.futures
 import datetime as dt
 import hashlib
 import json
@@ -21,6 +24,7 @@ import shlex
 import shutil
 import subprocess
 import sys
+import threading
 import time
 
 try:
@@ -28,10 +32,11 @@ try:
 except ModuleNotFoundError:  # Python 3.10: the boost lifecycle and dashboard still work.
     tomllib = None
 
-VERSION = "0.1.0"
+VERSION = "0.2.0"
 ALIASES = {"sol61": "gpt-6.1-sol", "sol": "gpt-6.1-sol", "luna": "gpt-6-luna", "terra": "gpt-5.6-terra", "astra": "gpt-6-astra"}
 EFFORTS = ("low", "medium", "high", "xhigh", "max", "ultra")
-TIERS = ("default", "fast", "ultrafast", "flex", "priority")
+TIERS = ("default", "priority", "flex")
+TIER_ALIASES = {"fast": "priority", "off": "default"}
 MODEL_ID_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:/@+-]*")
 PROFILE_RE = re.compile(r"[A-Za-z0-9._@+-]+")
 LOCAL_ONLY = {"local": {"type": "local"}}
@@ -80,14 +85,14 @@ DEFAULT_PRESETS = {
     "drain": {"model": "gpt-6.1-sol", "effort": "low", "tier": "default", "description": "Lower-cost queue draining."},
     "sol-medium": {"model": "gpt-6.1-sol", "effort": "medium", "tier": "default", "description": "Sol with standard reasoning."},
     "sol-high": {"model": "gpt-6.1-sol", "effort": "high", "tier": "default", "description": "Sol with high reasoning."},
-    "sol-high-fast": {"model": "gpt-6.1-sol", "effort": "high", "tier": "fast", "description": "Sol high on the fast service tier."},
+    "sol-high-fast": {"model": "gpt-6.1-sol", "effort": "high", "tier": "priority", "description": "Sol high with fast mode."},
     "luna-fast": {"model": "gpt-6-luna", "effort": "low", "tier": "default", "description": "Fast, economical work."},
     "luna-standard": {"model": "gpt-6-luna", "effort": "medium", "tier": "default", "description": "Luna with standard reasoning."},
     "luna-high": {"model": "gpt-6-luna", "effort": "high", "tier": "default", "description": "Luna with high reasoning."},
     "astra-medium": {"model": "gpt-6-astra", "effort": "medium", "tier": "default", "description": "Astra, standard reasoning."},
     "astra-high": {"model": "gpt-6-astra", "effort": "high", "tier": "default", "description": "Astra, high reasoning."},
     "astra-ultra": {"model": "gpt-6-astra", "effort": "ultra", "tier": "default", "description": "Astra, maximum reasoning."},
-    "astra-ultra-fast": {"model": "gpt-6-astra", "effort": "ultra", "tier": "fast", "description": "Everything up: Astra ultra on the fast tier."},
+    "astra-ultra-fast": {"model": "gpt-6-astra", "effort": "ultra", "tier": "priority", "description": "Everything up: Astra ultra with fast mode."},
 }
 
 
@@ -104,7 +109,8 @@ def presets():
 
 
 def resolve_target(model, effort, preset, tier=None):
-    """Return {model, effort, tier}; tier None leaves the service tier untouched."""
+    """Return {model, effort, tier}; tier None leaves the service tier untouched ("fast" means priority)."""
+    tier = TIER_ALIASES.get(tier, tier)
     if preset:
         catalog = presets()
         if preset not in catalog:
@@ -339,10 +345,27 @@ def change_file(path, kind, args):
     return row
 
 
+def spawnable(argv):
+    """Absolute executable plus close_fds=False lets Python use posix_spawn instead of fork.
+
+    fork() from a multi-threaded process (parallel hosts, the panel's web threads) can hang
+    on macOS while holding the interpreter lock, freezing every thread. Python's own file
+    descriptors are non-inheritable by default, so not closing them in the child is safe.
+    """
+    executable = argv[0] if os.path.isabs(argv[0]) else shutil.which(argv[0])
+    if not executable:
+        raise FileNotFoundError(argv[0])
+    return [executable] + list(argv[1:])
+
+
+def run_process(argv, **options):
+    return subprocess.run(spawnable(argv), close_fds=False, **options)
+
+
 def execute(argv, user=None, timeout=15, env=None):
     if user and os.getuid() == 0 and user != "root":
         argv = ["sudo", "-n", "-u", user] + argv
-    result = subprocess.run(argv, capture_output=True, text=True, timeout=timeout, env=env)
+    result = run_process(argv, capture_output=True, text=True, timeout=timeout, env=env)
     if result.returncode:
         # Terminal text and command output may contain private material. Never echo it.
         raise RuntimeError("control command failed (exit " + str(result.returncode) + ")")
@@ -520,16 +543,64 @@ def screen(terminal):
         return raw
 
 
+RUN_STATES = ("working", "idle", "starting", "thinking", "waiting", "running", "ready")
+
+
+def telemetry(text):
+    """Parse the Codex status line (bottom of the screen) into session telemetry.
+
+    It carries what the session itself reports: model, effort, fast mode, run state,
+    the account's 5-hour/weekly quota left, credits spent by the thread, and folder.
+    Only this line is read; conversation text is never kept.
+    """
+    for line in reversed(text.splitlines()[-8:]):
+        match = re.match(r"^\s*(GPT-[\w.\-]+)\s+([\w…]+)((?:\s+fast)?)\s*(?:·\s*(.*))?$", line, re.I)
+        if not match:
+            continue
+        effort = match[2].lower()
+        if effort.endswith("…"):
+            # A narrow pane truncates the status line ("me…"); accept an unambiguous prefix.
+            candidates = [name for name in EFFORTS if name.startswith(effort[:-1])] if len(effort) > 1 else []
+            effort = candidates[0] if len(candidates) == 1 else effort
+        result = {"model": match[1].lower(), "effort": effort if effort in EFFORTS else None, "fast": bool(match[3].strip()),
+                  "run_state": None, "five_hour_left": None, "weekly_left": None, "credits": None, "cwd": None}
+        for part in (match[4] or "").split("·"):
+            part = part.strip()
+            quota = re.match(r"^(5h|weekly)\s+(\d+(?:\.\d+)?)%\s+left$", part, re.I)
+            if quota:
+                result["five_hour_left" if quota[1].lower() == "5h" else "weekly_left"] = float(quota[2])
+            elif "credit" in part.lower() or re.match(r"^\$\d", part):
+                result["credits"] = part[:40]
+            elif part.startswith(("/", "~")):
+                result["cwd"] = part[:200]
+            elif part.lower() in RUN_STATES:
+                result["run_state"] = part.lower()
+        return result
+    return None
+
+
+def on_credits(info, floor=0.0):
+    """Is this session spending (or about to spend) paid credits instead of plan quota?"""
+    if not info:
+        return False
+    if info.get("credits"):
+        return True
+    return any(value is not None and value <= floor for value in (info.get("five_hour_left"), info.get("weekly_left")))
+
+
 def ui_state(text):
     """Retain settings UI only; visible conversations and drafts are never emitted."""
     footer_area = "\n".join(text.splitlines()[-8:])
     footers = re.findall(r"^\s*(GPT-[\w.\-]+)\s+(high|xhigh|low|medium|ultra|max)\b", footer_area, re.M | re.I)
+    info = telemetry(text)
     modal = re.search(r"(?ms)^\s*Select (?:Model(?: and Effort)?|[^\n]*Reasoning[^\n]*)\n.*?^\s*enter [^\n]*esc [^\n]*", text)
     # Never append /model to an existing user draft. Known built-in placeholders
     # are safe to replace; unrecognized composers are held for manual control.
     composer = re.findall(r"^\s*›\s*(.*)$", text, re.M)
-    empty = any(not line.strip() or re.fullmatch(r"(?:Implement \{feature\}|Explain this codebase|Write tests for @filename|Find and fix a bug in @filename|Improve documentation in @filename|Summarize recent commits|Use /skills to list available skills)", line.strip()) for line in composer)
-    return {"footer": tuple(part.lower() for part in footers[-1]) if footers else None, "modal": modal[0] if modal else "", "empty_composer": empty, "busy": "esc to interrupt" in text.lower()}
+    empty = any(not line.strip() or re.fullmatch(r"(?:Ask Codex to do anything|Implement \{feature\}|Explain this codebase|Write tests for @filename|Find and fix a bug in @filename|Improve documentation in @filename|Summarize recent commits|Use /skills to list available skills)", line.strip()) for line in composer)
+    busy = "esc to interrupt" in text.lower() or bool(info and info.get("run_state") in ("working", "thinking", "running"))
+    return {"footer": tuple(part.lower() for part in footers[-1]) if footers else None, "modal": modal[0] if modal else "", "empty_composer": empty,
+            "busy": busy, "telemetry": info}
 
 
 def send(terminal, text=None, keys=()):
@@ -573,7 +644,13 @@ def choose(terminal, modal, predicate):
 
 
 def pane_target(terminal, args):
-    """The target for this pane's account, or None when the account must not be guessed."""
+    """The target for this session: its own setting, else its account's, else the fleet's.
+
+    None means the account must not be guessed (an unknown session while pins exist).
+    """
+    own = (args.get("pane_targets") or {}).get(terminal.get("pane"))
+    if own:
+        return own
     overrides = {safe_profile(name): value for name, value in (args.get("profiles") or {}).items()}
     profile = terminal.get("profile")
     if profile in overrides:
@@ -583,22 +660,68 @@ def pane_target(terminal, args):
     return args["target"]
 
 
+def is_up(target, baseline):
+    """Does moving to `target` spend more than the baseline? Anything not at baseline counts as up,
+    except a pure step down in reasoning on the same model without fast mode."""
+    if not baseline or target == baseline:
+        return False
+    order = list(EFFORTS)
+    same_model = target["model"] == baseline["model"]
+    no_fast = (target.get("tier") or "default") != "priority"
+    if same_model and no_fast and target["effort"] in order and baseline["effort"] in order:
+        return order.index(target["effort"]) > order.index(baseline["effort"])
+    return True
+
+
+def wants_fast(target):
+    tier = (target or {}).get("tier")
+    return None if tier is None else tier == "priority"
+
+
+def toggle_fast(terminal, desired):
+    send(terminal, text="/fast", keys=["Enter"])
+    state = wait_ui(terminal, lambda value: bool(value["telemetry"]) and value["telemetry"]["fast"] == desired)
+    return bool(state["telemetry"]) and state["telemetry"]["fast"] == desired
+
+
 def live_setting(terminal, args):
     row = {key: terminal[key] for key in ("backend", "user", "pane")}
     row["profile"] = terminal.get("profile")
+    row["activity_hint"] = terminal.get("state")
     chosen = pane_target(terminal, args)
     state = ui_state(screen(terminal))
+    info = state["telemetry"]
     row["observed"] = state["footer"]
+    row["telemetry"] = info
+    row["activity"] = "working" if state["busy"] or terminal.get("state") == "working" else ("draft" if not state["empty_composer"] else "idle")
     if chosen is None:
         # A pinned account may be running here and its pane cannot name it.
         return dict(row, status="held_profile_unknown")
     args = dict(args, model=chosen["model"], effort=chosen["effort"])
-    row["target"] = {"model": chosen["model"], "effort": chosen["effort"]}
+    row["target"] = {"model": chosen["model"], "effort": chosen["effort"], "tier": chosen.get("tier")}
     target = (args["model"], args["effort"])
-    if state["footer"] == target:
+    fast = wants_fast(chosen)
+    fast_ok = fast is None or (info is not None and info["fast"] == fast)
+    if state["footer"] == target and fast_ok:
         return dict(row, status="verified")
+    # Never turn UP a session that spends paid credits (or has no plan quota left): that is the user's money.
+    guard = args.get("credit_guard") or {}
+    if guard.get("enabled", True) and is_up(chosen, args.get("baseline")) and \
+            (on_credits(info, guard.get("floor", 0.0)) or terminal.get("profile") in set(args.get("credit_profiles") or [])):
+        return dict(row, status="held_credits")
     if not args["live"] or not args["apply"]:
         return dict(row, status="live_mismatch" if state["footer"] else "live_unknown")
+    if state["footer"] == target and not fast_ok:
+        if state["modal"] or not state["empty_composer"]:
+            return dict(row, status="held_unrecognized_or_occupied_composer")
+        if state["busy"] and not args["interrupt"]:
+            return dict(row, status="held_working")
+        if state["busy"]:
+            send(terminal, keys=["C-c"])
+            time.sleep(.5)
+        ok = toggle_fast(terminal, fast)
+        fresh = ui_state(screen(terminal))
+        return dict(row, status="verified" if ok else "live_readback_unknown", observed=fresh["footer"], telemetry=fresh["telemetry"])
     if not state["modal"]:
         if not state["empty_composer"]:
             return dict(row, status="held_unrecognized_or_occupied_composer")
@@ -625,7 +748,11 @@ def live_setting(terminal, args):
             state = wait_ui(terminal, lambda value: any(item[1].startswith(label) for item in menu_rows(value["modal"])))
         choose(terminal, state["modal"], lambda text: text.startswith(label))
         state = wait_ui(terminal, lambda value: value["footer"] == target)
-        return dict(row, status="verified" if state["footer"] == target else "live_readback_unknown", observed=state["footer"])
+        if state["footer"] == target and fast is not None and not (state["telemetry"] and state["telemetry"]["fast"] == fast):
+            toggle_fast(terminal, fast)
+            state = ui_state(screen(terminal))
+        done = state["footer"] == target and (fast is None or bool(state["telemetry"]) and state["telemetry"]["fast"] == fast)
+        return dict(row, status="verified" if done else "live_readback_unknown", observed=state["footer"], telemetry=state["telemetry"])
     finally:
         # Dismiss only recognized settings modals, never send Escape blindly to work.
         for _ in range(2):
@@ -635,31 +762,54 @@ def live_setting(terminal, args):
             time.sleep(.15)
 
 
-def worker(args):
+PROGRESS_PREFIX = "RESET-BOOST-PROGRESS "
+
+
+def stderr_emit(event):
+    # Remote workers stream progress on stderr; stdout carries only the final JSON.
+    sys.stderr.write(PROGRESS_PREFIX + json.dumps(event) + "\n")
+    sys.stderr.flush()
+
+
+def worker(args, emit=None):
+    """One host's pass. `only_panes` limits it to those live panes and skips launch configs."""
+    emit = emit or (stderr_emit if args.get("stream") else (lambda event: None))
+    only = set(args.get("only_panes") or [])
+    observe = bool(args.get("observe"))
     result = {"configs": [], "terminals": [], "launch_overrides": [], "process_launch_readback": "readable", "errors": [],
               "desktop_task_overrides": "unverified: no supported desktop model-control API"}
     if tomllib is None:
         result["errors"].append({"backend": "python", "error": "Python 3.11+ (tomllib) is required on this host; nothing was read or changed"})
         return result
-    for path, kind in sorted(config_paths(args.get("profiles") or {}, args.get("project_roots") or ()).items()):
-        try:
-            result["configs"].append(change_file(path, kind, args))
-        except Exception as error:
-            result["errors"].append({"path": str(path), "error": type(error).__name__ + ": " + str(error)})
+    if not only and not observe:
+        for path, kind in sorted(config_paths(args.get("profiles") or {}, args.get("project_roots") or ()).items()):
+            try:
+                result["configs"].append(change_file(path, kind, args))
+            except Exception as error:
+                result["errors"].append({"path": str(path), "error": type(error).__name__ + ": " + str(error)})
+        statuses = [row["status"] for row in result["configs"]]
+        emit({"stage": "configs", "count": len(statuses), "changed": statuses.count("changed"), "pending": statuses.count("would_change"),
+              "errors": len(result["errors"])})
     found, issues = terminals()
     result["errors"] += issues
-    try:
-        result["launch_overrides"] = launch_overrides(args["model"], args["effort"])
-        if result["launch_overrides"] is None:
-            result["launch_overrides"] = []
-            result["process_launch_readback"] = "unknown: process arguments hidden by host policy"
-    except Exception as error:
-        result["errors"].append({"backend": "process", "error": type(error).__name__ + ": " + str(error)})
+    if only:
+        found = [terminal for terminal in found if terminal["pane"] in only]
+    elif not observe:
+        try:
+            result["launch_overrides"] = launch_overrides(args["model"], args["effort"])
+            if result["launch_overrides"] is None:
+                result["launch_overrides"] = []
+                result["process_launch_readback"] = "unknown: process arguments hidden by host policy"
+        except Exception as error:
+            result["errors"].append({"backend": "process", "error": type(error).__name__ + ": " + str(error)})
+    emit({"stage": "panes", "count": len(found)})
     for terminal in found:
         try:
-            result["terminals"].append(live_setting(terminal, args))
+            row = live_setting(terminal, args)
         except Exception as error:
-            result["terminals"].append({"backend": terminal["backend"], "pane": terminal["pane"], "profile": terminal.get("profile"), "status": "error", "error": str(error)})
+            row = {"backend": terminal["backend"], "pane": terminal["pane"], "profile": terminal.get("profile"), "status": "error", "error": str(error)}
+        result["terminals"].append(row)
+        emit({"stage": "pane", "row": row})
     return result
 
 
@@ -700,49 +850,113 @@ if (Test-Path $p) {
     return json.loads(execute(["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=8", alias, "powershell -NoProfile -EncodedCommand " + encoded], timeout=40))
 
 
-def run_host(name, host, args, source):
+def run_host(name, host, args, source, emit=None):
+    emit = emit or (lambda event: None)
     kind = host["type"]
     args = dict(args, project_roots=host.get("project_roots", []))
     if kind == "local":
-        return worker(args)
+        return worker(args, emit)
     alias = host.get("ssh", name)
     if kind == "windows":
+        if args.get("only_panes"):
+            return {"configs": [], "terminals": [], "errors": [], "launch_overrides": []}
         return windows_worker(dict(args, model=args["target"]["model"], effort=args["target"]["effort"], tier=args["target"].get("tier")), alias)
     # This exact source runs remotely; no dependency install or stale helper cache.
-    encoded = base64.b64encode(json.dumps(args).encode()).decode()
+    encoded = base64.b64encode(json.dumps(dict(args, stream=True)).encode()).decode()
     command = ("sudo -n " if host.get("sudo", False) else "") + "python3 - --worker " + shlex.quote(encoded)
-    response = subprocess.run(["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=8", alias, command], input=source, capture_output=True, text=True, timeout=300)
-    if response.returncode:
-        raise RuntimeError("remote worker failed (exit " + str(response.returncode) + ")")
-    return json.loads(response.stdout)
+    process = subprocess.Popen(spawnable(["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=8", alias, command]), close_fds=False,
+                               stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+
+    def feed():
+        try:
+            process.stdin.write(source)
+            process.stdin.close()
+        except OSError:
+            pass
+
+    def drain():
+        for line in process.stderr:
+            if line.startswith(PROGRESS_PREFIX):
+                try:
+                    emit(json.loads(line[len(PROGRESS_PREFIX):]))
+                except ValueError:
+                    pass
+
+    threads = [threading.Thread(target=feed, daemon=True), threading.Thread(target=drain, daemon=True)]
+    for thread in threads:
+        thread.start()
+    output = []
+    reader = threading.Thread(target=lambda: output.append(process.stdout.read()), daemon=True)
+    reader.start()
+    reader.join(300)
+    if reader.is_alive():
+        process.kill()
+        raise subprocess.TimeoutExpired(alias, 300)
+    process.wait(10)
+    threads[1].join(5)
+    if process.returncode:
+        raise RuntimeError("remote worker failed (exit " + str(process.returncode) + ")")
+    return json.loads(output[0])
 
 
-def run_fleet(config, hosts, target, apply=False, live=False, interrupt=False, profiles=None, hold_unknown=False, quiet=False, label=None):
-    """Apply or audit one target (plus per-profile targets) on each host; returns the saved report."""
+def run_fleet(config, hosts, target, apply=False, live=False, interrupt=False, profiles=None, hold_unknown=False, quiet=False, label=None,
+              progress=None, only_panes=None, save=True, pane_targets=None, observe=False, baseline=None, credit_guard=None, credit_profiles=None):
+    """Apply or audit one target (plus per-profile targets) on every host in parallel; returns the saved report.
+
+    progress(host, event) receives live events: start, configs, panes, pane (one per session), done, error.
+    """
+    progress = progress or (lambda host, event: None)
     args = {"target": target, "model": target["model"], "effort": target["effort"], "profiles": profiles or {},
-            "apply": apply, "live": live, "interrupt": interrupt, "hold_unknown": hold_unknown}
+            "apply": apply, "live": live, "interrupt": interrupt, "hold_unknown": hold_unknown, "observe": observe,
+            "baseline": baseline, "credit_guard": credit_guard or {}, "credit_profiles": sorted(credit_profiles or [])}
+
+    def host_args(name):
+        # only_panes / pane_targets may be keyed by host: pane ids repeat across hosts.
+        panes = only_panes.get(name, []) if isinstance(only_panes, dict) else (only_panes or [])
+        return dict(args, only_panes=panes, pane_targets=(pane_targets or {}).get(name, {}))
     source = Path(__file__).resolve().read_text()
     report = {"created_at": dt.datetime.now(dt.timezone.utc).isoformat(), "label": label, "model": target["model"], "effort": target["effort"],
               "tier": target.get("tier"), "profiles": profiles or {}, "apply": apply, "live": live, "source_sha256": digest(source), "hosts": {}}
-    for name in hosts:
+
+    def one(name):
+        progress(name, {"stage": "start"})
         try:
-            report["hosts"][name] = run_host(name, config["hosts"][name], args, source)
+            if isinstance(only_panes, dict) and not only_panes.get(name):
+                value = {"configs": [], "terminals": [], "errors": [], "launch_overrides": [], "skipped": True}
+            else:
+                value = run_host(name, config["hosts"][name], host_args(name), source, lambda event: progress(name, event))
         except Exception as error:
             # Never echo the command: it carries the encoded worker payload.
             message = f"unreachable: timed out after {error.timeout:.0f}s" if isinstance(error, subprocess.TimeoutExpired) else str(error)[:300]
-            report["hosts"][name] = {"errors": [{"error": message}], "configs": [], "terminals": [], "launch_overrides": [], "process_launch_readback": "unknown"}
-        value = report["hosts"][name]
-        statuses = [row["status"] for row in value["configs"]]
-        live_rows = value["terminals"]
+            value = {"errors": [{"error": message}], "configs": [], "terminals": [], "launch_overrides": [], "process_launch_readback": "unknown"}
+            progress(name, {"stage": "error", "error": message})
+        progress(name, {"stage": "done", "summary": host_summary(value)})
+        return value
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, len(hosts))) as pool:
+        results = dict(zip(hosts, pool.map(one, hosts)))
+    for name in hosts:
+        report["hosts"][name] = value = results[name]
         if not quiet:
-            overrides = value.get("launch_overrides", [])
-            print(f"{name:8} configs {len(statuses):3}  changes {statuses.count('changed') or statuses.count('would_change'):3}  live verified {sum(row['status'] == 'verified' for row in live_rows):3}/{len(live_rows):3}  launch mismatches {sum(row['status'] == 'explicit-mismatch' for row in overrides):2}  errors {len(value['errors'])}", flush=True)
+            summary = host_summary(value)
+            print(f"{name:8} configs {summary['configs']:3}  changes {summary['changed'] or summary['pending']:3}  live verified {summary['verified']:3}/{summary['live']:3}  launch mismatches {summary['launch_mismatches']:2}  errors {summary['errors']}", flush=True)
+    if not save:
+        return report
     directory = state_dir()
     directory.mkdir(parents=True, exist_ok=True)
     path = directory / (dt.datetime.now(dt.timezone.utc).strftime("%Y%m%dT%H%M%S.%fZ") + ".json")
     path.write_text(json.dumps(report, indent=2) + "\n")
     report["_path"] = str(path)
     return report
+
+
+def host_summary(value):
+    statuses = [row["status"] for row in value.get("configs", [])]
+    live = [row["status"] for row in value.get("terminals", [])]
+    return {"configs": len(statuses), "changed": statuses.count("changed"), "pending": statuses.count("would_change"),
+            "live": len(live), "verified": live.count("verified"), "held": sum(status.startswith("held") for status in live),
+            "launch_mismatches": sum(row.get("status") == "explicit-mismatch" for row in value.get("launch_overrides", []) or []),
+            "errors": len(value.get("errors", []))}
 
 
 def report_exit(report):
@@ -754,7 +968,7 @@ def report_exit(report):
     return 1 if errors else 2 if gaps or config_gaps or launch_gaps else 0
 
 
-BOOST_COMMANDS = ("boost", "done", "watch", "status", "dashboard")
+BOOST_COMMANDS = ("boost", "done", "watch", "status", "dashboard", "serve", "converge", "channel", "rules", "pane", "signals", "agent", "session", "observe")
 
 
 def main():
@@ -775,7 +989,7 @@ def main():
     parser.add_argument("model", nargs="?", default=None, help="alias or an exact provider model ID")
     parser.add_argument("effort", nargs="?", choices=EFFORTS, default=None)
     parser.add_argument("--preset", help="named policy from presets.json")
-    parser.add_argument("--tier", choices=TIERS, help="Codex service tier (fast mode); default leaves it unchanged unless the preset sets one")
+    parser.add_argument("--tier", choices=TIERS + tuple(TIER_ALIASES), help="fast (= priority) or default; omitted leaves it unless the preset sets one")
     parser.add_argument("--hosts", default=",".join(config["hosts"]), help="comma-separated host names from " + config["_path"])
     parser.add_argument("--apply", action="store_true", help="write defaults with backups; otherwise preview")
     parser.add_argument("--live", action="store_true", help="also change idle, empty-composer Codex terminals through /model")

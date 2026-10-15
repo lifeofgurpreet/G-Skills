@@ -4,12 +4,12 @@
   "drain": {"model": "gpt-6.1-sol", "effort": "low", "tier": "default", "description": "Lower-cost queue draining."},
   "sol-medium": {"model": "gpt-6.1-sol", "effort": "medium", "tier": "default", "description": "Sol with standard reasoning."},
   "sol-high": {"model": "gpt-6.1-sol", "effort": "high", "tier": "default", "description": "Sol with high reasoning."},
-  "sol-high-fast": {"model": "gpt-6.1-sol", "effort": "high", "tier": "fast", "description": "Sol high on the fast service tier."},
+  "sol-high-fast": {"model": "gpt-6.1-sol", "effort": "high", "tier": "priority", "description": "Sol high with fast mode."},
   "luna-fast": {"model": "gpt-6-luna", "effort": "low", "tier": "default", "description": "Fast, economical work."},
   "luna-standard": {"model": "gpt-6-luna", "effort": "medium", "tier": "default", "description": "Luna with standard reasoning."},
   "luna-high": {"model": "gpt-6-luna", "effort": "high", "tier": "default", "description": "Luna with high reasoning."},
   "astra-medium": {"model": "gpt-6-astra", "effort": "medium", "tier": "default", "description": "Astra, standard reasoning."},
   "astra-high": {"model": "gpt-6-astra", "effort": "high", "tier": "default", "description": "Astra, high reasoning."},
   "astra-ultra": {"model": "gpt-6-astra", "effort": "ultra", "tier": "default", "description": "Astra, maximum reasoning."},
-  "astra-ultra-fast": {"model": "gpt-6-astra", "effort": "ultra", "tier": "fast", "description": "Everything up: Astra ultra on the fast tier."}
+  "astra-ultra-fast": {"model": "gpt-6-astra", "effort": "ultra", "tier": "priority", "description": "Everything up: Astra ultra with fast mode."}
 }

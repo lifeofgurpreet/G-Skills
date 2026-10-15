@@ -30,8 +30,8 @@ class PresetTests(unittest.TestCase):
     def test_named_presets_and_arbitrary_provider_target(self):
         self.assertEqual(rb.resolve_target(None, None, "drain"), {"model": "gpt-6.1-sol", "effort": "low", "tier": "default"})
         self.assertEqual(rb.resolve_target("vendor/other-model", "medium", None), {"model": "vendor/other-model", "effort": "medium", "tier": None})
-        self.assertEqual(rb.resolve_target(None, None, "astra-ultra-fast")["tier"], "fast")
-        self.assertEqual(rb.resolve_target(None, None, "sol-high", "ultrafast")["tier"], "ultrafast")
+        self.assertEqual(rb.resolve_target(None, None, "astra-ultra-fast")["tier"], "priority")
+        self.assertEqual(rb.resolve_target(None, None, "sol-high", "fast")["tier"], "priority")
         with self.assertRaises(ValueError):
             rb.resolve_target(None, None, "missing-preset")
 
@@ -208,12 +208,12 @@ class CaamAdapterTests(unittest.TestCase):
 
 class LiveSessionSafetyTests(unittest.TestCase):
     def test_ui_returns_only_settings_and_holds_a_draft(self):
-        state = rb.ui_state('private conversation text\n› my unfinished private draft\n GPT-6.1-Sol high · /private/path\n')
+        state = rb.ui_state('private conversation text\n› my unfinished private draft\n GPT-6.1-Sol high · /work/path\n')
         self.assertEqual(state["footer"], ("gpt-6.1-sol", "high"))
         self.assertFalse(state["empty_composer"])
         self.assertNotIn("private", json.dumps(state))
         terminal = {"backend": "herdr", "user": "someone", "pane": "w1:p1", "state": "idle"}
-        with patch.object(rb, "screen", return_value='› unfinished draft\n GPT-6-Astra ultra · /private/path\n'), patch.object(rb, "send") as send:
+        with patch.object(rb, "screen", return_value='› unfinished draft\n GPT-6-Astra ultra · /work/path\n'), patch.object(rb, "send") as send:
             row = rb.live_setting(terminal, target_args("gpt-6.1-sol", "high", True, live=True, interrupt=False))
             self.assertEqual(row["status"], "held_unrecognized_or_occupied_composer")
             send.assert_not_called()
@@ -231,6 +231,41 @@ class LiveSessionSafetyTests(unittest.TestCase):
             row = rb.live_setting(terminal, target_args("gpt-6-astra", "ultra", False, live=True, interrupt=False))
             self.assertEqual(row["status"], "live_mismatch")
             send.assert_not_called()
+
+    def test_credit_guard_never_turns_up_a_session_on_credits(self):
+        terminal = {"backend": "tmux", "user": "u", "pane": "%3"}
+        screen = '› \n  GPT-6.1-Sol medium · Idle · 5h 40% left · weekly 0% left\n'
+        base = {"model": "gpt-6.1-sol", "effort": "medium", "tier": "default"}
+        with patch.object(rb, "screen", return_value=screen), patch.object(rb, "send") as send:
+            row = rb.live_setting(terminal, target_args("gpt-6-astra", "ultra", True, live=True, interrupt=False, baseline=base))
+            self.assertEqual(row["status"], "held_credits")
+            # Turning down is never blocked by the guard (preview here, so nothing is sent).
+            down = dict(target_args("gpt-6.1-sol", "low", False, live=True, interrupt=False, baseline=base))
+            self.assertEqual(rb.live_setting(terminal, down)["status"], "live_mismatch")
+            send.assert_not_called()
+        self.assertFalse(rb.is_up({"model": "gpt-6.1-sol", "effort": "low", "tier": "default"}, base))
+        self.assertTrue(rb.is_up({"model": "gpt-6.1-sol", "effort": "medium", "tier": "priority"}, base))
+
+    def test_status_line_telemetry_reads_quota_credits_and_folder(self):
+        info = rb.telemetry("  GPT-6-Astra high fast · Working · 5h 12% left · weekly 55% left · $1.20 credits · /work/repo\n")
+        self.assertEqual((info["model"], info["effort"], info["fast"], info["run_state"]), ("gpt-6-astra", "high", True, "working"))
+        self.assertEqual((info["five_hour_left"], info["weekly_left"], info["cwd"]), (12.0, 55.0, "/work/repo"))
+        self.assertTrue(rb.on_credits(info))
+
+    def test_subprocesses_use_an_absolute_executable_for_posix_spawn(self):
+        self.assertTrue(os.path.isabs(rb.spawnable([Path(sys.executable).name, "-c", "pass"])[0]))
+        with self.assertRaises(FileNotFoundError):
+            rb.spawnable(["no-such-reset-boost-binary"])
+
+    def test_current_placeholder_counts_as_an_empty_composer(self):
+        state = rb.ui_state('› Ask Codex to do anything\n\n  GPT-6.1-Sol high fast · Idle · weekly 0% left\n  ? for shortcuts\n')
+        self.assertTrue(state["empty_composer"])
+        self.assertTrue(state["telemetry"]["fast"])
+        self.assertTrue(rb.on_credits(state["telemetry"]))
+
+    def test_narrow_pane_truncated_effort_is_still_read(self):
+        self.assertEqual(rb.telemetry("  GPT-6.1-Sol me…\n")["effort"], "medium")
+        self.assertIsNone(rb.telemetry("  GPT-6.1-Sol m…\n")["effort"])  # medium or max: ambiguous
 
     def test_wrapped_picker_and_advanced_effort_parsing(self):
         text = 'private conversation\n Select Reasoning Level for\n GPT-6.1-Sol\n 1. Low\n 2. Medium (default)\n› 3. High (current)\n enter default · s session · esc back\n'

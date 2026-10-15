@@ -50,6 +50,7 @@ def main(argv=None):
             if a.out and a.browser:command+=['--out',str(a.out)]
             subprocess.run(command,check=True);return 0
         privacy()
+        collection.design_kit()
         subprocess.run([sys.executable,str(ROOT/'tools/collection.py'),'--check'],check=True)
         subprocess.run([sys.executable,str(ROOT/'tools/roadmap.py'),'--check'],check=True)
         for name in ('test_skill_study.py','test_collection.py','test_package_release.py','test_roadmap.py','test_install_skill.py'):
