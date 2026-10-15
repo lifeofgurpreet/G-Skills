@@ -19,33 +19,76 @@ import urllib.parse
 import vps_health as core
 
 SOURCE_SHA256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
-PROVIDERS={'unknown','other','contabo','hetzner','digitalocean','akamai','aws'}
-ALLOWED_SOURCES={'docs.contabo.com','help.contabo.com','docs.hetzner.com','docs.digitalocean.com','techdocs.akamai.com','docs.aws.amazon.com'}
+PROVIDER_SOURCES={
+    'contabo':{'docs.contabo.com','help.contabo.com'},
+    'hetzner':{'docs.hetzner.com'},'digitalocean':{'docs.digitalocean.com'},
+    'akamai':{'techdocs.akamai.com'},'aws':{'docs.aws.amazon.com'},
+    'vultr':{'docs.vultr.com'},'ovhcloud':{'www.ovhcloud.com'},'netcup':{'www.netcup.com'},
+    'other':set()
+}
+PROVIDERS=set(PROVIDER_SOURCES)|{'unknown'}
+ALLOWED_SOURCES=set().union(*PROVIDER_SOURCES.values())
+
+
+def _review_date(value,now,maximum_age):
+    # Missing metadata and future dates are not silently promoted by a newer
+    # catalog-wide date. Rechecking references is a deliberate research action.
+    try:
+        if not isinstance(value,str) or len(value)!=10:raise ValueError('date shape')
+        day=dt.datetime.strptime(value,'%Y-%m-%d').replace(tzinfo=dt.timezone.utc)
+        if day.strftime('%Y-%m-%d')!=value:raise ValueError('date format')
+    except (ValueError,TypeError):return None,'RECHECK_REQUIRED'
+    age=(now-day.timestamp())/86400
+    return value,'DATED_REFERENCE' if 0<=age<=maximum_age else 'RECHECK_REQUIRED'
 
 
 def providers(name=None,now=None):
     if name is not None and name not in PROVIDERS:
         raise core.InvalidEvidence('unknown provider label; use other')
-    path=core.ROOT/'assets/provider-catalog.json'
-    data=core.read_json(path)
+    data=core.read_json(core.ROOT/'assets/provider-catalog.json')
     if data.get('schema')!='g-skills.provider-reference.v1' or not isinstance(data.get('providers'),list):
         raise core.InvalidEvidence('provider reference is not the supported reviewed format')
-    ids=[p['id'] for p in data['providers']]
-    if len(ids)!=6 or len(ids)!=len(set(ids)) or set(ids)!=PROVIDERS-{'unknown'}:
+    rows=data['providers'];ids=[p.get('id') for p in rows if isinstance(p,dict)]
+    if len(ids)!=len(rows) or len(ids)!=len(set(ids)) or set(ids)!=set(PROVIDER_SOURCES):
         raise core.InvalidEvidence('provider reference identities are incomplete or duplicated')
-    for provider in data['providers']:
-        for fact in provider['facts']+provider.get('diagnostics',[]):
-            url=urllib.parse.urlsplit(fact['source'])
-            if url.scheme!='https' or url.hostname not in ALLOWED_SOURCES or url.username or url.password:
-                raise core.InvalidEvidence('unreviewed provider source origin')
-    reviewed=dt.datetime.strptime(data['reviewed_on'],'%Y-%m-%d').replace(tzinfo=dt.timezone.utc).timestamp()
+    maximum=data.get('review_after_days')
+    if type(maximum) is not int or not 1<=maximum<=365:raise core.InvalidEvidence('invalid reference review period')
     now=time.time() if now is None else core.finite(now,minimum=0)
-    age=(now-reviewed)/86400
-    result={**data,'review_state':'RECHECK_REQUIRED' if age<0 or age>data['review_after_days'] else 'DATED_REFERENCE',
+    prepared=[]
+    for provider in rows:
+        for key in ('name','summary','not_a_promise','support_question'):
+            value=provider.get(key)
+            if not isinstance(value,str) or not 1<=len(value)<=2000:raise core.InvalidEvidence('incomplete provider guidance')
+        for key in ('classes','check_next'):
+            if not isinstance(provider.get(key),list) or not provider[key] or not all(isinstance(x,str) and 0<len(x)<=1000 for x in provider[key]):
+                raise core.InvalidEvidence('invalid provider guidance list')
+        item=dict(provider);all_sources=[]
+        for key in ('facts','diagnostics'):
+            facts=provider.get(key,[])
+            if not isinstance(facts,list) or len(facts)>32:raise core.InvalidEvidence('invalid bounded provider source list')
+            copied=[]
+            for fact in facts:
+                if not isinstance(fact,dict) or not all(isinstance(fact.get(k),str) and 0<len(fact[k])<=2000 for k in ('scope','kind','text','source')):
+                    raise core.InvalidEvidence('incomplete source-backed provider fact')
+                try:
+                    url=urllib.parse.urlsplit(fact['source'])
+                    valid=(url.scheme=='https' and url.hostname in PROVIDER_SOURCES[provider['id']]
+                           and not url.username and not url.password and url.port in (None,443))
+                except ValueError:valid=False
+                if not valid:raise core.InvalidEvidence('unreviewed source for this provider')
+                reviewed,state=_review_date(fact.get('reviewed_on'),now,maximum)
+                record={**fact,'reviewed_on':reviewed,'review_state':state};copied.append(record);all_sources.append(record)
+            item[key]=copied
+        dated=[f['reviewed_on'] for f in all_sources if f['reviewed_on'] is not None]
+        item['reviewed_on']=min(dated) if dated else None
+        item['review_state']=('NO_PROVIDER_REFERENCE' if not all_sources else
+            'RECHECK_REQUIRED' if any(f['review_state']=='RECHECK_REQUIRED' for f in all_sources) else 'DATED_REFERENCE')
+        prepared.append(item)
+    if name is not None:prepared=[p for p in prepared if p['id']==('other' if name=='unknown' else name)]
+    sourced=[p for p in prepared if p['facts'] or p['diagnostics']]
+    state='DATED_REFERENCE' if sourced and all(p['review_state']=='DATED_REFERENCE' for p in sourced) else 'RECHECK_REQUIRED'
+    return {**data,'providers':prepared,'review_state':state,'review_basis':'Each fact or diagnostic source has its own review date; catalog edits do not refresh older sources.',
             'automatically_refreshed':False,'establishes_contract':False,'sources_fetched':False}
-    if name is not None:
-        result['providers']=[p for p in data['providers'] if p['id']==('other' if name=='unknown' else name)]
-    return result
 
 
 def timeline(points,start,end,policy,count=48):

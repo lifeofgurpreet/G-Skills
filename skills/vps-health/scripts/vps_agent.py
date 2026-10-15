@@ -529,13 +529,14 @@ def resolve_request(path,request_id,outcome,tool_id=None,receipt_ref=None):
 
 
 def register(sub):
+    from vps_ops import PROVIDERS
     for name in ('agent-plan','agent-start'):
         p=sub.add_parser(name,help='Read-only bounded plan' if name=='agent-plan' else 'Apply an approved plan and launch/reuse one managed worker')
         p.add_argument('--workspace',required=True,type=Path);p.add_argument('--mode',choices=('auto','demo','local','prometheus'),default='auto')
         p.add_argument('--node',default='my-vps');p.add_argument('--profile',type=Path);p.add_argument('--url');p.add_argument('--loki-url')
         p.add_argument('--token-env');p.add_argument('--loki-token-env');p.add_argument('--allow-http',action='store_true')
         p.add_argument('--interval',type=int,default=300);p.add_argument('--acceptable',type=float,default=.9);p.add_argument('--investigate-below',type=float,default=.8)
-        p.add_argument('--provider',choices=('unknown','other','contabo','hetzner','digitalocean','akamai','aws'),default='unknown');p.add_argument('--plan')
+        p.add_argument('--provider',choices=sorted(PROVIDERS),default='unknown');p.add_argument('--plan')
         p.add_argument('--duration-seconds',type=int,default=72*3600);p.add_argument('--port',type=int,default=0)
         p.add_argument('--client',choices=sorted(CLIENTS),default='generic');p.add_argument('--approve-plan')
     p=sub.add_parser('agent-status',help='Read actual owned-process state and pending agent needs');p.add_argument('--workspace',required=True,type=Path)

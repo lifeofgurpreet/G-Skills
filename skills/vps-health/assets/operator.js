@@ -1,8 +1,8 @@
 /* Original local operator workflow. Rendering and acknowledgment never mutate evidence. */
 const VpsOperator=(()=>{
  'use strict';
- const knownProviders=new Set(['contabo','hetzner','digitalocean','akamai','aws','other']);
- const origins=new Set(['docs.contabo.com','docs.hetzner.com','docs.digitalocean.com','techdocs.akamai.com','docs.aws.amazon.com']);
+ const knownProviders=new Set(['contabo','hetzner','digitalocean','akamai','aws','vultr','ovhcloud','netcup','other']);
+ const providerOrigins={contabo:['docs.contabo.com','help.contabo.com'],hetzner:['docs.hetzner.com'],digitalocean:['docs.digitalocean.com'],akamai:['techdocs.akamai.com'],aws:['docs.aws.amazon.com'],vultr:['docs.vultr.com'],ovhcloud:['www.ovhcloud.com'],netcup:['www.netcup.com'],other:[]};
  let acknowledged=new Set(),storageKey='',desktopEnabled=false,seen=new Set(),lastState=null,setupMode='local';
  const providerOpen=new Map();
  const make=(tag,text='',cls='')=>{const node=document.createElement(tag);node.textContent=text;if(cls)node.className=cls;return node};
@@ -10,7 +10,9 @@ const VpsOperator=(()=>{
  const finite=x=>typeof x==='number'&&Number.isFinite(x);
  const object=x=>x!==null&&typeof x==='object'&&!Array.isArray(x);
  const ratio=x=>x===null||finite(x)&&x>=0&&x<=1.02;
- const safeLink=url=>{try{const parsed=new URL(url);return parsed.protocol==='https:'&&origins.has(parsed.hostname)&&!parsed.username&&!parsed.password}catch{return false}};
+ const safeLink=(url,id)=>{try{const parsed=new URL(url);return parsed.protocol==='https:'&&(providerOrigins[id]||[]).includes(parsed.hostname)&&!parsed.username&&!parsed.password&&(!parsed.port||parsed.port==='443')}catch{return false}};
+ const reviewDate=x=>x===null||typeof x==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(x);
+ const validFact=(f,id)=>object(f)&&typeof f.text==='string'&&typeof f.scope==='string'&&typeof f.kind==='string'&&safeLink(f.source,id)&&reviewDate(f.reviewed_on)&&['DATED_REFERENCE','RECHECK_REQUIRED'].includes(f.review_state)&&(f.review_state!=='DATED_REFERENCE'||f.reviewed_on!==null);
  function validGuest(d){
   if(d==null)return true;
   if(!object(d)||d.schema!=='g-skills.guest-context-interval.v1'||d.provider_cause_proven!==false||!Array.isArray(d.quality)||!d.quality.every(q=>typeof q==='string')||!Array.isArray(d.storage)||d.storage.length>128)return false;
@@ -27,8 +29,9 @@ const VpsOperator=(()=>{
   const b=value.operator,p=value.provider_reference;
   if(!b||b.schema!=='g-skills.operator-brief.v1'||!Array.isArray(b.items)||b.items.length>100||b.automatic_actions!==false||b.service_health_verified!==false)return false;
   if(!b.items.every(i=>/^[a-f0-9]{24}$/.test(i.id)&&value.assets.some(n=>n.id===i.node)&&['urgent','review','info'].includes(i.priority)&&typeof i.title==='string'&&typeof i.reason==='string'&&typeof i.next_action==='string'&&i.contact_authorized===false&&i.provider_cause_proven===false&&object(i.evidence)&&['mean','coverage','pressure','cfs'].every(k=>ratio(i.evidence[k]))&&['elapsed_hours','observed_hours'].every(k=>finite(i.evidence[k])&&i.evidence[k]>=0)&&typeof i.draft_eligible==='boolean'))return false;
-  if(!p||typeof p.reviewed_on!=='string'||!['DATED_REFERENCE','RECHECK_REQUIRED'].includes(p.review_state)||p.schema!=='g-skills.provider-reference.v1'||!Array.isArray(p.providers)||p.providers.length!==6||p.establishes_contract!==false)return false;
-  if(!p.providers.every(provider=>knownProviders.has(provider.id)&&typeof provider.name==='string'&&typeof provider.summary==='string'&&typeof provider.not_a_promise==='string'&&Array.isArray(provider.classes)&&provider.classes.every(c=>typeof c==='string')&&Array.isArray(provider.facts)&&provider.facts.every(f=>typeof f.text==='string'&&typeof f.scope==='string'&&typeof f.kind==='string'&&safeLink(f.source))&&Array.isArray(provider.check_next)&&provider.check_next.every(c=>typeof c==='string')))return false;
+  if(!p||typeof p.reviewed_on!=='string'||!['DATED_REFERENCE','RECHECK_REQUIRED'].includes(p.review_state)||p.schema!=='g-skills.provider-reference.v1'||!Array.isArray(p.providers)||p.providers.length!==knownProviders.size||p.establishes_contract!==false)return false;
+  if(new Set(p.providers.map(x=>x?.id)).size!==knownProviders.size)return false;
+  if(!p.providers.every(provider=>object(provider)&&knownProviders.has(provider.id)&&typeof provider.name==='string'&&typeof provider.summary==='string'&&typeof provider.not_a_promise==='string'&&reviewDate(provider.reviewed_on)&&['DATED_REFERENCE','RECHECK_REQUIRED','NO_PROVIDER_REFERENCE'].includes(provider.review_state)&&Array.isArray(provider.classes)&&provider.classes.every(c=>typeof c==='string')&&Array.isArray(provider.facts)&&provider.facts.every(f=>validFact(f,provider.id))&&Array.isArray(provider.diagnostics)&&provider.diagnostics.every(f=>validFact(f,provider.id))&&Array.isArray(provider.check_next)&&provider.check_next.every(c=>typeof c==='string')))return false;
   const r=value.agent_runtime;
   if(!r||r.schema!=='g-skills.agent-runtime.v1'||!['NOT_MANAGED','STARTING','RUNNING','STOP_REQUESTED','STOPPED','COMPLETED','FAILED','NEEDS_REVIEW','ORPHANED'].includes(r.state)||typeof r.process_verified!=='boolean'||r.evidence_ready!==false)return false;
   if(r.dashboard_url&&!/^http:\/\/127\.0\.0\.1:\d{1,5}\/$/.test(r.dashboard_url))return false;
@@ -82,14 +85,23 @@ const VpsOperator=(()=>{
  function copyTask(item){return copyText(VpsView.task(lastState,item.node))}
  function renderProviders(value){
   const selected=byId('provider-filter').value,ref=value.provider_reference;
-  byId('provider-review').textContent=`Documentation reviewed ${ref.reviewed_on} · ${ref.review_state==='RECHECK_REQUIRED'?'Recheck the linked primary sources before relying on them.':'Dated reference, not live policy verification.'}`;
+  const shown=ref.providers.filter(p=>selected==='all'||p.id===selected);
+  const stale=shown.filter(p=>p.review_state==='RECHECK_REQUIRED').length;
+  byId('provider-review').textContent=`${shown.length} displayed references · ${stale} need rechecking. Dates belong to individual sources; offline references are not live policy verification.`;
   const grid=byId('provider-cards');
   grid.querySelectorAll('[data-provider]').forEach(card=>providerOpen.set(card.dataset.provider,card.querySelector('details').open));
   grid.replaceChildren();
-  for(const provider of ref.providers.filter(p=>selected==='all'||p.id===selected)){
+  for(const provider of shown){
    const card=make('article','','provider-card');card.dataset.provider=provider.id;card.append(make('span',provider.classes.join(' / '),'provider-class'),make('h3',provider.name),make('p',provider.summary));
    const details=make('details'),summary=make('summary','Read the plan distinctions');details.open=providerOpen.get(provider.id)||false;details.append(summary);
-   for(const fact of provider.facts){const block=make('div','','policy-fact');block.append(make('strong',fact.scope+' · '+fact.kind.replaceAll('_',' ')),make('p',fact.text));const link=make('a','Primary documentation ↗');link.href=fact.source;link.target='_blank';link.rel='noopener noreferrer';block.append(link);details.append(block)}
+   const freshness=provider.review_state==='NO_PROVIDER_REFERENCE'?'Provider not identified — no purchased-plan reference.':provider.review_state==='RECHECK_REQUIRED'?'Source recheck required. Do not rely on the old review date.':'Dated sources; oldest review '+provider.reviewed_on+'.';
+   card.append(make('p',freshness,'provider-review-state'));
+   for(const fact of [...provider.facts,...provider.diagnostics]){
+    const block=make('div','','policy-fact');block.dataset.kind=fact.kind;
+    block.append(make('strong',fact.scope+' · '+fact.kind.replaceAll('_',' ')),make('p',fact.text));
+    block.append(make('p',(fact.review_state==='RECHECK_REQUIRED'?'Recheck required · ':'Reviewed ')+(fact.reviewed_on||'review date missing'),'source-review-date'));
+    const link=make('a','Primary documentation ↗');link.href=fact.source;link.target='_blank';link.rel='noopener noreferrer';block.append(link);details.append(block);
+   }
    const list=make('ul');for(const check of provider.check_next)list.append(make('li',check));details.append(list);card.append(details,make('p',provider.not_a_promise,'policy-limit'));grid.append(card);
   }
  }

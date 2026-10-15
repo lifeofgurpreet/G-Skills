@@ -1,0 +1,65 @@
+{
+  "schema": "g-skills.provider-reference-acceptance.v1",
+  "bead": "gs-8cq.5",
+  "new_providers": [
+    "vultr",
+    "ovhcloud",
+    "netcup"
+  ],
+  "reviewed_on": "2026-10-15",
+  "original_fact_dates_retained": true,
+  "provider_count": 9,
+  "named_providers": 8,
+  "python_tests": 489,
+  "python_suites": [
+    11,
+    12,
+    8,
+    6,
+    36,
+    82,
+    46,
+    56,
+    10,
+    41,
+    17,
+    17,
+    49,
+    36,
+    28,
+    6,
+    6,
+    13,
+    9
+  ],
+  "new_reference_tests": 17,
+  "javascript_contracts": 27,
+  "browser_scenarios": 43,
+  "actual_artifact": {
+    "schema": "g-skills.provider-artifact-proof.v1",
+    "source_commit": "dcaeebe8a6681b77dc60498b512c777949bcc3aa",
+    "archive_sha256": "4f0fa27f959b1c4a614cf2da89aba0d0a3e5f7c9b33fedd51d5182eb32740408",
+    "archive_files": 50,
+    "browser_cases": [
+      "new provider choices render their dated purchased-product distinctions without fetching services",
+      "existing provider diagnostics are visible with their date and separate active-probe permission boundary",
+      "old source dates stay visible, current diagnostics do not refresh them, and selected-provider age is independent",
+      "mismatched provider diagnostics cannot replace valid references; unidentified products stay unknown"
+    ],
+    "offline_provider_filters": true,
+    "provider_count": 9,
+    "external_requests": false,
+    "native_client_trial": false,
+    "real_host_measured": false,
+    "source_server_stopped": true
+  },
+  "not_claimed": [
+    "Provider-account authentication or production supplier tests",
+    "Completed native-client or multi-day qualification",
+    "Sparse workload context fixed",
+    "Remote-viewer PR22 released"
+  ],
+  "provider_contact": false,
+  "host_changes": false,
+  "pilot_changed": false
+}

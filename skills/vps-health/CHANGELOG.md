@@ -1,5 +1,19 @@
 # VPS Health changelog
 
+## 0.9.2 — Dated, usable provider context
+
+Add Vultr, OVHcloud and netcup across the offline provider command, private asset
+profiles, managed planning and workbench. Reference age belongs to each fact or
+diagnostic source; new catalog edits do not make older guidance current. The
+workbench now displays existing support diagnostics and their dates, preserves
+expanded readings and refuses mismatched provider links.
+
+This release does not include the unpublished 0.9.1 remote-viewer draft. CPU
+measurement, thresholds and action permissions are unchanged. Sparse workload-
+context qualification remains an explicit open defect (`gs-2uh.15`), not a fix
+claimed by this provider tranche.
+
+
 ## 0.9.0 — Evidence workbench (technical preview)
 
 Rebuild the working viewer around the selected finding, one canonical next action,
