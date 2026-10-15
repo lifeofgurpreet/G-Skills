@@ -5,70 +5,285 @@
   "purpose": "Plan context, not a contract interpreter or a provider-blame classifier.",
   "providers": [
     {
-      "id": "contabo", "name": "Contabo", "classes": ["shared", "dedicated"],
+      "id": "contabo",
+      "name": "Contabo",
+      "classes": [
+        "shared",
+        "dedicated"
+      ],
       "summary": "Shared VPS and dedicated-resource VDS are different products. Match the actual purchased family before applying performance guidance.",
       "facts": [
-        {"kind": "allocation", "scope": "Core, Performance and Storage VPS", "text": "The VPS documentation describes shared virtual CPU cores. A newer CPU generation does not make the allocation dedicated.", "source": "https://docs.contabo.com/docs/servers-hosting/vps/"},
-        {"kind": "allocation", "scope": "Max Performance VPS / VDS", "text": "The VDS product documentation describes CPU cores reserved for the instance. Its dedicated-core benchmark guidance is not a shared-VPS minimum.", "source": "https://docs.contabo.com/docs/servers-hosting/max-performance-vps/"}
+        {
+          "kind": "allocation",
+          "scope": "Core, Performance and Storage VPS",
+          "text": "The VPS documentation describes shared virtual CPU cores. A newer CPU generation does not make the allocation dedicated.",
+          "source": "https://docs.contabo.com/docs/servers-hosting/vps/",
+          "reviewed_on": "2026-10-13"
+        },
+        {
+          "kind": "allocation",
+          "scope": "Max Performance VPS / VDS",
+          "text": "The VDS product documentation describes CPU cores reserved for the instance. Its dedicated-core benchmark guidance is not a shared-VPS minimum.",
+          "source": "https://docs.contabo.com/docs/servers-hosting/max-performance-vps/",
+          "reviewed_on": "2026-10-13"
+        }
       ],
       "diagnostics": [
-        {"kind": "support_request", "scope": "Connectivity diagnostics for a support ticket", "text": "Contabo's help article says support may ask for an MTR toward the server's IP address, run for about 10 minutes and exported, plus a traceroute, and that the results go to customer support. MTR and traceroute are active probes: they need the user's scoped approval and are not run implicitly.", "source": "https://help.contabo.com/en/support/solutions/articles/103000271266-how-can-i-run-diagnostics-on-my-server-", "reviewed_on": "2026-10-15"}
+        {
+          "kind": "support_request",
+          "scope": "Connectivity diagnostics for a support ticket",
+          "text": "Contabo's help article says support may ask for an MTR toward the server's IP address, run for about 10 minutes and exported, plus a traceroute, and that the results go to customer support. MTR and traceroute are active probes: they need the user's scoped approval and are not run implicitly.",
+          "source": "https://help.contabo.com/en/support/solutions/articles/103000271266-how-can-i-run-diagnostics-on-my-server-",
+          "reviewed_on": "2026-10-15"
+        }
       ],
-      "check_next": ["Record the exact product family, plan and region.", "Keep confirmed migration completion separate from an offer or scheduling reply.", "Compare workload limits and service impact with repeated observations."],
+      "check_next": [
+        "Record the exact product family, plan and region.",
+        "Keep confirmed migration completion separate from an offer or scheduling reply.",
+        "Compare workload limits and service impact with repeated observations."
+      ],
       "not_a_promise": "No numeric guest-accounted-time floor is established by these references. The skill's 90% and 80% levels are user preferences, not Contabo guarantees.",
       "support_question": "Can you review host-side scheduling for this specific VM and UTC interval?"
     },
     {
-      "id": "hetzner", "name": "Hetzner", "classes": ["shared", "dedicated"],
+      "id": "hetzner",
+      "name": "Hetzner",
+      "classes": [
+        "shared",
+        "dedicated"
+      ],
       "summary": "Identify shared CX/CPX/CAX versus dedicated CCX. Keep the baseline/burst model and hardware generation in the comparison.",
       "facts": [
-        {"kind": "allocation", "scope": "CX, CPX and CAX", "text": "Hetzner describes shared compute with a baseline and temporary bursting above it; resources are distributed among instances on a physical server.", "source": "https://docs.hetzner.com/cloud/servers/faq/"},
-        {"kind": "allocation", "scope": "CCX", "text": "Dedicated plans reserve CPU resources. Hetzner defines one vCPU as one thread of a physical core, not an entire processor.", "source": "https://docs.hetzner.com/cloud/servers/faq/"}
+        {
+          "kind": "allocation",
+          "scope": "CX, CPX and CAX",
+          "text": "Hetzner describes shared compute with a baseline and temporary bursting above it; resources are distributed among instances on a physical server.",
+          "source": "https://docs.hetzner.com/cloud/servers/faq/",
+          "reviewed_on": "2026-10-13"
+        },
+        {
+          "kind": "allocation",
+          "scope": "CCX",
+          "text": "Dedicated plans reserve CPU resources. Hetzner defines one vCPU as one thread of a physical core, not an entire processor.",
+          "source": "https://docs.hetzner.com/cloud/servers/faq/",
+          "reviewed_on": "2026-10-13"
+        }
       ],
-      "check_next": ["Confirm the family and architecture rather than guessing from the hostname.", "Distinguish a plan baseline from measured throughput.", "Retain a comparable before/after window if the host or plan changes."],
+      "check_next": [
+        "Confirm the family and architecture rather than guessing from the hostname.",
+        "Distinguish a plan baseline from measured throughput.",
+        "Retain a comparable before/after window if the host or plan changes."
+      ],
       "not_a_promise": "A baseline/burst description does not establish that every sample must exceed the skill's chosen tolerance.",
       "support_question": "Does this interval reflect the expected allocation model for our purchased plan?"
     },
     {
-      "id": "digitalocean", "name": "DigitalOcean", "classes": ["shared", "dedicated"],
+      "id": "digitalocean",
+      "name": "DigitalOcean",
+      "classes": [
+        "shared",
+        "dedicated"
+      ],
       "summary": "Select the actual CPU allocation class. Premium hardware and dedicated CPU access are separate characteristics.",
       "facts": [
-        {"kind": "allocation", "scope": "Basic / Shared configurations", "text": "Shared configurations share CPU access. They are intended for variable or bursty demand rather than continuously guaranteed compute.", "source": "https://docs.digitalocean.com/products/droplets/concepts/choosing-a-plan/"},
-        {"kind": "allocation", "scope": "Dedicated configurations", "text": "The plan guide distinguishes dedicated CPU configurations for sustained workloads from shared configurations. Verify the selected family and generation.", "source": "https://docs.digitalocean.com/products/droplets/concepts/choosing-a-plan/"}
+        {
+          "kind": "allocation",
+          "scope": "Basic / Shared configurations",
+          "text": "Shared configurations share CPU access. They are intended for variable or bursty demand rather than continuously guaranteed compute.",
+          "source": "https://docs.digitalocean.com/products/droplets/concepts/choosing-a-plan/",
+          "reviewed_on": "2026-10-13"
+        },
+        {
+          "kind": "allocation",
+          "scope": "Dedicated configurations",
+          "text": "The plan guide distinguishes dedicated CPU configurations for sustained workloads from shared configurations. Verify the selected family and generation.",
+          "source": "https://docs.digitalocean.com/products/droplets/concepts/choosing-a-plan/",
+          "reviewed_on": "2026-10-13"
+        }
       ],
-      "check_next": ["Record the Droplet family and CPU allocation class.", "Compare application latency, errors and workload concurrency over the same UTC range.", "Do not treat Premium in a plan name as proof of dedicated allocation."],
+      "check_next": [
+        "Record the Droplet family and CPU allocation class.",
+        "Compare application latency, errors and workload concurrency over the same UTC range.",
+        "Do not treat Premium in a plan name as proof of dedicated allocation."
+      ],
       "not_a_promise": "Uptime commitments and dedicated allocation are not identical to a guarantee for this guest accounting formula.",
       "support_question": "Please help distinguish host-side contention from the expected behavior of this Droplet family."
     },
     {
-      "id": "akamai", "name": "Akamai / Linode", "classes": ["shared", "dedicated"],
+      "id": "akamai",
+      "name": "Akamai / Linode",
+      "classes": [
+        "shared",
+        "dedicated"
+      ],
       "summary": "The documented maximum sustained usage for shared CPU is an allowance, not a delivered-capacity floor.",
       "facts": [
-        {"kind": "usage_allowance", "scope": "Shared CPU", "text": "The comparison guide lists 80% maximum sustained CPU utilization and 100% burst utilization for shared plans. It also says contention can occur at peak usage.", "source": "https://techdocs.akamai.com/cloud-computing/docs/choosing-between-shared-and-dedicated-cpus"},
-        {"kind": "allocation", "scope": "Dedicated CPU", "text": "The same guide describes reserved CPU resources and 100% sustained usage for dedicated plans.", "source": "https://techdocs.akamai.com/cloud-computing/docs/choosing-between-shared-and-dedicated-cpus"}
+        {
+          "kind": "usage_allowance",
+          "scope": "Shared CPU",
+          "text": "The comparison guide lists 80% maximum sustained CPU utilization and 100% burst utilization for shared plans. It also says contention can occur at peak usage.",
+          "source": "https://techdocs.akamai.com/cloud-computing/docs/choosing-between-shared-and-dedicated-cpus",
+          "reviewed_on": "2026-10-13"
+        },
+        {
+          "kind": "allocation",
+          "scope": "Dedicated CPU",
+          "text": "The same guide describes reserved CPU resources and 100% sustained usage for dedicated plans.",
+          "source": "https://techdocs.akamai.com/cloud-computing/docs/choosing-between-shared-and-dedicated-cpus",
+          "reviewed_on": "2026-10-13"
+        }
       ],
-      "check_next": ["Identify shared versus dedicated allocation.", "Compare sustained demand to the applicable usage policy.", "Do not convert the 80% usage allowance into an 80% CPU-delivery guarantee."],
+      "check_next": [
+        "Identify shared versus dedicated allocation.",
+        "Compare sustained demand to the applicable usage policy.",
+        "Do not convert the 80% usage allowance into an 80% CPU-delivery guarantee."
+      ],
       "not_a_promise": "Maximum permitted utilization and measured delivered CPU time describe different quantities.",
       "support_question": "Is our workload within the plan's sustained-use policy, and is the observed contention expected?"
     },
     {
-      "id": "aws", "name": "AWS EC2", "classes": ["burstable", "non-burstable"],
+      "id": "aws",
+      "name": "AWS EC2",
+      "classes": [
+        "burstable",
+        "non-burstable"
+      ],
       "summary": "For burstable instances, inspect credits and Standard/Unlimited mode before attributing a slowdown to neighbors.",
       "facts": [
-        {"kind": "credit_model", "scope": "Burstable Standard", "text": "CPU credits and the instance-size baseline govern bursting. Record CPUCreditBalance and the configured credit mode for the measured interval.", "source": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/burstable-credits-baseline-concepts.html"},
-        {"kind": "billing_behavior", "scope": "Burstable Unlimited", "text": "Unlimited can use surplus credits after the balance is depleted; sustained use above the baseline may incur additional charges. No price is assumed here.", "source": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/burstable-performance-instances-unlimited-mode-concepts.html"}
+        {
+          "kind": "credit_model",
+          "scope": "Burstable Standard",
+          "text": "CPU credits and the instance-size baseline govern bursting. Record CPUCreditBalance and the configured credit mode for the measured interval.",
+          "source": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/burstable-credits-baseline-concepts.html",
+          "reviewed_on": "2026-10-13"
+        },
+        {
+          "kind": "billing_behavior",
+          "scope": "Burstable Unlimited",
+          "text": "Unlimited can use surplus credits after the balance is depleted; sustained use above the baseline may incur additional charges. No price is assumed here.",
+          "source": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/burstable-performance-instances-unlimited-mode-concepts.html",
+          "reviewed_on": "2026-10-13"
+        }
       ],
-      "check_next": ["Record instance type and Standard or Unlimited mode.", "Review CPUCreditBalance, CPUCreditUsage and surplus-credit metrics in the authorized monitoring system.", "Check system status, storage/network limits and the application's actual latency or errors separately."],
+      "check_next": [
+        "Record instance type and Standard or Unlimited mode.",
+        "Review CPUCreditBalance, CPUCreditUsage and surplus-credit metrics in the authorized monitoring system.",
+        "Check system status, storage/network limits and the application's actual latency or errors separately."
+      ],
       "not_a_promise": "A depleted balance or burst ceiling is not by itself proof of a noisy neighbor. This skill does not collect CloudWatch credits automatically.",
       "support_question": "Can you help interpret this interval against the instance's credit mode, baseline and status checks?"
     },
     {
-      "id": "other", "name": "Other / not yet identified", "classes": ["unknown"],
+      "id": "vultr",
+      "name": "Vultr",
+      "classes": [
+        "shared",
+        "dedicated"
+      ],
+      "summary": "Separate Cloud Compute performance tiers from the Dedicated CPU family. Hardware-generation language alone does not describe allocation.",
+      "facts": [
+        {
+          "kind": "allocation",
+          "scope": "Cloud Compute, High Frequency and High Performance",
+          "text": "The provisioning guide puts these Cloud Compute plan categories under Shared CPU. A higher clock speed or newer processor does not turn this family into dedicated allocation.",
+          "source": "https://docs.vultr.com/products/compute/instances/cloud-compute/provisioning",
+          "reviewed_on": "2026-10-15"
+        },
+        {
+          "kind": "allocation",
+          "scope": "Optimized Cloud Compute",
+          "text": "The separate provisioning guide selects Dedicated CPU and distinguishes general-purpose, CPU, memory and storage-oriented categories. Record the exact purchased plan rather than borrowing behavior from Shared CPU.",
+          "source": "https://docs.vultr.com/products/compute/instances/optimized-cloud-compute/provisioning",
+          "reviewed_on": "2026-10-15"
+        }
+      ],
+      "check_next": [
+        "Record the exact plan identifier, region and shared or dedicated CPU family.",
+        "Compare workload concurrency, throttling and service impact in the same UTC interval.",
+        "Use purchased-plan documentation; do not assign a universal throughput baseline from the processor model."
+      ],
+      "not_a_promise": "Neither reference establishes a numeric floor for this guest CPU-accounting formula. The chosen 90% and 80% levels remain diagnostic preferences, not Vultr guarantees.",
+      "support_question": "Which CPU allocation and sustained-use model applies to this exact plan, and can you review the supplied UTC interval?"
+    },
+    {
+      "id": "ovhcloud",
+      "name": "OVHcloud",
+      "classes": [
+        "product-dependent"
+      ],
+      "summary": "Keep VPS, Public Cloud instance families and dedicated servers separate. A dedicated virtual environment is not automatically a promise of exclusive physical cores.",
+      "facts": [
+        {
+          "kind": "product_scope",
+          "scope": "VPS product family",
+          "text": "The VPS page describes an isolated virtual environment and an availability SLA. Confirm the purchased VPS generation, region and applicable terms; this is a different offer from Public Cloud instances.",
+          "source": "https://www.ovhcloud.com/en/vps/",
+          "reviewed_on": "2026-10-15"
+        },
+        {
+          "kind": "allocation",
+          "scope": "Public Cloud Discovery instances",
+          "text": "The Public Cloud instance page describes Discovery instances as offering shared resources. This specific family statement must not be applied to every OVHcloud product or silently substituted for the purchased VPS terms.",
+          "source": "https://www.ovhcloud.com/en/public-cloud/virtual-instances/",
+          "reviewed_on": "2026-10-15"
+        }
+      ],
+      "check_next": [
+        "Identify VPS versus Public Cloud, exact flavor or range, region and purchase terms.",
+        "Treat availability, CPU allocation and measured guest accounting as separate quantities.",
+        "Leave physical-core exclusivity unknown when the exact plan documentation does not establish it."
+      ],
+      "not_a_promise": "An availability SLA is not a CPU-delivery guarantee. Shared Discovery guidance does not establish a numeric VPS CPU floor or justify a migration from one snapshot.",
+      "support_question": "What CPU scheduling and allocation behavior applies to this exact VPS or Public Cloud flavor, and how should we interpret the recorded interval?"
+    },
+    {
+      "id": "netcup",
+      "name": "netcup",
+      "classes": [
+        "shared",
+        "dedicated"
+      ],
+      "summary": "VPS and Root Server are distinct allocation models. A netcup Root Server remains virtualized; its dedicated CPU-core allocation is not bare-metal ownership.",
+      "facts": [
+        {
+          "kind": "allocation",
+          "scope": "VPS / vServer",
+          "text": "The server overview explains that VPS instances share physical hardware resources. Record the exact architecture, product generation and plan instead of assuming exclusive cores from guest visibility.",
+          "source": "https://www.netcup.com/en/helpcenter/documentation/server",
+          "reviewed_on": "2026-10-15"
+        },
+        {
+          "kind": "allocation",
+          "scope": "Root Servers",
+          "text": "The same overview states that Root Servers are also virtualized but provide dedicated CPU cores, unlike VPS. Compare within the applicable product and workload context.",
+          "source": "https://www.netcup.com/en/helpcenter/documentation/server",
+          "reviewed_on": "2026-10-15"
+        }
+      ],
+      "check_next": [
+        "Record VPS or Root Server, architecture, exact generation and region.",
+        "Keep dedicated-core allocation distinct from ownership of the physical host.",
+        "Correlate sustained observations with guest limits and service impact; do not infer the outcome of a migration from CPU labels."
+      ],
+      "not_a_promise": "Dedicated cores and published availability are not an automatic guarantee for a particular guest-accounting ratio or application benchmark.",
+      "support_question": "Can you confirm the CPU allocation for this exact VPS or Root Server product and review the supplied interval against it?"
+    },
+    {
+      "id": "other",
+      "name": "Other / not yet identified",
+      "classes": [
+        "unknown"
+      ],
       "summary": "Use the exact purchased plan and the provider's primary documentation. Do not borrow another supplier's threshold.",
       "facts": [],
-      "check_next": ["Identify the provider, product, CPU allocation model and current plan.", "Save a dated link to product terms, usage limits and relevant support documentation privately.", "Mark unknown terms as unknown until reviewed; do not infer a guarantee."],
+      "check_next": [
+        "Identify the provider, product, CPU allocation model and current plan.",
+        "Save a dated link to product terms, usage limits and relevant support documentation privately.",
+        "Mark unknown terms as unknown until reviewed; do not infer a guarantee."
+      ],
       "not_a_promise": "No contractual or usage policy is inferred for an unidentified product.",
       "support_question": "What CPU allocation and sustained-use policy applies to this exact plan?"
     }
-  ]
+  ],
+  "catalog_updated_on": "2026-10-15"
 }

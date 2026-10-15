@@ -21,7 +21,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-VERSION = '0.9.0'
+VERSION = '0.9.2'
 SCHEMA = 'g-skills.vps-capture.v1'
 ROOT = Path(__file__).resolve().parents[1]
 MAX_BYTES = 8 * 1024 * 1024
@@ -288,7 +288,8 @@ def get_json(base, path, params, token=None, timeout=15):
 
 
 def plan_metadata(item):
-    if item.get('provider','unknown') not in ('unknown','contabo','hetzner','digitalocean','akamai','aws','other'):
+    from vps_ops import PROVIDERS
+    if item.get('provider','unknown') not in PROVIDERS:
         raise InvalidEvidence('unsupported provider label; use other')
     plan=item.get('plan')
     if plan is not None and (not isinstance(plan,str) or not 1<=len(plan)<=120 or any(ord(c)<32 for c in plan)):

@@ -38,3 +38,16 @@ installation and sustained-pilot acceptance. Optional mail sending, active
 experiments and every provider are not required when excluded from support claims.
 The [native task graph](skills/vps-health/ROADMAP.md) is authoritative; this page is
 not another copied progress tracker. Use [SUPPORT.md](../SUPPORT.md) for safe feedback.
+
+
+## Known workload-context acceptance gap
+
+`gs-2uh.15` tracks a reproduced issue: a quiet pressure/throttling mean may be
+computed from very few or old samples even when CPU accounting spans several days.
+The workload-context summary can therefore appear more complete than its channel
+coverage supports. Do not use that summary to rule out guest workload constraints
+or assign provider responsibility; inspect the underlying same-window channel
+coverage separately. The accounting observation and provider reference are different
+claims. A failure-first test branch is retained; the proposed implementation was
+blocked and is not included in this release. The existing broad-promotion gate
+remains open. This paragraph is a limitation, not a claim that the bug is fixed.

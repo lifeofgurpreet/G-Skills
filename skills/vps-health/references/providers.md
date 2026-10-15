@@ -2,9 +2,14 @@
 
 The Providers view and `providers` command read the same packaged
 [typed catalog](../assets/provider-catalog.json). It contains original summaries
-and links to primary product documentation, reviewed on 2026-10-13 UTC. References
-ask for rechecking after 90 days; they never update themselves or fetch websites
-from the viewer. Review the live linked page before making a consequential claim.
+and links to primary product documentation. Each fact and support-diagnostic entry
+has its own review date and computed state. Updating the catalog or adding a new
+provider does not refresh older sources. Missing, malformed, future or more-than-
+90-day-old dates require rechecking; the oldest applicable source is visible on
+the provider card. These references never fetch websites or update themselves.
+An unknown provider has no reviewed product reference. Before relying on a plan
+claim, the executing agent checks its actual current primary source and the user's
+purchased product rather than asking the human to research it from scratch.
 
 ```bash
 python3 scripts/vps_health.py providers --provider hetzner
@@ -23,10 +28,13 @@ those from hostnames, CPU counts or a benchmark score.
 | DigitalOcean | Shared/dedicated allocation versus hardware generation | That Premium hardware alone means reserved CPU access |
 | Akamai / Linode | Sustained-usage allowance versus allocation/delivery | That the documented 80% shared usage allowance promises 80% delivered time |
 | AWS EC2 | Instance family, Standard/Unlimited mode and CPU credits | That credit depletion proves a noisy neighbor |
+| Vultr | Shared Cloud Compute/High Frequency/High Performance versus Dedicated CPU Optimized Cloud Compute | That a higher clock speed or newer hardware alone means dedicated allocation |
+| OVHcloud | VPS versus exact Public Cloud flavor, including shared Discovery instances | That an availability SLA is a CPU-delivery floor or that one family's allocation applies to another |
+| netcup | VPS shared resources versus virtualized Root Servers with dedicated cores | That Root Server means bare-metal ownership |
 | Other or unknown | Exact supplier, plan and dated primary source first | That another provider's rule can be borrowed |
 
 The catalog classifies claims as allocation, usage allowance, credit model or
-billing behavior. None sets a `guaranteed_ratio`. The skill's 90%/80% bands remain
+billing behavior, product scope or support diagnostics. None sets a `guaranteed_ratio`. The skill's 90%/80% bands remain
 the user's investigation preferences, not a contractual interpretation. Uptime
 commitments, performance expectations and compute allocation are not equivalent.
 
@@ -37,6 +45,14 @@ commitments, performance expectations and compute allocation are not equivalent.
 - [DigitalOcean CPU plan guide](https://docs.digitalocean.com/products/droplets/concepts/choosing-a-plan/).
 - [Akamai shared/dedicated comparison](https://techdocs.akamai.com/cloud-computing/docs/choosing-between-shared-and-dedicated-cpus).
 - [EC2 credit/baseline concepts](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/burstable-credits-baseline-concepts.html) and [Unlimited mode](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/burstable-performance-instances-unlimited-mode-concepts.html).
+
+The additional sources checked on 2026-10-15 are [Vultr Cloud Compute provisioning](https://docs.vultr.com/products/compute/instances/cloud-compute/provisioning),
+[Vultr Optimized provisioning](https://docs.vultr.com/products/compute/instances/optimized-cloud-compute/provisioning),
+[OVHcloud VPS](https://www.ovhcloud.com/en/vps/), [OVHcloud Public Cloud instances](https://www.ovhcloud.com/en/public-cloud/virtual-instances/),
+and [netcup's server overview](https://www.netcup.com/en/helpcenter/documentation/server).
+The earlier sources retain their actual prior review dates; they were not all
+newly reviewed by this addition. These are references to product descriptions,
+not an automatic review of every regional or historical contract.
 
 These are product/support references, not a complete review of a customer's legal
 agreement. Product names and terms can change. Contabo product summaries were
