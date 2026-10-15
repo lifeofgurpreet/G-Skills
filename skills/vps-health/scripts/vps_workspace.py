@@ -83,7 +83,11 @@ def private_file(path,missing_ok=False):
         except FileNotFoundError:
             if missing_ok:return None
             raise
-        if stat.S_ISREG(info.st_mode) and info.st_nlink==0:continue
+        if stat.S_ISREG(info.st_mode) and info.st_nlink==0:
+            # An immediate tight loop can exhaust all attempts within the same
+            # atomic replacement. Yield briefly; never accept unlinked state.
+            time.sleep(.002)
+            continue
         return checked_private_info(info)
     fail('private state changed repeatedly; inspect again rather than weaken its checks')
 
@@ -97,6 +101,7 @@ def read_private_json(path,max_bytes=core.MAX_BYTES):
         with os.fdopen(fd,'rb') as handle:
             current=os.fstat(handle.fileno())
             if current.st_nlink==0 or (prior.st_dev,prior.st_ino)!=(current.st_dev,current.st_ino):
+                time.sleep(.002)
                 continue
             checked_private_info(current)
             if current.st_size>max_bytes:fail('private JSON exceeds its bounded size')
