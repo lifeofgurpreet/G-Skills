@@ -196,7 +196,7 @@ def main():
             passed('single-host, existing-monitoring and demo setup routes expose commands with their boundaries')
 
             page.get_by_role('link',name='Providers',exact=True).click()
-            expect(page.locator('.provider-card')).to_have_count(6)
+            expect(page.locator('.provider-card')).to_have_count(9)
             page.get_by_label('Provider reference').select_option('akamai')
             expect(page.locator('.provider-card')).to_have_count(1)
             page.locator('.provider-card summary').click()
@@ -206,6 +206,8 @@ def main():
             assert all(link['url'].startswith('https://techdocs.akamai.com/') and 'noreferrer' in link['rel'] for link in links)
             page.get_by_label('Provider reference').select_option('all')
             passed('provider references preserve allocation/allowance distinction without fetching external policies')
+            import provider_checks
+            provider_checks.run(page,root,args.out,passed)
             if args.out:page.screenshot(path=str(args.out/'providers.png'),full_page=True)
 
             page.get_by_role('link',name='Attention',exact=False).click()

@@ -31,7 +31,7 @@ import uuid
 
 import vps_health as core
 
-VERSION = '0.9.0'
+VERSION = '0.9.2'
 SCHEMA = 'g-skills.workspace.v1'
 SELF_HASH = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
 MAX_STORE_BYTES = 256 * 1024 * 1024
@@ -806,6 +806,7 @@ def learning_proposal(root,out):
 
 
 def register(sub):
+    from vps_ops import PROVIDERS
     p=sub.add_parser('support-report',help='Offline minimal support summary; no identities, raw data or transmission');p.add_argument('--workspace',type=Path);p.add_argument('--out',type=Path)
     import vps_forensics as forensic
     forensic.register(sub)
@@ -813,7 +814,7 @@ def register(sub):
     agent.register(sub)
     a=sub.add_parser('bootstrap',help='Create a private workspace; no service install or real collection')
     a.add_argument('--workspace',required=True,type=Path);a.add_argument('--mode',choices=('demo','local','prometheus'),default='demo')
-    a.add_argument('--provider',choices=('unknown','other','contabo','hetzner','digitalocean','akamai','aws'),default='unknown');a.add_argument('--plan',help='Exact owner-provided plan label; never inferred from hardware')
+    a.add_argument('--provider',choices=sorted(PROVIDERS),default='unknown');a.add_argument('--plan',help='Exact owner-provided plan label; never inferred from hardware')
     a.add_argument('--node',default='my-vps');a.add_argument('--profile',type=Path);a.add_argument('--url');a.add_argument('--loki-url')
     a.add_argument('--token-env');a.add_argument('--loki-token-env');a.add_argument('--allow-http',action='store_true')
     a.add_argument('--interval',type=int,default=300);a.add_argument('--acceptable',type=float,default=.9);a.add_argument('--investigate-below',type=float,default=.8)
@@ -831,7 +832,7 @@ def register(sub):
         a=sub.add_parser(name,help='Read-only offline setup diagnosis' if name=='doctor' else 'Derived attention briefing; no notifications sent')
         a.add_argument('--workspace',required=True,type=Path)
     a=sub.add_parser('providers',help='Dated provider-plan references; offline, not a contract verdict')
-    a.add_argument('--provider',choices=('unknown','other','contabo','hetzner','digitalocean','akamai','aws'))
+    a.add_argument('--provider',choices=sorted(PROVIDERS))
     sub.add_parser('capabilities',help='Machine-readable command/safety contract')
 
 

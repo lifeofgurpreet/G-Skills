@@ -5,7 +5,7 @@ import argparse,hashlib,json,subprocess,sys,tempfile
 
 def validate_files(files):
     required={'SKILL.md','scripts/vps_health.py','scripts/vps_workspace.py','assets/chart-adapter.js',
-              'assets/workspace-dashboard.html','assets/view-model.js','assets/workbench.js','references/dashboard.md','assets/vendor/uplot/manifest.json','assets/vendor/uplot/LICENSE','LICENSE',
+              'assets/workspace-dashboard.html','assets/view-model.js','assets/workbench.js','references/dashboard.md','references/providers.md','tests/test_provider_reference.py','assets/vendor/uplot/manifest.json','assets/vendor/uplot/LICENSE','LICENSE',
               'scripts/vps_ops.py','assets/operator.js','assets/operator.css','assets/provider-catalog.json',
               'references/first-hour.md','references/operator-playbook.md','references/support.md','references/workspace-recovery.md','tests/test_private_workspace.py',
               'scripts/vps_agent.py','scripts/vps_forensics.py','references/forensics.md','references/agent-workflow.md','references/agent-connectors.md'}
@@ -39,6 +39,21 @@ def cold_check(target):
         brief=json.loads(subprocess.check_output([sys.executable,entry,'brief','--workspace',str(workspace)],text=True,timeout=30))
         if len(brief['items'])!=2 or brief['automatic_actions']:raise ValueError('exported brief contract failed')
         subprocess.run([sys.executable,entry,'providers','--provider','aws'],check=True,stdout=subprocess.DEVNULL,timeout=30)
+        for provider in ('vultr','ovhcloud','netcup'):
+            result=json.loads(subprocess.check_output([sys.executable,entry,'providers','--provider',provider],text=True,timeout=15))
+            if result['providers'][0]['id']!=provider or result['establishes_contract'] or result['sources_fetched']:
+                raise ValueError('standalone provider route or authority changed')
+            if not all(f.get('reviewed_on') for f in result['providers'][0]['facts']):
+                raise ValueError('standalone reference lacks individual review dates')
+            profile=Path(temp)/(provider+'-profile.json')
+            profile.write_text(json.dumps({'schema':'g-skills.vps-profile.v1','assets':[{'id':'example-'+provider,'instance':'example.invalid:9100','provider':provider,'plan':'Owner-provided example'}]}))
+            location=Path(temp)/(provider+'-workspace')
+            subprocess.run([sys.executable,entry,'bootstrap','--mode','prometheus','--profile',str(profile),
+                '--url','https://metrics.example.invalid','--workspace',str(location)],check=True,stdout=subprocess.DEVNULL,timeout=20)
+            retained=json.loads(subprocess.check_output([sys.executable,entry,'dashboard','--workspace',str(location)],text=True,timeout=20))
+            if retained['assets'][0]['provider']!=provider or retained['assets'][0]['decision']!='HOLD' or retained['stored_captures']:
+                raise ValueError('provider-labelled bootstrap invented observed evidence')
+
         support=json.loads(subprocess.check_output([sys.executable,entry,'support-report','--workspace',str(workspace)],text=True,timeout=30))
         if support['workspace']['retained_points']!=2288 or support['sent'] or not support['review_before_sharing']:
             raise ValueError('exported minimal support summary contract failed')

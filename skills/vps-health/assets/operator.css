@@ -254,3 +254,7 @@ dialog::backdrop{background:#19261750}
 /* Keep primary mobile actions on one row; the case review holds the full next-step text. */
 .page-heading>div:first-child{min-width:0}
 @media(max-width:650px){.heading-actions{flex:0 0 auto;flex-wrap:nowrap;max-width:none}.case-overview .action-copy{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}}
+
+/* Reference age describes the source, never the health of a node. */
+.provider-card .provider-review-state{margin-top:12px;font-size:10px;line-height:1.7;color:var(--muted)}
+.policy-fact .source-review-date{margin:7px 0 5px;font:9px/1.7 var(--mono);color:var(--muted)}

@@ -84,12 +84,18 @@ def run(page,context,root,base,out,passed):
     expect(page.locator('#selected-mean')).to_have_text(original)
     passed('pausing the view stops polling only; explicit refresh updates once without resuming')
 
+    # Establish one owned request. Registering an intercept while automatic
+    # polling is active can capture an older poll before the clicked refresh,
+    # leaving the wrong request held. The real Pause/Resume controls provide
+    # deterministic ownership without changing the application's timer.
+    page.get_by_role('button',name='Pause updates',exact=True).click()
+    expect(page.get_by_role('button',name='Refresh live readings')).to_be_enabled(timeout=10000)
     pending=[]
     page.route('**/api/status',lambda route:pending.append(route))
-    page.get_by_role('button',name='Refresh live readings').click()
+    page.get_by_role('button',name='Resume updates',exact=True).click()
     expect(page.get_by_role('button',name='Refresh live readings')).to_be_disabled()
     page.get_by_role('button',name='Pause updates',exact=True).click()
-    assert pending
+    assert len(pending)==1,len(pending)
     pending[0].fulfill(status=200,content_type='application/json',body=json.dumps(fresh))
     expect(page.get_by_role('button',name='Refresh live readings')).to_be_enabled()
     expect(page.locator('#selected-mean')).to_have_text(original)

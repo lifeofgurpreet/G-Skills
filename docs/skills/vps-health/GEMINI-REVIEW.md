@@ -104,3 +104,14 @@ establish a particular customer's contract, provider behavior or current inciden
 ## Input integrity
 
 The reviewed inputs were the two complete user-supplied Gemini texts. Source A SHA-256: `30d0346293fc7f752b48b5459083f43591a9d6254864fdf8254d05de29f2578e`. Source B SHA-256: `c56f4018330a20d4a20998f19384290c43584e8ceb58c21f266d1591b456e330`. These bind what was reviewed; they are not independent validation of its claims.
+
+
+## Provider expansion delivered after the initial review
+
+The requested additional supplier scope now has original, dated reference entries
+for Vultr, OVHcloud and netcup, with CLI/profile/workbench acceptance. Each source
+has its own review state, so adding these entries does not falsely renew older
+Contabo or other references. Existing Contabo diagnostics are also rendered rather
+than silently omitted by the frontend. The input proposals' automatic provider
+identification, universal CPU floors, guaranteed migration and implicit downtime
+consent remain rejected; adding brand coverage does not validate those claims.

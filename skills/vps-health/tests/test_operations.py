@@ -110,12 +110,12 @@ class ProviderTest(unittest.TestCase):
         net.assert_not_called()
 
     def test_catalog_uses_https_sources_and_is_complete(self):
-        p=ops.providers();self.assertEqual(len(p['providers']),6)
+        p=ops.providers();self.assertEqual(set(r['id'] for r in p['providers']),set(ops.PROVIDER_SOURCES))
         for provider in p['providers']:
             self.assertTrue(provider['check_next']);self.assertTrue(provider['not_a_promise'])
             for fact in provider['facts']:
                 self.assertTrue(fact['source'].startswith('https://'))
-                self.assertIn(fact['kind'],('allocation','usage_allowance','credit_model','billing_behavior'))
+                self.assertIn(fact['kind'],('allocation','usage_allowance','credit_model','billing_behavior','product_scope'))
 
     def test_contabo_diagnostics_guidance_is_dated_primary_and_never_a_run(self):
         entry=ops.providers('contabo')['providers'][0]

@@ -16,6 +16,7 @@ This is one skill within G-Skills. Its work does not define the whole collection
 | `gs-2uh.12` Audit private-state boundaries and release failure recovery | closed | 1 | safety-review-agent | 2026-11-07 | — |
 | `gs-2uh.13` Qualify the narrow passive preview before broader promotion | open | 1 | Gurpreet-and-quality-maintainer | 2026-11-14 | `gs-2uh.12`, `gs-2uh.6`, `gs-2uh.8`, `gs-nah.2` |
 | `gs-2uh.14` Deliver the evidence-first workbench from the design sprint | closed | 1 | design-implementation-agent | 2026-11-07 | — |
+| `gs-2uh.15` Qualify workload context by time and expose repeated shortfall evidence | blocked | 1 | evidence-implementation-agent | 2026-11-07 | — |
 | `gs-2uh.2` Manage collector and viewer beyond a terminal-agent session | closed | 1 | Unassigned | — | `gs-2uh.1` |
 | `gs-2uh.3` Expose agent progress and recovery in the dashboard | closed | 1 | Unassigned | — | `gs-2uh.2` |
 | `gs-2uh.4` Discover host-native connector capabilities only when needed | in_progress | 1 | connector-agent | 2026-11-28 | `gs-2uh.1` |
@@ -44,6 +45,7 @@ flowchart LR
   gs_2uh_8 --> gs_2uh_13
   gs_nah_2 --> gs_2uh_13
   gs_2uh_14["gs-2uh.14: closed"]
+  gs_2uh_15["gs-2uh.15: blocked"]
   gs_2uh_2["gs-2uh.2: closed"]
   gs_2uh_1 --> gs_2uh_2
   gs_2uh_3["gs-2uh.3: closed"]
@@ -133,6 +135,12 @@ Replace concept-board decoration and the overloaded overview with a coherent imp
 **Acceptance:** Actual desktop/mobile/offline/live viewer flows pass; main/inbox actions agree; history and gaps remain unchanged; paused review is distinct from stopped collection; disclosures survive refresh; keyboard navigation and private exports work. Inspect real rendered screenshots, update the installed skill walkthrough and ship a scoped release with synthetic proof, not an image-only mockup.
 
 **Receipt:** Implemented the actual evidence workbench with one canonical next action, linked observations, pinned private review and handoff, local search, view-only pause and agent-owned setup. 454 Python tests, 27 JavaScript contracts and 39 actual-loopback browser groups pass; real desktop/mobile screenshots inspected. Private atomic-read failure reproduced and fixed without weakening privacy. Exact-head CI and extracted-package acceptance remain release gates. Technical preview only; running field pilot and other skills are not changed. See design-workbench.md and workbench-verification-v0.9.0.json under docs/skills/vps-health.
+
+### gs-2uh.15 — Qualify workload context by time and expose repeated shortfall evidence
+
+A real source regression allows one quiet CFS/pressure sample to describe three days as no high recorded pressure. Fix per-channel coverage and currentness; retain canonical CPU policy and expose interval-duration bands, gaps, shortfall runs and recorded-execution context. Add agent-owned private bounded time-range reports and useful workbench evidence, using the normalized observations rather than decimated chart pixels. Leave draft PR22 and the running passive pilot unchanged.
+
+**Acceptance:** Failure-first sparse/stale-context cases pass; no missing-as-zero, duplicate-time inflation, gap stitching or provider guilt. Means agree with the existing union-weighted source. Actual legacy workspace report is read-only; standalone export and browser coverage/timeline cases pass. Native Beads closure is source acceptance, not completion of the 72-hour field pilot.
 
 ### gs-2uh.2 — Manage collector and viewer beyond a terminal-agent session
 
