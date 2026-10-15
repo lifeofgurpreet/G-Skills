@@ -1,0 +1,114 @@
+{
+  "schema": "g-skills.agent-readiness-proof.v1",
+  "source_commit": "e8f18414c7c858d39d4ac7e53549291f2940a0fd",
+  "artifact_sha256": "5c33f4c79eca8f36403d791a05e18256898d979a76e76ed671d6a74ed68f6183",
+  "skill_files": 60,
+  "official_skill_creator_commit": "dbd4588f9e1033efb41dad4bef2f7947c8993d44",
+  "official_validation": {
+    "baseline_version": "0.9.3",
+    "baseline_exit": 1,
+    "baseline_error": "invalid description YAML",
+    "actual_exported_candidate_exit": 0,
+    "actual_exported_candidate_result": "Skill is valid!"
+  },
+  "python_tests": 544,
+  "python_suites": [
+    11,
+    12,
+    8,
+    6,
+    36,
+    10,
+    82,
+    46,
+    56,
+    10,
+    27,
+    41,
+    17,
+    17,
+    49,
+    39,
+    28,
+    6,
+    6,
+    13,
+    15,
+    9
+  ],
+  "metadata_tests": 10,
+  "eval_grader_tests": 15,
+  "javascript_contracts": 27,
+  "browser_groups": 45,
+  "new_runtime_dependencies": false,
+  "cli_bootstrap_without_site_packages": true,
+  "artifact_eval_cases": 3,
+  "expectations_per_case": 5,
+  "trigger_queries": 20,
+  "positive_trigger_queries": 10,
+  "trigger_evaluation_executed": false,
+  "native_client": "Claude Code 2.1.300",
+  "native_attempts": {
+    "attempts": 6,
+    "graded_trials": 0,
+    "scores": null,
+    "results": [
+      {
+        "eval_id": 1,
+        "condition": "old_skill",
+        "state": "BLOCKED_OR_NO_INFERENCE",
+        "trace_sha256": "8a3b9e44f8baee53d9f9abe13dceae647a1afe3d63092d8720cc8c03576e3c4d"
+      },
+      {
+        "eval_id": 1,
+        "condition": "with_skill",
+        "state": "BLOCKED_OR_NO_INFERENCE",
+        "trace_sha256": "a3630f02212bf7ccb2a783e4b310e7490f48a77546e36d740f9b6183de80133b"
+      },
+      {
+        "eval_id": 2,
+        "condition": "old_skill",
+        "state": "BLOCKED_OR_NO_INFERENCE",
+        "trace_sha256": "2b11ac55115841c43d8670e55aa817b9307bc3207499372d1d8909f86b4e427d"
+      },
+      {
+        "eval_id": 2,
+        "condition": "with_skill",
+        "state": "BLOCKED_OR_NO_INFERENCE",
+        "trace_sha256": "82a96a16dd7e9ab2bf43092ece8cf01d515d59377e39c46745730896771b9841"
+      },
+      {
+        "eval_id": 3,
+        "condition": "old_skill",
+        "state": "BLOCKED_OR_NO_INFERENCE",
+        "trace_sha256": "9440b633910a5e6396a660e238beb3c13e486a02a5bcd8fb16f8db734455e163"
+      },
+      {
+        "eval_id": 3,
+        "condition": "with_skill",
+        "state": "BLOCKED_OR_NO_INFERENCE",
+        "trace_sha256": "2768a1971a1d6d2a8952f9ddfaec1c6bfa71afc8994e87aaac7dd217c6c7dab6"
+      }
+    ]
+  },
+  "native_error": "Existing OAuth session expired and could not be refreshed",
+  "native_inference_completed": false,
+  "behavioral_improvement_measured": false,
+  "account_changed": false,
+  "permissions_bypassed": false,
+  "official_review": {
+    "static_html_generated": true,
+    "text_view_checked": true,
+    "blocked_status_cards_not_model_outputs": true,
+    "references_external_assets": true,
+    "sanitized_text_view_works_with_external_assets_blocked": true,
+    "raw_traces_published": false
+  },
+  "ui_render_write": "BLOCKED_NOT_APPLIED",
+  "new_correspondence_module": "BLOCKED_NOT_APPLIED",
+  "action_map": "Existing UI, CLI and native host capability workflow; no invented executable command",
+  "provider_contact": false,
+  "pilot_changed": false,
+  "production_mutation": false,
+  "publicity_posted": false
+}

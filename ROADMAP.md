@@ -19,12 +19,12 @@ This repository hosts independent public skills. Root work is catalog/distributi
 | `gs-nah.4` Select the next independent skill from repeated real work | open | 1 | Gurpreet-and-product-agent | 2027-01-07 | — |
 | `gs-nah.5` Implement reversible selected-skill installation with preserved recovery state | closed | 1 | distribution-agent | 2026-10-28 | — |
 | `gs-nah.6` Produce verified community launch video and share-ready assets | closed | 1 | community-media-agent | 2026-10-16 | — |
-| `gs-nah.7` Validate actual skill discovery YAML before a public release | in_progress | 1 | skill-quality-agent | 2026-11-07 | — |
+| `gs-nah.7` Validate actual skill discovery YAML before a public release | closed | 1 | skill-quality-agent | 2026-11-07 | — |
 
 ## Skill programmes
 
 - [Reset Boost](docs/skills/reset-boost/ROADMAP.md): 2 open implementation/acceptance tasks; independent version 0.3.0.
-- [VPS Health](docs/skills/vps-health/ROADMAP.md): 11 open implementation/acceptance tasks; independent version 0.9.4.
+- [VPS Health](docs/skills/vps-health/ROADMAP.md): 10 open implementation/acceptance tasks; independent version 0.9.4.
 
 ## Collection acceptance
 
@@ -117,6 +117,8 @@ Create an actual short launch film for the selected VPS Health preview using rea
 Anthropic skill-creator quick_validate and a real YAML parser reject the published VPS description because its unquoted colon forms invalid mapping syntax. Runtime tests alone had not caught this. Add a collection-wide development-only metadata check, preserve independent skill ownership and check the actual exported VPS header.
 
 **Acceptance:** Failure-first malformed/duplicate/type/version cases pass; all current skills parse without modifying unrelated skill code; CI installs a pinned development-only YAML parser and the extracted VPS package header passes. No end-user YAML dependency is introduced.
+
+**Receipt:** Actual public v0.9.3 header rejected by Anthropic quick_validate; candidate exported archive passes. Ten metadata regressions, collection checks and isolated no-site-packages bootstrap pass. Dev-only YAML dependency does not enter user runtime. Exact-head hosted checks remain the release gate; other client triggering is not inferred.
 
 A second unrelated skill must be discoverable, independently validated and packaged without inheriting another skill's browser, runtime or safety policy. Draft scaffolds are not completed products.
 

@@ -17,7 +17,7 @@ This is one skill within G-Skills. Its work does not define the whole collection
 | `gs-2uh.13` Qualify the narrow passive preview before broader promotion | open | 1 | Gurpreet-and-quality-maintainer | 2026-11-14 | `gs-2uh.12`, `gs-2uh.15`, `gs-2uh.6`, `gs-2uh.8`, `gs-nah.2` |
 | `gs-2uh.14` Deliver the evidence-first workbench from the design sprint | closed | 1 | design-implementation-agent | 2026-11-07 | — |
 | `gs-2uh.15` Qualify workload context by time and expose repeated shortfall evidence | blocked | 1 | evidence-implementation-agent | 2026-11-07 | — |
-| `gs-2uh.16` Ship realistic agent eval contracts and an actionable UI CLI support map | in_progress | 1 | skill-quality-agent | 2026-11-07 | — |
+| `gs-2uh.16` Ship realistic agent eval contracts and an actionable UI CLI support map | closed | 1 | skill-quality-agent | 2026-11-07 | — |
 | `gs-2uh.2` Manage collector and viewer beyond a terminal-agent session | closed | 1 | Unassigned | — | `gs-2uh.1` |
 | `gs-2uh.3` Expose agent progress and recovery in the dashboard | closed | 1 | Unassigned | — | `gs-2uh.2` |
 | `gs-2uh.4` Discover host-native connector capabilities only when needed | in_progress | 1 | connector-agent | 2026-11-28 | `gs-2uh.1` |
@@ -48,7 +48,7 @@ flowchart LR
   gs_nah_2 --> gs_2uh_13
   gs_2uh_14["gs-2uh.14: closed"]
   gs_2uh_15["gs-2uh.15: blocked"]
-  gs_2uh_16["gs-2uh.16: in_progress"]
+  gs_2uh_16["gs-2uh.16: closed"]
   gs_2uh_2["gs-2uh.2: closed"]
   gs_2uh_1 --> gs_2uh_2
   gs_2uh_3["gs-2uh.3: closed"]
@@ -150,6 +150,8 @@ A real source regression allows one quiet CFS/pressure sample to describe three 
 Apply Anthropic skill-creator task/grading conventions and outcome-based eval guidance to VPS Health. Include concrete synthetic artifact tasks, balanced trigger/nontrigger queries, actual old/new native attempts and a grader that separates no-inference failures from incomplete execution and real outcomes. Teach the existing UI/CLI/host workflow and local software support without unnecessary OAuth.
 
 **Acceptance:** Bundled three-case artifact schema, 20 balanced trigger queries, tested grader, upstream validator/reviewer integration and precise source/output evidence. Real native failures stay ungraded; no model uplift or trigger score is fabricated. Runtime/connector and blocked frontend work remain separate gates.
+
+**Receipt:** Three source-backed artifact cases, twenty balanced trigger queries, fifteen grader tests and an actionable UI/CLI/support map delivered. Official static reviewer renders sanitized blocked-attempt cards. Six native old/new sessions were attempted but existing OAuth expired before inference, so no behavior score/uplift is claimed. Native-client gate gs-2uh.6, inline UI gs-2uh.15 and actual mail integrations remain open. Receipt agent-eval-proof-v0.9.4.json.
 
 ### gs-2uh.2 — Manage collector and viewer beyond a terminal-agent session
 
