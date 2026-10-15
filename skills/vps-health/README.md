@@ -42,6 +42,10 @@ the real controls; routine investigation still belongs to the agent, not the hum
 
 ## Preview status
 
+The [support boundary shipped with this release](references/support-scope.md)
+travels with the installed folder. It separates working implementation from
+unfinished client, field and external-action qualification.
+
 The Linux collector, retained evidence, local viewer and managed lifecycle have
 source, real-process and extracted-release checks. Claude Code project discovery
 has also been exercised. That is not certification of every client, sandbox,

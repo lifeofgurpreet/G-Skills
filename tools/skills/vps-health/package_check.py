@@ -1,17 +1,28 @@
 #!/usr/bin/env python3
 """VPS Health package acceptance; never imposed on unrelated skills."""
 from pathlib import Path
-import argparse,hashlib,json,subprocess,sys,tempfile
+import argparse,hashlib,json,posixpath,re,subprocess,sys,tempfile
+from urllib.parse import unquote,urlsplit
 
 def validate_files(files):
     required={'SKILL.md','scripts/vps_health.py','scripts/vps_workspace.py','assets/chart-adapter.js',
               'assets/workspace-dashboard.html','assets/view-model.js','assets/workbench.js','references/dashboard.md','references/providers.md','tests/test_provider_reference.py','assets/vendor/uplot/manifest.json','assets/vendor/uplot/LICENSE','LICENSE',
-              'evals/evals.json','evals/trigger-evals.json','references/agent-actions.md','scripts/vps_evidence.py','references/time-evidence.md','scripts/vps_ops.py','assets/operator.js','assets/operator.css','assets/provider-catalog.json',
+              'references/support-scope.md','evals/evals.json','evals/trigger-evals.json','references/agent-actions.md','scripts/vps_evidence.py','references/time-evidence.md','scripts/vps_ops.py','assets/operator.js','assets/operator.css','assets/provider-catalog.json',
               'references/first-hour.md','references/operator-playbook.md','references/support.md','references/workspace-recovery.md','tests/test_private_workspace.py',
               'scripts/vps_agent.py','scripts/vps_forensics.py','references/forensics.md','references/agent-workflow.md','references/agent-connectors.md'}
     if not required<=set(files):raise ValueError('installable skill is missing required runtime/license files')
     if any(name.startswith(('skills/','.github/','tools/')) for name in files):
         raise ValueError('repository content incorrectly nested inside the skill ZIP')
+    # Check authored inline Markdown references in the actual selected archive.
+    # This is not a full Markdown parser or an external URL/anchor availability check.
+    for name,raw in files.items():
+        if not name.endswith('.md'):continue
+        text=re.sub(r'^```[^\n]*\n.*?^```\s*$','',raw.decode(),flags=re.S|re.M)
+        for link in re.findall(r'\[[^\]]*\]\(([^\s)]+)(?:\s+"[^"]*")?\)',text):
+            parts=urlsplit(link)
+            if parts.scheme or parts.netloc or not parts.path:continue
+            target=posixpath.normpath(posixpath.join(posixpath.dirname(name),unquote(parts.path)))
+            if target not in files:raise ValueError('unshipped local documentation target: '+name+' -> '+link)
     import yaml
     header=yaml.safe_load(files['SKILL.md'].decode().split('---',2)[1])
     if not isinstance(header,dict) or header.get('name')!='vps-health' or not isinstance(header.get('description'),str):

@@ -6,6 +6,8 @@ import hashlib
 import io
 import json
 import sys
+import subprocess
+import tempfile
 import unittest
 import zipfile
 sys.path.insert(0,str(Path(__file__).resolve().parents[2]))
@@ -53,5 +55,42 @@ class PackageTest(unittest.TestCase):
     def test_paths_cannot_escape_the_export(self):
         with self.assertRaises(ValueError):package.zip_payload({'../../escape':b'x'},'vps-health/')
         with self.assertRaises(ValueError):package.zip_payload({'/absolute':b'x'},'vps-health/')
+
+    def test_agent_entry_identifies_the_bundled_cli(self):
+        files=self.fixture();entry=files['SKILL.md'].decode()
+        self.assertIn('[scripts/vps_health.py](scripts/vps_health.py)',entry)
+        self.assertIn('references/support-scope.md',entry)
+
+    def test_release_support_scope_is_bundled_not_only_an_online_page(self):
+        files=self.fixture();self.assertIn('references/support-scope.md',files)
+        self.assertIn('references/support-scope.md',files['README.md'].decode())
+        files.pop('references/support-scope.md')
+        with self.assertRaises(ValueError):check.validate_files(files)
+
+    def test_a_missing_local_reference_cannot_pass_release_acceptance(self):
+        files=self.fixture();files['SKILL.md']+=b'\nRead [a missing guide](references/not-shipped.md).\n'
+        with self.assertRaises(ValueError):check.validate_files(files)
+
+    def test_nested_guide_links_resolve_relative_to_the_guide(self):
+        files=self.fixture();files['references/forensics.md']+=b'\nRead [the method](./method.md#context).\n'
+        check.validate_files(files)
+
+    def test_absolute_or_escaping_local_references_fail(self):
+        for target in ('../private.txt','/private.txt','../../another-skill/SKILL.md'):
+            files=self.fixture();files['SKILL.md']+=('\n[Invalid]('+target+')\n').encode()
+            with self.subTest(target=target),self.assertRaises(ValueError):check.validate_files(files)
+
+    def test_real_cli_entry_does_not_depend_on_working_directory_or_site_packages(self):
+        files=self.fixture()
+        with tempfile.TemporaryDirectory() as temp:
+            installed=Path(temp)/'skill folder with spaces';unrelated=Path(temp)/'another working folder';unrelated.mkdir()
+            for name,body in files.items():
+                target=installed/name;target.parent.mkdir(parents=True,exist_ok=True);target.write_bytes(body)
+            entry=installed/'scripts/vps_health.py'
+            result=json.loads(subprocess.check_output([sys.executable,'-B','-S',str(entry),'capabilities'],cwd=unrelated,text=True,timeout=20))
+            help_text=subprocess.check_output([sys.executable,'-B','-S',str(entry),'--help'],cwd=unrelated,text=True,timeout=20)
+            self.assertEqual(result['version'],json.loads(files['skill.json'])['version'])
+            self.assertIn('agent-plan',help_text);self.assertEqual(list(unrelated.iterdir()),[])
+            self.assertFalse(list(installed.rglob('*.pyc')))
 
 if __name__=='__main__':unittest.main()

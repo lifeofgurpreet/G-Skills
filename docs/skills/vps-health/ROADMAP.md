@@ -18,6 +18,7 @@ This is one skill within G-Skills. Its work does not define the whole collection
 | `gs-2uh.14` Deliver the evidence-first workbench from the design sprint | closed | 1 | design-implementation-agent | 2026-11-07 | — |
 | `gs-2uh.15` Qualify workload context by time and expose repeated shortfall evidence | blocked | 1 | evidence-implementation-agent | 2026-11-07 | — |
 | `gs-2uh.16` Ship realistic agent eval contracts and an actionable UI CLI support map | closed | 1 | skill-quality-agent | 2026-11-07 | — |
+| `gs-2uh.17` Make the public entry explicit and bundle its release support boundary | in_progress | 1 | publication-verification-agent | 2026-11-07 | — |
 | `gs-2uh.2` Manage collector and viewer beyond a terminal-agent session | closed | 1 | Unassigned | — | `gs-2uh.1` |
 | `gs-2uh.3` Expose agent progress and recovery in the dashboard | closed | 1 | Unassigned | — | `gs-2uh.2` |
 | `gs-2uh.4` Discover host-native connector capabilities only when needed | in_progress | 1 | connector-agent | 2026-11-28 | `gs-2uh.1` |
@@ -49,6 +50,7 @@ flowchart LR
   gs_2uh_14["gs-2uh.14: closed"]
   gs_2uh_15["gs-2uh.15: blocked"]
   gs_2uh_16["gs-2uh.16: closed"]
+  gs_2uh_17["gs-2uh.17: in_progress"]
   gs_2uh_2["gs-2uh.2: closed"]
   gs_2uh_1 --> gs_2uh_2
   gs_2uh_3["gs-2uh.3: closed"]
@@ -152,6 +154,12 @@ Apply Anthropic skill-creator task/grading conventions and outcome-based eval gu
 **Acceptance:** Bundled three-case artifact schema, 20 balanced trigger queries, tested grader, upstream validator/reviewer integration and precise source/output evidence. Real native failures stay ungraded; no model uplift or trigger score is fabricated. Runtime/connector and blocked frontend work remain separate gates.
 
 **Receipt:** Three source-backed artifact cases, twenty balanced trigger queries, fifteen grader tests and an actionable UI/CLI/support map delivered. Official static reviewer renders sanitized blocked-attempt cards. Six native old/new sessions were attempted but existing OAuth expired before inference, so no behavior score/uplift is claimed. Native-client gate gs-2uh.6, inline UI gs-2uh.15 and actual mail integrations remain open. Receipt agent-eval-proof-v0.9.4.json.
+
+### gs-2uh.17 — Make the public entry explicit and bundle its release support boundary
+
+Publication audit of the actual v0.9.4 archive found its 39 authored local links valid, but SKILL.md never identified the CLI executable. Make that first invocation explicit and ship the support matrix inside the independently installed skill. Add actual archive reference checks, not an unsupported claim of universal usability.
+
+**Acceptance:** Official metadata validation and extracted archive checks pass; first capabilities/help work via a spaced absolute install path from an unrelated directory without site-packages or creating a workspace. Missing/unshipped reference fixtures fail. Existing runtime/UI behavior and all unresolved native-client/field/connector gates remain unchanged.
 
 ### gs-2uh.2 — Manage collector and viewer beyond a terminal-agent session
 

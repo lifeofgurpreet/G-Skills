@@ -18,11 +18,11 @@
       "entry": "skills/vps-health/SKILL.md",
       "name": "vps-health",
       "path": "skills/vps-health",
-      "release_tag": "vps-health/v0.9.4",
+      "release_tag": "vps-health/v0.9.5",
       "status": "ready",
       "summary": "Agent-owned VPS observation, workload context and private evidence reports.",
       "title": "VPS Health",
-      "version": "0.9.4"
+      "version": "0.9.5"
     }
   ]
 }
