@@ -48,3 +48,13 @@ retained old files, user modifications, independent skill boundaries and stale
 approvals. Never execute package hooks during installation or silently adopt a
 folder managed by a different tool. Local filesystem tests do not certify native
 Codex/Claude discovery. Keep source-preview and qualified-client claims separate.
+
+
+## Validate what the client actually reads
+
+Install development checks with `python3 -m pip install -r tools/requirements-dev.txt`.
+Full collection validation parses real SKILL.md YAML, checks unique metadata and
+compares skill names/versions with their owning manifest. Quote colons or use a
+folded description; string matching and passing runtime tests cannot certify
+discovery metadata. PyYAML is development-only and is not added to installed users'
+runtime. Anthropic-compatible task evals remain separate from these structural checks.

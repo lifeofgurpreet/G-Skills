@@ -106,3 +106,13 @@ It creates an offline minimal summary of versions, check categories and countsâ€
 an upload or a general redaction of your data. Review the small result before sharing.
 Do not attach the normal summary, dashboard, database or raw agent trace to a
 public issue. [Support workflow](references/support.md).
+
+
+## For coding agents and contributors
+
+Start with [the UI / CLI / host action map](references/agent-actions.md) to choose
+the shortest real workflow, including local software support versus provider
+correspondence. The [evaluation guide](references/evaluation.md) and bundled
+`evals/evals.json` support repeatable old/new skill tests. Runtime users do not
+need the evaluation toolkit or its development dependencies. Version 0.9.4 fixes
+a discovery-header YAML defect; older archives remain unchanged historical files.

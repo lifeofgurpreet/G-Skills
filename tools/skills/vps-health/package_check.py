@@ -6,13 +6,18 @@ import argparse,hashlib,json,subprocess,sys,tempfile
 def validate_files(files):
     required={'SKILL.md','scripts/vps_health.py','scripts/vps_workspace.py','assets/chart-adapter.js',
               'assets/workspace-dashboard.html','assets/view-model.js','assets/workbench.js','references/dashboard.md','references/providers.md','tests/test_provider_reference.py','assets/vendor/uplot/manifest.json','assets/vendor/uplot/LICENSE','LICENSE',
-              'scripts/vps_evidence.py','references/time-evidence.md','scripts/vps_ops.py','assets/operator.js','assets/operator.css','assets/provider-catalog.json',
+              'evals/evals.json','evals/trigger-evals.json','references/agent-actions.md','scripts/vps_evidence.py','references/time-evidence.md','scripts/vps_ops.py','assets/operator.js','assets/operator.css','assets/provider-catalog.json',
               'references/first-hour.md','references/operator-playbook.md','references/support.md','references/workspace-recovery.md','tests/test_private_workspace.py',
               'scripts/vps_agent.py','scripts/vps_forensics.py','references/forensics.md','references/agent-workflow.md','references/agent-connectors.md'}
     if not required<=set(files):raise ValueError('installable skill is missing required runtime/license files')
     if any(name.startswith(('skills/','.github/','tools/')) for name in files):
         raise ValueError('repository content incorrectly nested inside the skill ZIP')
+    import yaml
+    header=yaml.safe_load(files['SKILL.md'].decode().split('---',2)[1])
+    if not isinstance(header,dict) or header.get('name')!='vps-health' or not isinstance(header.get('description'),str):
+        raise ValueError('actual exported skill discovery metadata is invalid')
     meta=json.loads(files['skill.json'])
+    if header.get('metadata',{}).get('version')!=meta['version']:raise ValueError('exported discovery version differs')
     for code in ('scripts/vps_health.py','scripts/vps_workspace.py'):
         if ("VERSION = '"+meta['version']+"'") not in files[code].decode():raise ValueError('skill manifest/runtime versions differ')
     manifest=json.loads(files['assets/vendor/uplot/manifest.json'])
@@ -26,7 +31,12 @@ def validate_files(files):
 def cold_check(target):
     with tempfile.TemporaryDirectory() as temp:
         entry=str(target/'scripts/vps_health.py');workspace=Path(temp)/'workspace'
-        subprocess.run([sys.executable,entry,'bootstrap','--mode','demo','--workspace',str(workspace)],check=True,stdout=subprocess.DEVNULL,timeout=60)
+        # Disable site-packages: the new YAML parser is a maintainer check,
+        # never a dependency needed by an installed user's CLI or workbench.
+        capability=json.loads(subprocess.check_output([sys.executable,'-S',entry,'capabilities'],text=True,timeout=20))
+        if capability['version']!=json.loads((target/'skill.json').read_text())['version']:
+            raise ValueError('standalone no-site-packages version mismatch')
+        subprocess.run([sys.executable,'-S',entry,'bootstrap','--mode','demo','--workspace',str(workspace)],check=True,stdout=subprocess.DEVNULL,timeout=60)
         html=(workspace/'dashboard.html').read_text()
         if 'VpsCharts.mount' not in html or 'var uPlot=' not in html or '/*UPLOT_JS*/' in html:raise ValueError('exported chart runtime missing')
         for control in ('review-dialog','command-dialog','pause-view','VpsView.review','VpsView.commands'):

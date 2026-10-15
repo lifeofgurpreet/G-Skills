@@ -53,7 +53,7 @@ def main(argv=None):
         collection.design_kit()
         subprocess.run([sys.executable,str(ROOT/'tools/collection.py'),'--check'],check=True)
         subprocess.run([sys.executable,str(ROOT/'tools/roadmap.py'),'--check'],check=True)
-        for name in ('test_skill_study.py','test_collection.py','test_package_release.py','test_roadmap.py','test_install_skill.py'):
+        for name in ('test_skill_study.py','test_collection.py','test_package_release.py','test_roadmap.py','test_install_skill.py','test_skill_frontmatter.py'):
             subprocess.run([sys.executable,str(ROOT/'tools'/name)],check=True)
         if not a.structure_only:
             for row in rows:

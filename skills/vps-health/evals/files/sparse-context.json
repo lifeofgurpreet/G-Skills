@@ -1,0 +1,18 @@
+{
+  "label": "SYNTHETIC EVALUATION FIXTURE",
+  "subject": "sample-a",
+  "accounting_decision": "WITHIN_TOLERANCE",
+  "accounting_mean": 0.96,
+  "window_hours": 72,
+  "pressure_mean": 0,
+  "cfs_mean": 0,
+  "pressure_observed_seconds": 300,
+  "cfs_observed_seconds": 300,
+  "context_coverage": 0.0011574074074074073,
+  "workload_context": "CONTEXT_INCOMPLETE",
+  "service_impact": "not supplied",
+  "provider": "other",
+  "plan": "unknown",
+  "provider_cause_proven": false,
+  "contact_authorized": false
+}
