@@ -3,9 +3,9 @@
   "name": "reset-boost",
   "title": "Reset Boost",
   "summary": "Turn every Codex session up for a provider usage reset and back down when it lands, from a live panel that reads each session's status line, with a credit guard.",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "category": "agent-operations",
-  "status": "draft",
+  "status": "ready",
   "entry": "SKILL.md",
   "checks": {
     "python": "tools/skills/reset-boost/validate.py",

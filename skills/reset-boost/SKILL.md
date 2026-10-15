@@ -4,7 +4,7 @@ description: Turn every Codex coding-agent session in a fleet up for a provider 
 license: MIT
 compatibility: Python 3.11+ on the controlling machine and on each Linux/macOS host (3.10 runs the lifecycle, panel and dashboard but cannot read TOML). SSH aliases with key auth for remote hosts. Live switching needs Herdr or tmux and the Codex terminal UI. Windows hosts are config-only. No dependencies to install.
 metadata:
-  version: "0.2.0"
+  version: "0.2.1"
   author: lifeofgurpreet
 ---
 

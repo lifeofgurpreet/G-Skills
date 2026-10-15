@@ -103,7 +103,7 @@ class Panel:
         report = boost_lifecycle.latest_report(state)
         items = boost_agent.track(self.store, boost_agent.signals(state, report, state.get("usage_error")))
         runs = boost_agent.load_runs(store)
-        target, profiles, hold, label = boost_lifecycle.plan(state)
+        target, profiles, hold, label = boost_lifecycle.plan(state, boost_lifecycle.exhausted_profiles(usage.get("accounts")))
         evaluated = {row["id"]: row for row in boost_lifecycle.evaluate(state, usage.get("accounts") or {})[2]} if state.get("phase") == "boosted" else {}
         panes_by_profile = {}
         for host, value in ((report or {}).get("hosts") or {}).items():

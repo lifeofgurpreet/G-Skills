@@ -32,7 +32,7 @@ try:
 except ModuleNotFoundError:  # Python 3.10: the boost lifecycle and dashboard still work.
     tomllib = None
 
-VERSION = "0.2.0"
+VERSION = "0.2.1"
 ALIASES = {"sol61": "gpt-6.1-sol", "sol": "gpt-6.1-sol", "luna": "gpt-6-luna", "terra": "gpt-5.6-terra", "astra": "gpt-6-astra"}
 EFFORTS = ("low", "medium", "high", "xhigh", "max", "ultra")
 TIERS = ("default", "priority", "flex")

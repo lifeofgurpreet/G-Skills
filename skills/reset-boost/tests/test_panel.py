@@ -260,6 +260,18 @@ class ServerTests(Fixture):
         self.assertEqual(self.store.load()["phase"], "cooling")
         self.assertEqual(self.request("POST", "/api/nonsense", {})[0], 400)
 
+    def test_snapshot_shows_out_of_quota_accounts_at_baseline(self):
+        state = boost_lifecycle.ensure_baseline(self.fm, fm.load_config(), self.store.load())
+        state.update(phase="boosted", boost_target=ASTRA_HIGH, boost_name="astra-high", auto_down=dict(boost_lifecycle.DEFAULT_AUTO_DOWN))
+        self.store.save(state)
+        self.store.usage_path.parent.mkdir(parents=True, exist_ok=True)
+        self.store.usage_path.write_text(json.dumps({"accounts": {
+            "a": {"label": "team-a", "profile": "team-a", "windows": {"weekly": {"used": 100}}},
+            "b": {"label": "team-b", "profile": "team-b", "windows": {"weekly": {"used": 40}}}}}))
+        targets = {row["profile"]: row["target"] for row in self.panel.snapshot()["accounts"]}
+        self.assertEqual(targets["team-a"], state["baseline_target"])
+        self.assertEqual(targets["team-b"], ASTRA_HIGH)
+
     def test_stream_starts_with_a_snapshot(self):
         connection = http.client.HTTPConnection("127.0.0.1", self.port, timeout=10)
         connection.request("GET", "/api/stream?t=" + self.panel.token, headers={"Host": f"127.0.0.1:{self.port}"})

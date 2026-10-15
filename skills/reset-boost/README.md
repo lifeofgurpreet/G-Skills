@@ -45,7 +45,7 @@ CAAM account-manager layouts are supported when present and ignored otherwise.
 
 ## Preview status
 
-Draft 0.2.0. Ported from a working private deployment; the tests are
+Preview 0.2.1. Ported from a working private deployment; the tests are
 provider-free and synthetic (status lines, a fake fleet and a fake agent
 command). It has not been qualified on another person's estate. Desktop apps
 and Windows terminals are not switched, and status-line telemetry depends on

@@ -7,11 +7,11 @@
       "entry": "skills/reset-boost/SKILL.md",
       "name": "reset-boost",
       "path": "skills/reset-boost",
-      "release_tag": "reset-boost/v0.2.0",
-      "status": "draft",
+      "release_tag": "reset-boost/v0.2.1",
+      "status": "ready",
       "summary": "Turn every Codex session up for a provider usage reset and back down when it lands, from a live panel that reads each session's status line, with a credit guard.",
       "title": "Reset Boost",
-      "version": "0.2.0"
+      "version": "0.2.1"
     },
     {
       "category": "infrastructure",

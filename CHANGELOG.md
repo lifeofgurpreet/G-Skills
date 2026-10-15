@@ -24,6 +24,14 @@ own checks under `tools/skills/reset-boost/` and is not released; see
 [its changelog](skills/reset-boost/CHANGELOG.md).
 
 
+## Reset Boost 0.2.1 preview
+
+[Reset Boost](skills/reset-boost/README.md) is marked ready for an independent
+preview release: out-of-quota accounts show at the baseline they stay at, and
+the panel's credit-guard setting wins over the config. See
+[its changelog](skills/reset-boost/CHANGELOG.md).
+
+
 ## Reset Boost 0.2.0 draft and the operator-ui design kit
 
 [Reset Boost](skills/reset-boost/README.md) gains a session-first live control

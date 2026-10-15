@@ -1,5 +1,14 @@
 # Reset Boost changelog
 
+## 0.2.1 — Preview
+
+First releasable preview. The panel now plans accounts with no quota left at
+the baseline they actually stay at, instead of showing the boost target and
+then "skipped" (regression test added). Already in 0.2.0 and now covered by
+this release: the panel's credit-guard switch and floor override the config
+default when changes are applied, and on phones the sessions table drops the
+account and quota columns so the state column is not clipped.
+
 ## 0.2.0 — Draft
 
 Live control panel, session first. `serve` runs a local web UI and JSON/SSE
