@@ -31,7 +31,12 @@ def validate_files(files):
 def cold_check(target):
     with tempfile.TemporaryDirectory() as temp:
         entry=str(target/'scripts/vps_health.py');workspace=Path(temp)/'workspace'
-        subprocess.run([sys.executable,entry,'bootstrap','--mode','demo','--workspace',str(workspace)],check=True,stdout=subprocess.DEVNULL,timeout=60)
+        # Disable site-packages: the new YAML parser is a maintainer check,
+        # never a dependency needed by an installed user's CLI or workbench.
+        capability=json.loads(subprocess.check_output([sys.executable,'-S',entry,'capabilities'],text=True,timeout=20))
+        if capability['version']!=json.loads((target/'skill.json').read_text())['version']:
+            raise ValueError('standalone no-site-packages version mismatch')
+        subprocess.run([sys.executable,'-S',entry,'bootstrap','--mode','demo','--workspace',str(workspace)],check=True,stdout=subprocess.DEVNULL,timeout=60)
         html=(workspace/'dashboard.html').read_text()
         if 'VpsCharts.mount' not in html or 'var uPlot=' not in html or '/*UPLOT_JS*/' in html:raise ValueError('exported chart runtime missing')
         for control in ('review-dialog','command-dialog','pause-view','VpsView.review','VpsView.commands'):
