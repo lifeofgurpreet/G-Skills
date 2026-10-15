@@ -117,6 +117,24 @@ class ProviderTest(unittest.TestCase):
                 self.assertTrue(fact['source'].startswith('https://'))
                 self.assertIn(fact['kind'],('allocation','usage_allowance','credit_model','billing_behavior'))
 
+    def test_contabo_diagnostics_guidance_is_dated_primary_and_never_a_run(self):
+        entry=ops.providers('contabo')['providers'][0]
+        self.assertEqual(len(entry['diagnostics']),1)
+        for item in entry['diagnostics']:
+            self.assertEqual(item['kind'],'support_request')
+            self.assertEqual(item['reviewed_on'],'2026-10-15')
+            self.assertTrue(item['source'].startswith('https://help.contabo.com/'))
+            self.assertIn('not run implicitly',item['text'])
+        with mock.patch.object(core,'get_json') as net:ops.providers('contabo')
+        net.assert_not_called()
+
+    def test_diagnostics_source_origin_is_checked(self):
+        data=core.read_json(core.ROOT/'assets/provider-catalog.json')
+        data['providers'][0]['diagnostics'][0]['source']='https://example.invalid/mtr'
+        with mock.patch.object(core,'read_json',return_value=data):
+            with self.assertRaises(core.InvalidEvidence):ops.providers('contabo')
+
+
 class DoctorTest(unittest.TestCase):
     def setUp(self):
         self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup);self.root=Path(self.temp.name)/'workspace'

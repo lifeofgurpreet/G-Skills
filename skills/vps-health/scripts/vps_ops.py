@@ -20,7 +20,7 @@ import vps_health as core
 
 SOURCE_SHA256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
 PROVIDERS={'unknown','other','contabo','hetzner','digitalocean','akamai','aws'}
-ALLOWED_SOURCES={'docs.contabo.com','docs.hetzner.com','docs.digitalocean.com','techdocs.akamai.com','docs.aws.amazon.com'}
+ALLOWED_SOURCES={'docs.contabo.com','help.contabo.com','docs.hetzner.com','docs.digitalocean.com','techdocs.akamai.com','docs.aws.amazon.com'}
 
 
 def providers(name=None,now=None):
@@ -34,7 +34,7 @@ def providers(name=None,now=None):
     if len(ids)!=6 or len(ids)!=len(set(ids)) or set(ids)!=PROVIDERS-{'unknown'}:
         raise core.InvalidEvidence('provider reference identities are incomplete or duplicated')
     for provider in data['providers']:
-        for fact in provider['facts']:
+        for fact in provider['facts']+provider.get('diagnostics',[]):
             url=urllib.parse.urlsplit(fact['source'])
             if url.scheme!='https' or url.hostname not in ALLOWED_SOURCES or url.username or url.password:
                 raise core.InvalidEvidence('unreviewed provider source origin')

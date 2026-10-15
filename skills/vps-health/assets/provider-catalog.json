@@ -11,6 +11,9 @@
         {"kind": "allocation", "scope": "Core, Performance and Storage VPS", "text": "The VPS documentation describes shared virtual CPU cores. A newer CPU generation does not make the allocation dedicated.", "source": "https://docs.contabo.com/docs/servers-hosting/vps/"},
         {"kind": "allocation", "scope": "Max Performance VPS / VDS", "text": "The VDS product documentation describes CPU cores reserved for the instance. Its dedicated-core benchmark guidance is not a shared-VPS minimum.", "source": "https://docs.contabo.com/docs/servers-hosting/max-performance-vps/"}
       ],
+      "diagnostics": [
+        {"kind": "support_request", "scope": "Connectivity diagnostics for a support ticket", "text": "Contabo's help article says support may ask for an MTR toward the server's IP address, run for about 10 minutes and exported, plus a traceroute, and that the results go to customer support. MTR and traceroute are active probes: they need the user's scoped approval and are not run implicitly.", "source": "https://help.contabo.com/en/support/solutions/articles/103000271266-how-can-i-run-diagnostics-on-my-server-", "reviewed_on": "2026-10-15"}
+      ],
       "check_next": ["Record the exact product family, plan and region.", "Keep confirmed migration completion separate from an offer or scheduling reply.", "Compare workload limits and service impact with repeated observations."],
       "not_a_promise": "No numeric guest-accounted-time floor is established by these references. The skill's 90% and 80% levels are user preferences, not Contabo guarantees.",
       "support_question": "Can you review host-side scheduling for this specific VM and UTC interval?"

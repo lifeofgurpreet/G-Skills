@@ -43,6 +43,29 @@ agreement. Product names and terms can change. Contabo product summaries were
 checked against indexed official documentation; direct page retrieval was not
 reliable during this review. Do not describe the whole contract as inspected.
 
+## Provider diagnostics for a support ticket
+
+Contabo's [diagnostics article](https://help.contabo.com/en/support/solutions/articles/103000271266-how-can-i-run-diagnostics-on-my-server-)
+(reviewed 2026-10-15) says support may ask for an MTR toward the server's IP,
+run about 10 minutes and exported, plus a traceroute, attached to the ticket. The
+catalog carries this as a `diagnostics` entry, not a performance claim.
+
+MTR and ping are active probes. The rule in SKILL.md holds: they need the user's
+scoped approval and never run implicitly.
+
+Reading the result:
+
+- Probe a pairwise matrix of peers, including a control pair in the same location
+  that does not involve the suspect VPS. If only pairs with that VPS are slow, it is
+  one VPS; if the control pair is slow too, suspect the location or path.
+- In an mtr report, a fast provider gateway with a slow last hop puts the delay
+  between the gateway and the guest. Loss on a middle hop that does not carry
+  through to the last hop is usually router rate-limiting, not path loss.
+
+A ticket states measured numbers, UTC times, the control comparison, a clear ask
+and no internal names, addresses of unrelated systems or tokens. Draft it for the
+user's review; sending is a separate approval ([correspondence.md](correspondence.md)).
+
 ## Adapting to another environment
 
 Use the owner's current expected assets, exact exporter labels, plan evidence and

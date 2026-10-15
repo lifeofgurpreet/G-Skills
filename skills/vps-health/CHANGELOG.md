@@ -1,5 +1,14 @@
 # VPS Health changelog
 
+## Unreleased — Provider diagnostics guidance for support tickets
+
+Add Contabo's primary diagnostics article (MTR and traceroute for a ticket, reviewed
+2026-10-15) as a validated `diagnostics` catalog entry, and a short providers.md
+section on peer-matrix interpretation and ticket contents. MTR and ping remain
+active probes that need scoped approval; nothing runs or sends. Collection,
+thresholds and permissions are unchanged. The opt-in network workflow, matrix
+tests and ticket template are later slices (issue #20).
+
 ## 0.8.0 — Minimal support reports and a clearer preview boundary
 
 Add `support-report` and a matching live-viewer download that include only software
