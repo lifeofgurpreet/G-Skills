@@ -14,6 +14,8 @@ import vps_ops as ops
 def run(page,context,root,base,out,passed):
     page.set_viewport_size({'width':1440,'height':1000})
     page.goto(base,wait_until='networkidle')
+    page.keyboard.press('Tab');expect(page.locator('.skip')).to_be_focused()
+    page.keyboard.press('Enter');expect(page.locator('#main')).to_be_focused()
     expected=next(i for i in workspace.status(root)['operator']['items'] if i['node']=='example-offline')
     page.get_by_label('Inspect node',exact=True).select_option('example-offline')
     expect(page.locator('#action-title')).to_have_text(expected['title'])
@@ -86,6 +88,9 @@ def run(page,context,root,base,out,passed):
     page.get_by_role('button',name='24h',exact=True).click()
     page.get_by_role('button',name='Review next step',exact=True).click()
     expect(page.locator('#review-dialog')).to_be_visible()
+    expect(page.locator('#review-title')).to_be_focused()
+    page.keyboard.press('Tab');expect(page.locator('#close-review')).to_be_focused()
+    page.keyboard.press('Shift+Tab');expect(page.locator('#copy-review-task')).to_be_focused()
     pin=page.locator('#review-task').input_value();mean=page.locator('#review-mean').inner_text()
     assert 'Full assessment window:' in pin and 'not a new assessment window' in pin and 'SYNTHETIC DEMO' in pin
     page.route('**/api/status',lambda route:route.fulfill(status=200,content_type='application/json',body=json.dumps(fresh)))
@@ -142,6 +147,7 @@ def run(page,context,root,base,out,passed):
     if out:page.screenshot(path=str(out/'command-menu.png'))
     page.keyboard.press('Escape')
     if out:
+        page.locator('#page-title').click()
         page.evaluate('window.scrollTo(0,0)')
         page.screenshot(path=str(out/'workbench-desktop.png'))
         page.screenshot(path=str(out/'workbench-desktop-full.png'),full_page=True)

@@ -145,6 +145,7 @@ def main():
             passed('drag zoom and reset inspect history without altering assessment')
 
             with page.expect_download() as event:page.get_by_role('button',name='Save chart image').click()
+            assert event.value.suggested_filename=='vps-demo-chart.png'
             image=Path(event.value.path()).read_bytes();assert image[:8]==b'\x89PNG\r\n\x1a\n' and len(image)>1000
             page.get_by_role('button',name='6h',exact=True).click()
             with page.expect_download() as event:page.get_by_role('button',name='Save displayed samples CSV').click()

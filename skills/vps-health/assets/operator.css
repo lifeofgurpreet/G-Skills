@@ -250,3 +250,7 @@ dialog::backdrop{background:#19261750}
 .rail #open-inbox{font-size:10px}.rail .rail-bottom{margin-top:auto}
 @media(max-width:760px){.rail #attention-banner{display:none;grid-column:1/-1;max-width:none}.rail[data-expanded=true] #attention-banner{display:flex}.case-overview .action-copy{font-size:12px}}
 @media(max-width:650px){.heading-actions .button{min-height:44px}.range-button,.chart-tool{min-height:44px}}
+
+/* Keep primary mobile actions on one row; the case review holds the full next-step text. */
+.page-heading>div:first-child{min-width:0}
+@media(max-width:650px){.heading-actions{flex:0 0 auto;flex-wrap:nowrap;max-width:none}.case-overview .action-copy{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}}

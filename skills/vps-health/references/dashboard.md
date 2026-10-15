@@ -1,107 +1,128 @@
-# Reading the workbench
+# Workbench: from observation to the next useful action
 
-## Start with the evidence state
+The agent performs the investigation. The human sees the evidence and makes the
+access or consequential-action decisions. The interface is a local instrument,
+not a promotional page, a provider-fault classifier or a browser terminal.
 
-The three counts describe the configured inventory: within accounting tolerance,
-watch/investigation, and evidence on hold. They do not certify application health
-or establish a complete provider-account census. A node with a high retained
-mean can still be on HOLD because its measurements are stale or incomplete.
+## 1. Start with the selected investigation
 
-## Inspect one node
+Select a configured node in the table, its selector or the local search menu.
+The main heading and next step come from the same operator brief as the Attention
+inbox. They do not use a second frontend decision rubric. A high mean with stale
+or incomplete evidence stays HOLD; good accounting with workload pressure can
+still require investigation.
 
-Select a node in the table or the history selector. Its accounting trend and
-next useful check appear together. CPU execution, pressure and throttled-period
-context remain distinct. Pressure does not identify its cause, and the fraction
-of throttled periods is not a percentage of lost CPU time.
+The three compact counts describe only configured nodes: within accounting
+tolerance, watch/investigation, and evidence on hold. They are not a provider-account
+census or a service-health certificate. Coverage is the amount of the assessment
+window actually observed, not confidence that a provider is responsible.
 
-Use the sample slider with arrow keys, Home and End, or point to the chart to
-inspect a retained UTC sample. The graph uses at most 600 display points. It
-keeps bucket boundaries, minima, maxima and an invalid point when present.
-Explicit breaks come from the original intervals, not from gaps in the reduced
-plot. This prevents a short dip disappearing just because every second point
-was dropped. Raw captures and aggregate calculations are not downsampled.
+## 2. Read the measurements in context
 
-## Find the relevant evidence
+The upper bundled uPlot pane compares accounted CPU time with recorded execution.
+The lower pane shows CPU pressure and throttled-period fractions. All use explicit
+axes and a synchronized timestamp; these quantities are not interchangeable.
+Accounted time is not CPU utilization. The fraction of throttled periods is not
+percent CPU time lost. Neither correlation nor a CPU model proves host-side fault.
 
-Search by node alias or filter by evidence state. A no-match result is explicit
-and does not change the configured inventory. The Evidence view shows UTC daily
-rollups, including partial days. Collection shows observed attempts and failures.
-Overview returns to the selected node; live refresh preserves selection and
-expanded limitations.
+Choose 6h, 24h, 72h, All history or drag a custom window. **The chart range is only
+a view.** It cannot rewrite the full assessment mean, erase a HOLD or turn a short
+bad interval into a full-day conclusion. Refresh retains the chosen node and range.
+Use channel toggles, exact sample values and the numeric table rather than relying
+on colour alone.
 
-Save summary downloads the current derived JSON locally. It does not send data,
-include endpoint credentials, or produce a complete raw database backup. Use the
-CLI export and archival procedure for the appropriate evidence package.
+Up to 600 display points preserve extrema and explicit missing intervals. The
+raw captures and aggregate calculations are not downsampled. The evidence ribbon
+uses full normalized intervals, retaining per-cell minimum, mean and coverage;
+it is not a second decimation of the chart. Arrow keys move through cells and
+Enter selects an interval. Missing and partially covered cells remain distinct.
+Guest diagnostics show the latest retained storage/memory/network context, with
+its own currentness and uncertainty; old or unsupported context stays missing.
 
-## When the viewer disconnects
+## 3. Review a pinned next step
 
-The last valid values remain frozen with a visible warning. Invalid status data
-is rejected before it can partly replace the screen. A refreshed browser is not
-a refreshed measurement: the collector still needs to run separately. Do not
-use a frozen screenshot as evidence that the node is currently healthy.
+**Review next step** opens the selected finding, full assessment window, accounted
+mean, observed coverage and remaining limitations together. It is pinned to the
+snapshot from when it opened. Automatic refresh may update the background, but
+it cannot silently rewrite what is being reviewed. Close and reopen for new data.
 
-The viewer stays read-only and loopback-only. It loads no third-party fonts,
-analytics, CDNs or scripts. Use the documented SSH tunnel for remote access;
-do not expose the lightweight viewer as an internet-facing service.
+The exact agent task is available to inspect before copying. It includes the
+selected subject, full window, relevant observations, canonical next check and
+limits. It does not confer permission to change a host, run probes, connect an
+account or contact a provider. Copying is local preparation, not agent execution.
+If the browser denies clipboard access, the same text is selected inside the
+review for manual copying; no external fallback or upload is attempted.
 
-## For agents changing this interface
+The agent that already owns the workspace should obtain the same current context
+from `brief`, `doctor`, the retained workspace and its native tools. Do not assign
+the human routine CLI/config work just because a copy button exists. Copying is
+an optional handoff between sessions or tools, not the only operating path.
 
-Keep layout, evidence semantics and provenance aligned. Every visible control
-needs an actual user-input check. Verify keyboard, phone-size layout, empty,
-dense, malformed and disconnected states—not only a screenshot with three good
-nodes. The repository's browser suite starts the real server with synthetic
-workspaces; its developer dependencies are not required by skill users.
+## 4. Pause the view, not the collector
 
+**Pause updates** freezes displayed readings and stops automatic polling in this
+tab. The worker and approved collection continue independently. A visible pause
+label and snapshot timestamp keep that distinction clear. Pausing during an
+in-flight request prevents the late response from replacing the chosen snapshot.
 
-## Chart investigation in 0.4
+**Refresh** while paused reads once and leaves the view paused. **Resume updates**
+starts the view's normal read cycle again; it does not start or restart a collector.
+If the viewer disconnects or receives invalid data, the last accepted values remain
+visible with a warning. A screenshot or refreshing tab is never proof that new
+measurements are being collected.
 
-The upper uPlot pane compares accounted CPU time with recorded CPU execution.
-The lower pane shows CPU pressure and throttled-period fractions on their own
-explicit axes. Cursor time and horizontal range are synchronized. These series
-are context for an investigation, not interchangeable measures of lost CPU.
+## 5. Navigate without losing the investigation
 
-Use 6h, 24h, 72h or All history; drag horizontally for a custom view. Refresh
-preserves the selected view and subject. The full-window mean and decision do
-not change when zooming. This prevents a convenient crop from silently clearing
-a HOLD or presenting a short bad period as the whole retained window.
+Use **Find anything**, Cmd+K or Ctrl+K to search configured node names and local
+views/actions. Arrow keys choose a result, Enter opens it, and Escape closes the
+menu and restores focus. It is local search, not a shell, chatbot or internet
+search. Offline views do not offer live-only pause or support-fetch actions.
 
-Use the sample slider with keyboard arrows/Home/End, or open the displayed-data
-table. A value that was not measured stays unknown. Independent gaps and extrema
-are retained in the bounded display; a chart alignment placeholder is not a
-sample and is never exported as one. Small histories are not reduced.
+On smaller screens, **Menu** reveals the same navigation without a compressed
+horizontal strip. Selecting a view closes it and moves focus to the content.
+Provider reference disclosures, selected range and evidence limitations stay open
+through background refresh instead of collapsing during reading. These controls
+operate through native buttons, inputs and dialogs, with reduced-motion behavior.
+Physical-device and assistive-technology qualification remain separate from the
+simulated phone-size and keyboard browser checks.
 
-PNG captures the rendered chart panes. CSV exports only displayed observations
-inside the selected view. Both are explicit local actions; neither is a provider
-submission or an independently signed evidence bundle. Retain the private
-workspace and normal export for deeper replay. The pinned MIT library, CSS and
-license are bundled; there is no browser CDN or third-party Python dependency.
+## 6. Choose the right export
 
+**Export snapshot** saves the currently retained derived JSON locally. It contains
+node identifiers and observations and is private by default. It is not a complete
+raw database archive. Chart PNG/CSV are view-level exports: the PNG includes the
+displayed UTC window and synthetic label where applicable; CSV includes only
+actual displayed observations in that window. Alignment placeholders are not data.
 
-## Operator views in 0.5
+**Support report** is separate. It requests the minimal versions/categories/counts
+report from the live local viewer and excludes raw investigation details. Review
+it before sharing. An offline HTML snapshot has no live support endpoint. Use the
+CLI export, integrity/replay and private archival procedures for deeper evidence;
+never substitute a screenshot for the retained source records.
 
-The interval ribbon uses the full normalized observation intervals and preserves
-minimum, mean and coverage per cell. Selecting it changes only the chart window.
-Arrow keys navigate cells; Enter selects. The numeric sample inspector remains
-an alternative to colour and pointer interaction.
+## 7. Agent, providers and external actions
 
-Attention uses the same `brief` result as the CLI. Acknowledgment is tab-local and
-never clears evidence; recovered findings lose the acknowledgment before a later
-recurrence. Desktop alerts require an explicit click and browser permission, only
-run while the viewer is open, and do not repeat unchanged findings. The operating
-system API may be unavailable; use the inbox instead. No notification service is
-installed. Browser checks simulate the OS permission boundary and separately
-exercise the real loopback viewer, SQLite, actions and downloads.
+Agent activity reports actual owned worker identity, time budget, recorded cycles
+and capability needs. It cannot prove that a model session is online or that a
+multi-day pilot is complete. HOST_REPORTED_AVAILABLE is a recorded claim requiring
+rechecking of the host's actual tools, not independent OAuth proof.
 
-Setup recipes describe effects and stop procedures but execute nothing in the
-browser. Provider cards are bundled dated references and open primary sources
-only when the user follows a link. They do not discover a plan or modify policy.
+Setup explains routes the executing agent can take; its commands are recipes for
+that agent, not homework. Provider cards contain dated references and verified
+scope distinctions, not an inferred purchase or universal CPU promise. Following
+a primary-source link is the user's explicit action. No browser control installs
+a connector, runs a command or sends a message. Provider contact, host changes
+and active probes need their own current authorization.
 
+## For agents changing the interface
 
-## Agent-owned runtime
+Keep a single evidence authority and distinguish viewer state from collector
+state. Avoid cinematic scenery, glass effects, invented scores or unsupported
+“host fault detected” copy that makes uncertain evidence appear conclusive.
+Progressive disclosure should remove repetition, not hide missing data.
 
-The Agent view shows actual worker identity, its deadline, collection/error counts
-and recorded capability needs. It does not infer an AI chat session is still alive
-or claim that a worker means enough evidence exists. HOST_REPORTED_AVAILABLE is
-an agent report, not independent OAuth proof. The view runs no terminal commands,
-installs no connectors and sends no messages. Private HANDOFF.md and `agent-status`
-allow another coding agent to resume without repeating setup.
+Verify the actual local server, offline exported HTML, mobile navigation, zero/
+single/dense inventories, malformed/disconnected states and private exports.
+Exercise every visible action with real user input. Read rendered screenshots
+separately from functional tests. The installed user still needs no chart CDN,
+Node build, remote font service or new monitoring stack.

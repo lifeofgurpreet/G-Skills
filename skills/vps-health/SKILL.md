@@ -4,7 +4,7 @@ description: Take ownership of a user's VPS investigation: discover authorized t
 license: MIT
 compatibility: Python 3.10+ and SQLite. Managed lifecycle and passive local collection currently qualify Linux; demo/offline/foreground views remain portable. Use the terminal agent's actual authorized host, browser and connector tools. No bundled OAuth service, provider sender, root service or public dashboard exposure.
 metadata:
-  version: "0.8.0"
+  version: "0.9.0"
   author: lifeofgurpreet
 ---
 
@@ -77,6 +77,14 @@ Use `agent-verify` to check the owned loopback viewer directly through this skil
 arrange an existing approved tunnel or remote browser path; localhost on the VPS
 is not automatically reachable from the user's laptop. Never bind publicly just
 to make the link convenient.
+
+Lead with the actual selected node, its evidence state and the canonical next
+useful check. The workbench's Review next step pins the full-window evidence and
+exact private task; copying prepares a handoff but executes nothing. An agent
+already owning the workspace should obtain the same context from brief and its
+native tools, not ask the human to relay every step. Cmd/Ctrl+K searches local
+nodes/views. Pause updates freezes this tab only; the approved collector continues.
+Explain private snapshot exports separately from minimal support reports.
 
 The Agent view shows verified worker state, deadline, cycles and capability needs.
 Overview, Evidence and Attention show the measurements and next useful checks.

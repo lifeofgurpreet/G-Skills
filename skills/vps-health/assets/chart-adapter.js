@@ -29,7 +29,7 @@
   }
   function mount(targets,callbacks={}){
     if(typeof uPlot!=='function')throw new Error('Bundled chart engine unavailable');
-    let ready=false,updating=false,bundle=prepare([]),history=[],windowBounds=null,full=[0,1],node='';
+    let ready=false,updating=false,bundle=prepare([]),history=[],windowBounds=null,full=[0,1],node='',synthetic=false;
     const colors={ink:'#226e5b',execution:'#697781',pressure:'#a4522e',cfs:'#677597',grid:'#e6ebe3',text:'#5a655e'};
     const sync='vps-'+Math.random().toString(36).slice(2);
     function cursor(plot){if(!ready||updating)return;const index=plot.cursor.idx;if(index!==null&&index!==undefined&&bundle.indices[index]>=0)callbacks.inspect?.(bundle.indices[index]);else if(index!==null&&index!==undefined)callbacks.gap?.(bundle.data[0][index]);}
@@ -57,7 +57,7 @@
       plot.root.setAttribute('aria-label',i?'Workload pressure and throttled-period history. Use the sample inspector or observation table for exact values.':'Accounting and recorded execution history. Drag to inspect a time range, or use time buttons and keyboard sample controls.');
     }
     function setWindow(start,end){if(!finite(start)||!finite(end)||end<=start)throw new Error('Invalid chart window');windowBounds=[start,end];updating=true;for(const plot of all)plot.setScale('x',{min:start,max:end});updating=false;}
-    function update(next,range,policy,id){history=next;bundle=prepare(next);full=range;node=id;const [xs,values,exec,pressure,cfs]=bundle.data;updating=true;top.setData([xs,values,exec,xs.map(()=>policy.acceptable_ratio)],false);lower.setData([xs,pressure,cfs],false);updating=false;setWindow(...(windowBounds||full));return bundle;}
+    function update(next,range,policy,id,context={}){synthetic=context.synthetic===true;history=next;bundle=prepare(next);full=range;node=id;const [xs,values,exec,pressure,cfs]=bundle.data;updating=true;top.setData([xs,values,exec,xs.map(()=>policy.acceptable_ratio)],false);lower.setData([xs,pressure,cfs],false);updating=false;setWindow(...(windowBounds||full));return bundle;}
     function inspect(index){const p=history[index];if(!p)return;updating=true;for(const plot of all)plot.setCursor({left:plot.valToPos(p.t,'x'),top:plot.valToPos(p.value||0,'y')},false);updating=false;}
     function size(){for(const [i,plot] of all.entries()){const width=(i?targets.lower:targets.top).clientWidth;if(width>0)plot.setSize({width:Math.max(200,Math.round(width)),height:i?120:220});}}
     function toggle(field,show){const i=fields.indexOf(field);if(i<0)throw new Error('Unknown chart channel');(i<2?top:lower).setSeries(i<2?i+1:i-1,{show});}
@@ -65,7 +65,7 @@
     function exportPng(){
       const c=document.createElement('canvas'),width=Math.max(top.ctx.canvas.width,lower.ctx.canvas.width),ratio=devicePixelRatio||1,gap=55*ratio,heading=76*ratio;
       c.width=width;c.height=top.ctx.canvas.height+lower.ctx.canvas.height+gap+heading;
-      const ctx=c.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,c.width,c.height);ctx.fillStyle=colors.ink;ctx.font=`${13*ratio}px sans-serif`;ctx.fillText('VPS Health · '+node,12*ratio,22*ratio);ctx.font=`${9*ratio}px sans-serif`;ctx.fillText('Accounted / recorded execution · view only; not a provider verdict',12*ratio,40*ratio);
+      const ctx=c.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,c.width,c.height);ctx.fillStyle=colors.ink;ctx.font=`${13*ratio}px sans-serif`;ctx.fillText('VPS Health · '+(synthetic?'SYNTHETIC DEMO · ':'PRIVATE EVIDENCE · ')+node,12*ratio,22*ratio);ctx.font=`${9*ratio}px sans-serif`;ctx.fillText('Accounted / recorded execution · view only; not a provider verdict',12*ratio,40*ratio);
       ctx.fillText(windowBounds.map(t=>new Date(t*1000).toISOString().slice(0,16).replace('T',' ')).join(' → ')+' UTC',12*ratio,58*ratio);
       ctx.drawImage(top.ctx.canvas,0,heading);ctx.fillText('CPU pressure / throttled periods · missing remains unknown',12*ratio,heading+top.ctx.canvas.height+30*ratio);ctx.drawImage(lower.ctx.canvas,0,heading+top.ctx.canvas.height+gap);return c.toDataURL('image/png');
     }

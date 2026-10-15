@@ -67,7 +67,7 @@
   $('review-limits').replaceChildren(...r.holds.map(h=>el('li',holds[h]||h.replaceAll('_',' '))));
   if(!r.holds.length)$('review-limits').append(el('li','Application impact and plan terms require their own evidence.'));
   $('review-task').value=pinnedTask;$('review-feedback').textContent='';reviewDialog.querySelector('details').open=false;
-  reviewDialog.showModal();$('close-review').focus();
+  reviewDialog.showModal();$('review-title').focus();
  }
  $('open-case-review').addEventListener('click',openReview);
  $('close-review').addEventListener('click',()=>reviewDialog.close());

@@ -37,7 +37,7 @@
       'Subject: '+r.id,
       'Recorded state: '+r.label+' ('+r.decision+').',
       'Full assessment window: '+r.window.start+' to '+r.window.end+'.',
-      'Accounting mean: '+percent(r.mean)+'. Recorded coverage: '+percent(r.coverage,0)+'.',
+      'Accounting mean: '+percent(r.mean)+'. Recorded coverage: '+percent(r.coverage,1)+'.',
       'Measured time: '+hours(r.observedHours)+' / '+hours(r.elapsedHours)+' elapsed.',
       'Workload context: execution '+percent(r.execution)+', CPU pressure '+percent(r.pressure)+', throttled periods '+percent(r.cfs)+'.',
       'Finding: '+r.title,
@@ -54,7 +54,7 @@
     const items=[...state.assets.map(n=>({id:'node:'+n.id,kind:'node',target:n.id,title:n.id,
       detail:labels[n.decision]+' · '+hours(n.observed_hours)+' measured'})),
       ...routes.map(([id,title,detail])=>({id:'view:'+id,kind:'view',target:id,title:'Open '+title,detail})),
-      {id:'action:export',kind:'action',target:'export',title:'Export private evidence',detail:'Save this retained snapshot locally; contains node details'}];
+      {id:'action:export',kind:'action',target:'export',title:'Export private snapshot',detail:'Save this retained snapshot locally; contains node details'}];
     if(options.live)items.push({id:'action:pause',kind:'action',target:'pause',title:options.paused?'Resume view updates':'Pause view updates',detail:'Only the viewer changes; the collector continues'});
     if(options.live)items.push({id:'action:support',kind:'action',target:'support',title:'Save minimal support report',detail:'Versions, categories and counts; no raw investigation'});
     const score=x=>x.title.toLocaleLowerCase()===q?0:x.title.toLocaleLowerCase().startsWith(q)?1:2;
