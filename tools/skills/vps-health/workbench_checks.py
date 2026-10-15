@@ -91,6 +91,7 @@ def run(page,context,root,base,out,passed):
     expect(page.locator('#review-title')).to_be_focused()
     page.keyboard.press('Tab');expect(page.locator('#close-review')).to_be_focused()
     page.keyboard.press('Shift+Tab');expect(page.locator('#copy-review-task')).to_be_focused()
+    page.keyboard.press('Tab');expect(page.locator('#close-review')).to_be_focused()
     pin=page.locator('#review-task').input_value();mean=page.locator('#review-mean').inner_text()
     assert 'Full assessment window:' in pin and 'not a new assessment window' in pin and 'SYNTHETIC DEMO' in pin
     page.route('**/api/status',lambda route:route.fulfill(status=200,content_type='application/json',body=json.dumps(fresh)))

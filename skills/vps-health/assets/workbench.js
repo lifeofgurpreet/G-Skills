@@ -74,6 +74,17 @@
  reviewDialog.addEventListener('close',()=>{pinnedTask=null;restoreFocus()});
  $('copy-review-task').addEventListener('click',()=>{if(pinnedTask)VpsOperator.copyText(pinnedTask,{fallback:$('review-task'),feedback:$('review-feedback')})});
  $('copy-case-task').addEventListener('click',()=>{const node=selected();if(node)VpsOperator.copyText(VpsView.task(state,node.id))});
+ // Some browser tab sequences visit browser chrome at native-dialog edges.
+ // Keep the app's declared modal sequence inside the actual visible controls.
+ for(const dialog of [command,reviewDialog])dialog.addEventListener('keydown',event=>{
+  if(event.key!=='Tab')return;
+  const controls=[...dialog.querySelectorAll('button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),summary,[tabindex="0"]')]
+    .filter(node=>node.getClientRects().length&&getComputedStyle(node).visibility!=='hidden');
+  if(!controls.length)return;
+  const active=document.activeElement,first=controls[0],last=controls[controls.length-1];
+  if(event.shiftKey&&(active===first||active===dialog.querySelector('h2'))){event.preventDefault();last.focus()}
+  else if(!event.shiftKey&&active===last){event.preventDefault();first.focus()}
+ });
  for(const dialog of [command,reviewDialog])dialog.addEventListener('click',event=>{
   if(event.target!==dialog)return;const r=dialog.getBoundingClientRect();
   if(event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom)dialog.close();
