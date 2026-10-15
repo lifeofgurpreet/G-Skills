@@ -175,6 +175,10 @@ def brief(value):
             args=('workload_pressure','info','Good accounting can still hide a busy service',
                   'The accounting mean is within tolerance, but recorded pressure or throttling is elevated.',
                   'Check service latency, errors and affected workload limits. A good accounting percentage does not clear application health.')
+        elif 'workload_context_sparse' in holds:
+            args=('workload_context_gap','info','Check how much workload context was observed',
+                  'CPU accounting and workload channels have different coverage or freshness. A quiet average cannot fill unmeasured time.',
+                  'Inspect the pressure and throttling channel coverage and last observations in the same UTC window. Reuse approved monitoring; do not infer absence of guest limits or provider responsibility.')
         else:
             continue
         items.append(_finding(node,*args,synthetic))

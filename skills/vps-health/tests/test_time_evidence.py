@@ -4,6 +4,9 @@ from pathlib import Path
 import copy
 import json
 import math
+import hashlib
+import subprocess
+from types import SimpleNamespace
 import random
 import sys
 import tempfile
@@ -127,5 +130,100 @@ class TemporalProfileTest(unittest.TestCase):
     def test_bad_order_and_nonfinite_inputs_fail(self):
         for data in ([point(600),point(300)],[point(float('nan'))],[point(300,duration=-1)]):
             with self.subTest(data=data),self.assertRaises(core.InvalidEvidence):self.profile(data)
+
+class ReportTest(unittest.TestCase):
+    setUp=ContextCoverageTest.setUp
+    def fixture(self):
+        cap=capture(start=NOW-3*86400,ratio=.96)
+        for row in cap['samples']:row.update(executing_ratio=.2,cpu_pressure_ratio=None,cfs_throttled_periods_ratio=None)
+        cap['samples'][-1].update(cpu_pressure_ratio=0.,cfs_throttled_periods_ratio=0.)
+        ws.ingest(self.root,self.cfg,[cap],NOW)
+
+    def hashes(self):
+        return {p.relative_to(self.root).as_posix():hashlib.sha256(p.read_bytes()).hexdigest()
+                for p in self.root.rglob('*') if p.is_file()}
+
+    def test_report_uses_one_read_transaction_for_summary_and_provenance(self):
+        import vps_evidence as e
+        self.fixture();original=ws.status;connections=[]
+        def checked(*args,**kwargs):
+            db=kwargs.get('_read_db');self.assertIsNotNone(db);self.assertTrue(db.in_transaction)
+            connections.append(db)
+            return original(*args,**kwargs)
+        with mock.patch.object(ws,'status',side_effect=checked):r=e.report(self.root,'example-node',NOW-86400,NOW)
+        self.assertEqual(len(connections),1);self.assertTrue(r['observation_hashes'])
+
+    def test_configuration_change_is_not_silently_accepted_during_report(self):
+        import vps_evidence as e
+        self.fixture();old=ws.status
+        def changed(*args,**kwargs):
+            result=old(*args,**kwargs);result['configuration_sha256']='0'*64;return result
+        with mock.patch.object(ws,'status',side_effect=changed):
+            with self.assertRaises(core.InvalidEvidence):e.report(self.root,'example-node',NOW-86400,NOW)
+
+    def test_requested_range_does_not_shrink_to_first_sample(self):
+        import vps_evidence as e
+        self.fixture();r=e.report(self.root,'example-node',NOW-4*86400,NOW)
+        self.assertEqual(r['profile']['window_seconds'],4*86400)
+        self.assertEqual(r['profile']['observed_seconds'],3*86400)
+        self.assertEqual(r['profile']['unobserved_seconds'],86400)
+        self.assertEqual(r['workload_context'],'CONTEXT_INCOMPLETE')
+
+    def test_read_only_replay_makes_no_collection_or_runtime_change(self):
+        import vps_evidence as e
+        self.fixture();before=self.hashes()
+        with mock.patch.object(core,'get_json') as network,mock.patch.object(core,'cpu_snapshot') as sample:
+            r=e.report(self.root,'example-node',NOW-3*86400,NOW)
+        network.assert_not_called();sample.assert_not_called();self.assertEqual(before,self.hashes())
+        self.assertTrue(r['read_only']);self.assertFalse(r['new_measurements']);self.assertTrue(r['observation_hashes'])
+        self.assertFalse(r['provider_cause_proven']);self.assertFalse(r['contact_authorized'])
+
+    def test_new_private_cli_report_reuses_the_installed_command_entry(self):
+        self.fixture();out=Path(self.temp.name)/'report.json'
+        subprocess.run([sys.executable,str(Path(core.__file__)),'evidence-report','--workspace',str(self.root),
+            '--node','example-node','--start',core.iso(NOW-3*86400),'--end',core.iso(NOW),'--out',str(out)],
+            check=True,capture_output=True,timeout=20)
+        r=core.read_json(out);self.assertEqual(r['profile']['channels']['cfs']['coverage'],300/(3*86400))
+        self.assertEqual(out.stat().st_mode&0o777,0o600)
+
+    def test_unsupported_subject_and_unbounded_or_empty_range_refuse(self):
+        import vps_evidence as e
+        for node,start,end in [('different',NOW-60,NOW),('example-node',NOW,NOW),('example-node',NOW-15*86400,NOW)]:
+            with self.subTest(node=node,start=start),self.assertRaises(core.InvalidEvidence):e.report(self.root,node,start,end)
+
+    def test_report_cannot_overwrite_or_land_inside_retained_workspace(self):
+        import vps_evidence as e
+        self.fixture();out=Path(self.temp.name)/'existing.json';out.write_text('keep')
+        for target in (out,self.root/'report.json'):
+            a=SimpleNamespace(workspace=self.root,node='example-node',start=core.iso(NOW-86400),end=core.iso(NOW),out=target)
+            with self.subTest(target=target),self.assertRaises((ValueError,FileExistsError)):e.dispatch(a)
+        self.assertEqual(out.read_text(),'keep');self.assertFalse((self.root/'report.json').exists())
+
+    def test_epoch_change_does_not_pull_old_context_into_a_new_host(self):
+        import vps_evidence as e
+        self.fixture();cfg=copy.deepcopy(self.cfg);cfg['assets'][0]['epoch']='after-migration'
+        ws.atomic(self.root/'workspace.json',core.canonical(cfg));r=e.report(self.root,'example-node',NOW-3*86400,NOW)
+        self.assertEqual(r['profile']['observed_seconds'],0);self.assertEqual(r['observation_hashes'],[])
+        self.assertIn('epoch_changed_collect_new_evidence',r['limitations'])
+
+    def test_shared_weighting_matches_legacy_reference_with_gaps_and_duplicates(self):
+        import vps_evidence as e
+        def legacy(rows,start,end):
+            cursor=start;total=0.;weight=0.
+            for p in rows:
+                right=min(p['timestamp'],end);left=max(start,p['timestamp']-p['duration_seconds'],cursor)
+                delta=max(0,right-left);cursor=max(cursor,right)
+                if p.get('quality') or p.get('conflict') or p.get('cpu_accounted_ratio') is None:continue
+                total+=p['cpu_accounted_ratio']*delta;weight+=delta
+            return total/weight if weight else None,weight
+        rng=random.Random(519)
+        for _ in range(30):
+            rows=[point(i*60,rng.random(),duration=rng.choice([30,60,90,120])) for i in range(1,100)]
+            for row in rows[::9]:row['quality']=['counter_reset']
+            rows.insert(30,copy.deepcopy(rows[30]));mean,weight=legacy(rows,0,6000)
+            d=e.summarize(rows,0,6000,POLICY,60)
+            self.assertAlmostEqual(d['channels']['accounted']['mean'],mean)
+            self.assertAlmostEqual(d['observed_seconds'],weight)
+            self.assertEqual(ws.weighted(rows,0,6000)['means']['cpu_accounted_ratio'],mean)
 
 if __name__=='__main__':unittest.main()

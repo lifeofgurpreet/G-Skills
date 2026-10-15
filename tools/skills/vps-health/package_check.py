@@ -6,7 +6,7 @@ import argparse,hashlib,json,subprocess,sys,tempfile
 def validate_files(files):
     required={'SKILL.md','scripts/vps_health.py','scripts/vps_workspace.py','assets/chart-adapter.js',
               'assets/workspace-dashboard.html','assets/view-model.js','assets/workbench.js','references/dashboard.md','references/providers.md','tests/test_provider_reference.py','assets/vendor/uplot/manifest.json','assets/vendor/uplot/LICENSE','LICENSE',
-              'scripts/vps_ops.py','assets/operator.js','assets/operator.css','assets/provider-catalog.json',
+              'scripts/vps_evidence.py','references/time-evidence.md','scripts/vps_ops.py','assets/operator.js','assets/operator.css','assets/provider-catalog.json',
               'references/first-hour.md','references/operator-playbook.md','references/support.md','references/workspace-recovery.md','tests/test_private_workspace.py',
               'scripts/vps_agent.py','scripts/vps_forensics.py','references/forensics.md','references/agent-workflow.md','references/agent-connectors.md'}
     if not required<=set(files):raise ValueError('installable skill is missing required runtime/license files')
@@ -39,6 +39,15 @@ def cold_check(target):
         brief=json.loads(subprocess.check_output([sys.executable,entry,'brief','--workspace',str(workspace)],text=True,timeout=30))
         if len(brief['items'])!=2 or brief['automatic_actions']:raise ValueError('exported brief contract failed')
         subprocess.run([sys.executable,entry,'providers','--provider','aws'],check=True,stdout=subprocess.DEVNULL,timeout=30)
+        status=json.loads(subprocess.check_output([sys.executable,entry,'dashboard','--workspace',str(workspace)],text=True,timeout=30))
+        node=status['assets'][1]
+        report=json.loads(subprocess.check_output([sys.executable,entry,'evidence-report','--workspace',str(workspace),
+            '--node',node['id'],'--start',node['window_start'],'--end',node['window_end']],text=True,timeout=30))
+        if report['profile']['schema']!='g-skills.time-evidence.v1' or not report['read_only'] or report['new_measurements']:
+            raise ValueError('exported time-qualified report contract failed')
+        if report['profile']['episodes']['count']<1 or not report['observation_hashes']:
+            raise ValueError('exported report lost shortfall intervals or sample provenance')
+
         for provider in ('vultr','ovhcloud','netcup'):
             result=json.loads(subprocess.check_output([sys.executable,entry,'providers','--provider',provider],text=True,timeout=15))
             if result['providers'][0]['id']!=provider or result['establishes_contract'] or result['sources_fetched']:

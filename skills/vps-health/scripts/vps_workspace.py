@@ -31,11 +31,11 @@ import uuid
 
 import vps_health as core
 
-VERSION = '0.9.2'
+VERSION = '0.9.3'
 SCHEMA = 'g-skills.workspace.v1'
 SELF_HASH = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
 MAX_STORE_BYTES = 256 * 1024 * 1024
-COMMANDS = ('bootstrap','collect','watch','dashboard','serve','export','schedule','draft-email','capabilities','doctor','brief','providers','support-report','agent-plan','agent-start','agent-status','agent-verify','agent-stop','agent-request','agent-resolve','_agent-worker','forensic-snapshot','forensic-observe','forensic-compare')
+COMMANDS = ('bootstrap','collect','watch','dashboard','serve','export','schedule','draft-email','capabilities','doctor','brief','providers','support-report','agent-plan','agent-start','agent-status','agent-verify','agent-stop','agent-request','agent-resolve','_agent-worker','forensic-snapshot','forensic-observe','forensic-compare','evidence-report')
 SQL = '''
 CREATE TABLE IF NOT EXISTS state (key TEXT PRIMARY KEY, value TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS captures (
@@ -434,21 +434,9 @@ def _collect(root, lookback_hours=1, *, runtime_id=None):
 
 
 def weighted(points,start,end):
-    """Union-weight bounded sample intervals: duplicate windows add no time."""
-    result={'represented':0.,'below_acceptable':0.,'below_attention':0.,'totals':{},'weights':{}}
-    cursor=start
-    for p in points:
-        right=min(p['timestamp'],end);left=max(start,p['timestamp']-p['duration_seconds'],cursor)
-        weight=max(0,right-left);cursor=max(cursor,right)
-        if p.get('quality') or p.get('conflict') or p.get('cpu_accounted_ratio') is None or not 0<=p['cpu_accounted_ratio']<=1.02:continue
-        result['represented']+=weight
-        for key in ('cpu_accounted_ratio','executing_ratio','cpu_pressure_ratio','cfs_throttled_periods_ratio'):
-            value=p.get(key)
-            if value is not None:
-                result['totals'][key]=result['totals'].get(key,0)+value*weight
-                result['weights'][key]=result['weights'].get(key,0)+weight
-    result['means']={k:v/result['weights'][k] for k,v in result['totals'].items() if result['weights'][k]}
-    return result
+    # One interval owner for the existing means and new time-qualified evidence.
+    import vps_evidence as evidence
+    return evidence.weighted(points,start,end)
 
 
 CHART_FIELDS = {'value':'cpu_accounted_ratio','execution':'executing_ratio',
@@ -502,12 +490,15 @@ def chart_history(points, cadence, limit=600):
     return result
 
 
-def status(root,now=None,days=None):
+def status(root,now=None,days=None,*,window_start=None,_read_db=None):
     import vps_ops as ops
     root,cfg=config_load(root);now=time.time() if now is None else now
     days=integer(days if days is not None else cfg['history_days'],1,14,'history days')
-    begin=now-days*86400;assets=[]
-    with database(root,True) as db:
+    core.finite(now,minimum=0)
+    begin=max(0.,now-days*86400) if window_start is None else core.finite(window_start,minimum=max(0.,now-14*86400),maximum=now)
+    assets=[]
+    import vps_evidence as evidence
+    with (database(root,True) if _read_db is None else contextlib.nullcontext(_read_db)) as db:
         batch_stats=db.execute('SELECT COUNT(*),COALESCE(SUM(bytes),0) FROM captures').fetchone()
         attempts=[dict(r) for r in db.execute('SELECT observed,outcome,detail FROM attempts ORDER BY observed DESC,id DESC LIMIT 20')]
         for asset in cfg['assets']:
@@ -519,7 +510,7 @@ def status(root,now=None,days=None):
             rows=db.execute(sql,(node,'' if epoch_changed else latest.get('epoch',''),begin,now)).fetchall()
             if len(rows)>100000:fail('too many points for dashboard window; reduce history_days')
             points=[dict(core.decode(r['body']),duration_seconds=r['duration'],conflict=bool(r['conflict'])) for r in rows]
-            start=max(begin,min((p['timestamp']-p['duration_seconds'] for p in points),default=now))
+            start=begin if window_start is not None else max(begin,min((p['timestamp']-p['duration_seconds'] for p in points),default=now))
             w=weighted(points,start,now);means=w['means'];mean=means.get('cpu_accounted_ratio');span=now-start
             coverage=w['represented']/span if span>0 else 0
             last_sample=max((p['timestamp'] for p in points if p['duration_seconds']>0 and p.get('cpu_accounted_ratio') is not None and not p.get('quality') and not p['conflict']),default=None)
@@ -539,7 +530,11 @@ def status(root,now=None,days=None):
             if any(p['conflict'] for p in points):holds.append('conflicting_sample_values')
             if means.get('cfs_throttled_periods_ratio') is None:holds.append('workload_limits_unknown')
             pressure=means.get('cpu_pressure_ratio');cfs=means.get('cfs_throttled_periods_ratio')
-            context='CONTENTION_PRESENT' if pressure is not None and pressure>.1 or cfs is not None and cfs>.05 else 'CONTEXT_INCOMPLETE' if pressure is None or cfs is None else 'NO_HIGH_PRESSURE_IN_RECORDED_CONTEXT'
+            profile=evidence.summarize(points,start,now,cfg['policy'],cfg['interval_seconds'])
+            context_qualified=all(profile['channels'][key]['qualified'] for key in ('pressure','cfs'))
+            if not context_qualified:holds.append('workload_context_sparse')
+            context=('CONTENTION_PRESENT' if pressure is not None and pressure>.1 or cfs is not None and cfs>.05
+                     else 'NO_HIGH_PRESSURE_IN_RECORDED_CONTEXT' if context_qualified else 'CONTEXT_INCOMPLETE')
             observed='NOT_MEASURED' if mean is None else 'WITHIN_TOLERANCE' if mean>=cfg['policy']['acceptable_ratio'] else 'WATCH' if mean>=cfg['policy']['investigate_below'] else 'INVESTIGATE'
             decision='HOLD' if epoch_changed or failed_latest or no_latest_samples or not points or span<86400 or coverage<.75 or stale or latest.get('errors') or any(p['conflict'] for p in points) else observed
             action=('Restore collection and inspect gaps before interpreting performance.' if decision=='HOLD' else
@@ -555,6 +550,7 @@ def status(root,now=None,days=None):
             history=chart_history(points,cfg['interval_seconds'])
             assets.append({'id':node,'observed':observed,'decision':decision,'context':context,'mean':mean,
                            'execution':means.get('executing_ratio'),'pressure':pressure,'cfs':cfs,'coverage':coverage,
+                           'evidence_profile':profile,
                            'elapsed_hours':span/3600,'observed_hours':w['represented']/3600,'window_start':core.iso(start),'window_end':core.iso(now),'last_sample':last_sample,'last_capture_end':latest.get('end'),
                            'age_seconds':age,'stale':stale,'points':len(points),'holds':holds,
                            'recommendation':action,'daily':daily,'history':history,'epoch':latest.get('epoch'),
@@ -567,7 +563,7 @@ def status(root,now=None,days=None):
             'synthetic':cfg['mode']=='demo','mode':cfg['mode'],'policy':cfg['policy'],'window_days':days,
             'expected_assets':len(cfg['assets']),'scope':'configured subjects only; not a verified provider-account census',
             'assets':assets,'collection_attempts':attempts,'stored_captures':batch_stats[0],'stored_bytes':batch_stats[1],
-            'configuration_sha256':core.digest(cfg),'code_hashes':{'workspace':SELF_HASH,'collector':core.SOURCE_SHA256},'contact_provider':False}
+            'configuration_sha256':core.digest(cfg),'code_hashes':{'workspace':SELF_HASH,'collector':core.SOURCE_SHA256,'time_evidence':evidence.SOURCE_SHA256},'contact_provider':False}
     import vps_ops as ops
     value['operator']=ops.brief(value)
     value['provider_reference']=ops.providers(now=now)
@@ -642,6 +638,14 @@ def markdown_summary(value):
         lines += ['', '## '+node['id'], node['recommendation'],
                   'UTC range: '+node['window_start']+' to '+node['window_end'],
                   'Evidence limitations: '+', '.join(node['holds'])]
+        profile=node.get('evidence_profile')
+        if profile:
+            for key,label in (('pressure','CPU pressure'),('cfs','Throttled periods'),('execution','Recorded execution')):
+                channel=profile['channels'][key]
+                lines.append(f"{label}: mean {pct(channel['mean'])}; {pct(channel['coverage'])} of requested time observed; "+
+                             ('qualified time coverage and freshness' if channel['qualified'] else 'incomplete or stale coverage')+'.')
+            lines.append(f"Below investigation preference: {profile['bands']['investigate_seconds']/3600:.2f} hours in "+
+                         f"{profile['episodes']['count']} uninterrupted recorded runs; longest {profile['episodes']['longest_seconds']/60:.1f} minutes. Gaps are not joined.")
     lines += ['', 'This is not a full raw replay archive. Keep the private workspace database and source version.',
               'No provider contact, service-health certificate or host action is authorized by this report.']
     return ('\n'.join(lines)+'\n').encode()
@@ -790,7 +794,7 @@ def learning_proposal(root,out):
     root,cfg=config_load(root);value=status(root)
     allowed={'epoch_changed_collect_new_evidence','latest_collection_failed','no_samples',
              'less_than_24_hours','insufficient_coverage','stale_collection','latest_collection_no_samples',
-             'latest_collection_errors','conflicting_sample_values','workload_limits_unknown'}
+             'latest_collection_errors','conflicting_sample_values','workload_limits_unknown','workload_context_sparse'}
     import collections
     with database(root,True) as db:
         hashes=[row[0] for row in db.execute('SELECT hash FROM captures ORDER BY hash')]
@@ -806,6 +810,8 @@ def learning_proposal(root,out):
 
 
 def register(sub):
+    import vps_evidence as evidence
+    evidence.register(sub)
     from vps_ops import PROVIDERS
     p=sub.add_parser('support-report',help='Offline minimal support summary; no identities, raw data or transmission');p.add_argument('--workspace',type=Path);p.add_argument('--out',type=Path)
     import vps_forensics as forensic
@@ -837,6 +843,9 @@ def register(sub):
 
 
 def dispatch(args):
+    if args.cmd=='evidence-report':
+        import vps_evidence as evidence
+        return evidence.dispatch(args)
     if args.cmd=='support-report':
         import vps_ops as ops
         report=ops.support_report(args.workspace)

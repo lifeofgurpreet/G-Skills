@@ -4,7 +4,7 @@ description: Take ownership of a user's VPS investigation: discover authorized t
 license: MIT
 compatibility: Python 3.10+ and SQLite. Managed lifecycle and passive local collection currently qualify Linux; demo/offline/foreground views remain portable. Use the terminal agent's actual authorized host, browser and connector tools. No bundled OAuth service, provider sender, root service or public dashboard exposure.
 metadata:
-  version: "0.9.2"
+  version: "0.9.3"
   author: lifeofgurpreet
 ---
 
@@ -112,14 +112,25 @@ below 80%; these are user preferences, not provider guarantees. Missing, stale,
 short, conflicting or changed-epoch evidence stays HOLD. A good CPU percentage
 cannot certify application latency, errors, disk performance or network health.
 
-Compare the same UTC window with actual execution, workload pressure, CPU limits
-and service impact. Before treating a low pressure/throttle mean as reassuring,
-check that its underlying channel covers the relevant time window. A known open
-acceptance defect (`gs-2uh.15`) can label sparse or stale workload context as complete;
-the current mean alone is insufficient. Do not use it to clear guest-side limits
-or attribute the cause. The separate CPU accounting decision is unchanged. Reduced supply and our own demand can coexist. Preserve gaps,
-failed runs and independent context. Chart selection changes only the view, not
-the full-window assessment. [Dashboard guide](references/dashboard.md).
+Compare matching UTC windows with actual execution, workload pressure, CPU limits
+and service impact. Each workload channel now has its own observed duration,
+coverage, last observation and qualification in `evidence_profile`. Sparse or
+stale quiet values cannot clear the workload-context classification; elevated
+partial observations remain visible with their missing coverage. The existing
+CPU accounting decision and 90%/80% preferences are not rewritten.
+
+Use `evidence-report --workspace ... --node ... --start ... --end ...` for a bounded,
+read-only report from the active retained epoch. The agent chooses actual arguments
+and inspects the resulting channel denominators, missing intervals and shortfall
+runs; the human should not have to configure another collector. The report's data
+is private, not a minimal support attachment. [Time-evidence method](references/time-evidence.md).
+
+The workbench receives the corrected canonical finding and private JSON exports
+include the temporal profile. Extra inline duration/coverage widgets remain pending;
+read the profile or Markdown report instead of treating compact means as complete
+coverage. Chart selection remains a view, not a new full-window verdict. Reduced
+supply and our own demand can coexist; preserve gaps, failed runs and independent
+context. [Dashboard guide](references/dashboard.md).
 
 ## Correlate storage, memory and network without claiming host access
 
