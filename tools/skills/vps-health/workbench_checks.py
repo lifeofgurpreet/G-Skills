@@ -32,6 +32,18 @@ def run(page,context,root,base,out,passed):
     page.get_by_label('Provider reference').select_option('all')
     expect(page.locator('[data-provider="contabo"] details')).to_have_attribute('open','')
     passed('open provider context survives refresh and provider filtering')
+    page.get_by_role('link',name='Setup',exact=True).click()
+    page.get_by_role('button',name='One Linux VPS',exact=True).click()
+    expect(page.locator('#setup-command')).to_contain_text('agent-plan')
+    expect(page.locator('#setup-command')).to_contain_text('agent-verify')
+    page.evaluate("Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async text=>{window.__setupTask=text;}}})")
+    page.get_by_role('button',name='Copy setup task for my agent').click()
+    expect(page.locator('#operator-feedback')).to_contain_text('Copied locally')
+    task=page.evaluate('window.__setupTask')
+    assert 'Do routine configuration and commands yourself' in task
+    assert 'do not assume this coding terminal is the VPS' in task
+    assert 'Do not contact a provider' in task
+    passed('setup gives the agent the task and managed lifecycle, not manual configuration homework')
     page.get_by_role('link',name='Overview',exact=True).click()
 
     page.get_by_role('button',name='Open command menu').click()

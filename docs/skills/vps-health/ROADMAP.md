@@ -15,6 +15,7 @@ This is one skill within G-Skills. Its work does not define the whole collection
 | `gs-2uh.11` Verify cold and resumed client journeys from actual artifacts | closed | 1 | verification-agent | 2026-10-28 | — |
 | `gs-2uh.12` Audit private-state boundaries and release failure recovery | closed | 1 | safety-review-agent | 2026-11-07 | — |
 | `gs-2uh.13` Qualify the narrow passive preview before broader promotion | open | 1 | Gurpreet-and-quality-maintainer | 2026-11-14 | `gs-2uh.12`, `gs-2uh.6`, `gs-2uh.8`, `gs-nah.2` |
+| `gs-2uh.14` Deliver the evidence-first workbench from the design sprint | closed | 1 | design-implementation-agent | 2026-11-07 | — |
 | `gs-2uh.2` Manage collector and viewer beyond a terminal-agent session | closed | 1 | Unassigned | — | `gs-2uh.1` |
 | `gs-2uh.3` Expose agent progress and recovery in the dashboard | closed | 1 | Unassigned | — | `gs-2uh.2` |
 | `gs-2uh.4` Discover host-native connector capabilities only when needed | in_progress | 1 | connector-agent | 2026-11-28 | `gs-2uh.1` |
@@ -42,6 +43,7 @@ flowchart LR
   gs_2uh_6 --> gs_2uh_13
   gs_2uh_8 --> gs_2uh_13
   gs_nah_2 --> gs_2uh_13
+  gs_2uh_14["gs-2uh.14: closed"]
   gs_2uh_2["gs-2uh.2: closed"]
   gs_2uh_1 --> gs_2uh_2
   gs_2uh_3["gs-2uh.3: closed"]
@@ -123,6 +125,14 @@ Before wider VPS preview, review installation/runtime state, source updates, rel
 A supported passive-preview decision is narrower than the full VPS programme. It requires real basic-client, private-state and sustained-observation evidence, while optional mail sending, every provider, active benchmarks and wider platforms stay excluded unless separately qualified. Do not hold all unrelated G-Skills entries behind this VPS-specific decision.
 
 **Acceptance:** Recorded owner review references actual client and 72-hour pilot receipts, safe install/update evidence and resolved high-severity safety findings. Supported and unsupported claims are explicit. Reaching this task never automatically posts an announcement, sends an invitation or contacts a provider.
+
+### gs-2uh.14 — Deliver the evidence-first workbench from the design sprint
+
+Replace concept-board decoration and the overloaded overview with a coherent implemented investigation interface. One existing evidence authority; clear scope and next action; preserve uncertainty, currentness and no provider/contact permission. Improve desktop/mobile navigation, chart investigation, review pause and agent handoff. Do not touch the running private pilot or Reset Boost.
+
+**Acceptance:** Actual desktop/mobile/offline/live viewer flows pass; main/inbox actions agree; history and gaps remain unchanged; paused review is distinct from stopped collection; disclosures survive refresh; keyboard navigation and private exports work. Inspect real rendered screenshots, update the installed skill walkthrough and ship a scoped release with synthetic proof, not an image-only mockup.
+
+**Receipt:** Implemented the actual evidence workbench with one canonical next action, linked observations, pinned private review and handoff, local search, view-only pause and agent-owned setup. 454 Python tests, 27 JavaScript contracts and 39 actual-loopback browser groups pass; real desktop/mobile screenshots inspected. Private atomic-read failure reproduced and fixed without weakening privacy. Exact-head CI and extracted-package acceptance remain release gates. Technical preview only; running field pilot and other skills are not changed. See design-workbench.md and workbench-verification-v0.9.0.json under docs/skills/vps-health.
 
 ### gs-2uh.2 — Manage collector and viewer beyond a terminal-agent session
 
