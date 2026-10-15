@@ -40,14 +40,20 @@ The [native task graph](skills/vps-health/ROADMAP.md) is authoritative; this pag
 not another copied progress tracker. Use [SUPPORT.md](../SUPPORT.md) for safe feedback.
 
 
-## Known workload-context acceptance gap
+## Time-qualified workload evidence
 
-`gs-2uh.15` tracks a reproduced issue: a quiet pressure/throttling mean may be
-computed from very few or old samples even when CPU accounting spans several days.
-The workload-context summary can therefore appear more complete than its channel
-coverage supports. Do not use that summary to rule out guest workload constraints
-or assign provider responsibility; inspect the underlying same-window channel
-coverage separately. The accounting observation and provider reference are different
-claims. A failure-first test branch is retained; the proposed implementation was
-blocked and is not included in this release. The existing broad-promotion gate
-remains open. This paragraph is a limitation, not a claim that the bug is fixed.
+Version 0.9.3 corrects the reproduced classification defect: sparse or stale quiet
+pressure/throttling values no longer look like complete workload context. Each
+channel has its own duration, coverage and freshness; elevated partial readings
+remain explicitly partial. Existing accounting preferences and no-provider-blame
+boundaries are unchanged.
+
+The agent can inspect `evidence_profile`, private JSON/Markdown exports and the
+bounded `evidence-report` command. The existing workbench displays the corrected
+canonical finding. Additional inline coverage/duration UI is still pending because
+its renderer write was blocked; it is not advertised as delivered. `gs-2uh.15`
+retains that remaining integration acceptance and still blocks broader promotion.
+Older releases and an unmodified pilot do not retroactively gain this correction.
+
+Remote viewer PR #22, native-client and completed representative field-pilot gates
+remain independent; a correct report alone does not close them.

@@ -321,4 +321,33 @@ class SnapshotReadTest(unittest.TestCase):
         self.path.write_text('{bad')
         with self.assertRaises(core.InvalidEvidence):agent._read(self.path,{'not_managed':True})
 
+class PrivateReadSchedulingTest(unittest.TestCase):
+    def setUp(self):
+        self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup)
+        self.path=Path(self.temp.name)/'status.json';core.save_json(self.path,{'state':'example'})
+
+    def test_transient_unlink_gives_cooperating_writer_a_bounded_scheduling_turn(self):
+        original=Path.lstat;actual=self.path.lstat();ready=[False]
+        unlinked=SimpleNamespace(st_mode=actual.st_mode,st_nlink=0,st_uid=actual.st_uid)
+        def stat(path,*args,**kwargs):
+            if path==self.path and not ready[0]:return unlinked
+            return original(path,*args,**kwargs)
+        def pause(seconds):
+            self.assertGreater(seconds,0);self.assertLessEqual(seconds,.005);ready[0]=True
+        with mock.patch.object(Path,'lstat',stat),mock.patch.object(ws.time,'sleep',side_effect=pause) as wait:
+            self.assertEqual(ws.read_private_json(self.path),{'state':'example'})
+        self.assertEqual(wait.call_count,1)
+
+    def test_persistent_unlink_still_fails_after_the_existing_three_attempts(self):
+        actual=self.path.lstat();unlinked=SimpleNamespace(st_mode=actual.st_mode,st_nlink=0,st_uid=actual.st_uid)
+        with mock.patch.object(Path,'lstat',return_value=unlinked) as stat,mock.patch.object(ws.time,'sleep') as wait:
+            with self.assertRaises(core.InvalidEvidence):ws.read_private_json(self.path)
+        self.assertEqual(stat.call_count,3);self.assertLessEqual(wait.call_count,3)
+
+    def test_real_hardlink_is_never_retried_into_an_accepted_file(self):
+        os.link(self.path,self.path.with_name('other-link'))
+        with mock.patch.object(ws.time,'sleep') as wait:
+            with self.assertRaises(core.InvalidEvidence):ws.read_private_json(self.path)
+        wait.assert_not_called()
+
 if __name__=='__main__':unittest.main()

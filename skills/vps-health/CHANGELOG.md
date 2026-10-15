@@ -1,5 +1,16 @@
 # VPS Health changelog
 
+## 0.9.3 — Qualify context by its own measured time
+
+Sparse/stale quiet pressure or throttling averages no longer describe a long CPU
+window as complete workload context. Expose independent channel durations and
+freshness, time-weighted bands, gap-separated shortfall runs and recorded-execution
+context in private status/report outputs. One existing interval-weighting owner is
+shared; no new CPU threshold or provider attribution is introduced. The bounded
+`evidence-report` operation and Markdown exports retain denominators. Extra inline
+coverage widgets remain pending; the existing workbench uses the corrected finding.
+
+
 ## 0.9.2 — Dated, usable provider context
 
 Add Vultr, OVHcloud and netcup across the offline provider command, private asset
