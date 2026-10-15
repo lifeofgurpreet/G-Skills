@@ -30,7 +30,7 @@
   function mount(targets,callbacks={}){
     if(typeof uPlot!=='function')throw new Error('Bundled chart engine unavailable');
     let ready=false,updating=false,bundle=prepare([]),history=[],windowBounds=null,full=[0,1],node='';
-    const colors={ink:'#3155d9',execution:'#098f97',pressure:'#b05e20',cfs:'#96529a',grid:'#e4eaf3',text:'#526174'};
+    const colors={ink:'#226e5b',execution:'#697781',pressure:'#a4522e',cfs:'#677597',grid:'#e6ebe3',text:'#5a655e'};
     const sync='vps-'+Math.random().toString(36).slice(2);
     function cursor(plot){if(!ready||updating)return;const index=plot.cursor.idx;if(index!==null&&index!==undefined&&bundle.indices[index]>=0)callbacks.inspect?.(bundle.indices[index]);else if(index!==null&&index!==undefined)callbacks.gap?.(bundle.data[0][index]);}
     const axis={stroke:colors.text,font:'10px ui-monospace, monospace',grid:{stroke:colors.grid,width:1},ticks:{show:false},gap:8};
@@ -42,16 +42,16 @@
         axes:[{...axis,size:30,space:90,grid:{show:false},values:(u,values)=>values.map(t=>{const d=new Date(t*1000);return u.scales.x.max-u.scales.x.min>86400?d.toISOString().slice(5,16).replace('T',' '):d.toISOString().slice(11,16);})},yAxis],
         cursor:{drag:{x:true,y:false,setScale:true},sync:{key:sync,scales:['x',null]},points:{size:6}},select:{show:true},
         series:[{},...(context?[
-          {label:'CPU pressure',stroke:colors.pressure,fill:'rgba(176,94,32,.035)',width:1.6,dash:[4,3],spanGaps:false,points:{show:false}},
+          {label:'CPU pressure',stroke:colors.pressure,fill:'rgba(164,82,46,.035)',width:1.6,dash:[4,3],spanGaps:false,points:{show:false}},
           {label:'Throttled periods',stroke:colors.cfs,width:1.6,dash:[2,3],spanGaps:false,points:{show:false}}
         ]:[
-          {label:'Accounted time',stroke:colors.ink,fill:'rgba(49,85,217,.065)',width:2.2,spanGaps:false,points:{show:false}},
+          {label:'Accounted time',stroke:colors.ink,fill:'rgba(34,110,91,.055)',width:2.2,spanGaps:false,points:{show:false}},
           {label:'Recorded execution',stroke:colors.execution,width:1.4,dash:[5,3],spanGaps:false,points:{show:false}},
-          {label:'Tolerance reference',stroke:'#b1b6aa',width:1,dash:[3,5],spanGaps:true,points:{show:false}}
+          {label:'Tolerance reference',stroke:'#87947c',width:1,dash:[3,5],spanGaps:true,points:{show:false}}
         ])],hooks:{setCursor:[cursor],setScale:[changed]}};
     }
-    const top=new uPlot(options(targets.top,200),[[],[],[],[]],targets.top);
-    const lower=new uPlot(options(targets.lower,110,true),[[],[],[]],targets.lower);const all=[top,lower];ready=true;
+    const top=new uPlot(options(targets.top,220),[[],[],[],[]],targets.top);
+    const lower=new uPlot(options(targets.lower,120,true),[[],[],[]],targets.lower);const all=[top,lower];ready=true;
     for(const [i,plot] of all.entries()){
       plot.root.setAttribute('role','img');plot.root.dataset.chartEngine='uPlot';plot.root.dataset.chartVersion='1.6.32';
       plot.root.setAttribute('aria-label',i?'Workload pressure and throttled-period history. Use the sample inspector or observation table for exact values.':'Accounting and recorded execution history. Drag to inspect a time range, or use time buttons and keyboard sample controls.');
@@ -59,13 +59,14 @@
     function setWindow(start,end){if(!finite(start)||!finite(end)||end<=start)throw new Error('Invalid chart window');windowBounds=[start,end];updating=true;for(const plot of all)plot.setScale('x',{min:start,max:end});updating=false;}
     function update(next,range,policy,id){history=next;bundle=prepare(next);full=range;node=id;const [xs,values,exec,pressure,cfs]=bundle.data;updating=true;top.setData([xs,values,exec,xs.map(()=>policy.acceptable_ratio)],false);lower.setData([xs,pressure,cfs],false);updating=false;setWindow(...(windowBounds||full));return bundle;}
     function inspect(index){const p=history[index];if(!p)return;updating=true;for(const plot of all)plot.setCursor({left:plot.valToPos(p.t,'x'),top:plot.valToPos(p.value||0,'y')},false);updating=false;}
-    function size(){for(const [i,plot] of all.entries()){const width=(i?targets.lower:targets.top).clientWidth;if(width>0)plot.setSize({width:Math.max(200,Math.round(width)),height:i?110:200});}}
+    function size(){for(const [i,plot] of all.entries()){const width=(i?targets.lower:targets.top).clientWidth;if(width>0)plot.setSize({width:Math.max(200,Math.round(width)),height:i?120:220});}}
     function toggle(field,show){const i=fields.indexOf(field);if(i<0)throw new Error('Unknown chart channel');(i<2?top:lower).setSeries(i<2?i+1:i-1,{show});}
     function destroy(){ready=false;for(const plot of all)plot.destroy();}
     function exportPng(){
-      const c=document.createElement('canvas'),width=Math.max(top.ctx.canvas.width,lower.ctx.canvas.width),ratio=devicePixelRatio||1,gap=55*ratio,heading=55*ratio;
+      const c=document.createElement('canvas'),width=Math.max(top.ctx.canvas.width,lower.ctx.canvas.width),ratio=devicePixelRatio||1,gap=55*ratio,heading=76*ratio;
       c.width=width;c.height=top.ctx.canvas.height+lower.ctx.canvas.height+gap+heading;
-      const ctx=c.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,c.width,c.height);ctx.fillStyle=colors.ink;ctx.font=`${13*ratio}px sans-serif`;ctx.fillText('VPS Health · '+node,12*ratio,22*ratio);ctx.font=`${9*ratio}px sans-serif`;ctx.fillText('Accounting / recorded execution · display only; not a provider verdict',12*ratio,40*ratio);
+      const ctx=c.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,c.width,c.height);ctx.fillStyle=colors.ink;ctx.font=`${13*ratio}px sans-serif`;ctx.fillText('VPS Health · '+node,12*ratio,22*ratio);ctx.font=`${9*ratio}px sans-serif`;ctx.fillText('Accounted / recorded execution · view only; not a provider verdict',12*ratio,40*ratio);
+      ctx.fillText(windowBounds.map(t=>new Date(t*1000).toISOString().slice(0,16).replace('T',' ')).join(' → ')+' UTC',12*ratio,58*ratio);
       ctx.drawImage(top.ctx.canvas,0,heading);ctx.fillText('CPU pressure / throttled periods · missing remains unknown',12*ratio,heading+top.ctx.canvas.height+30*ratio);ctx.drawImage(lower.ctx.canvas,0,heading+top.ctx.canvas.height+gap);return c.toDataURL('image/png');
     }
     return {update,setWindow,inspect,size,toggle,destroy,exportPng,getWindow:()=>windowBounds,getPrepared:()=>bundle,getScales:()=>all.map(p=>[p.scales.x.min,p.scales.x.max])};

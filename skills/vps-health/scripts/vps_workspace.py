@@ -577,6 +577,8 @@ def page(value,live=False):
     template=template.replace('/*CHART_ADAPTER*/',(core.ROOT/'assets/chart-adapter.js').read_text())
     template=template.replace('/*OPERATOR_CSS*/',(core.ROOT/'assets/operator.css').read_text())
     template=template.replace('/*OPERATOR_JS*/',(core.ROOT/'assets/operator.js').read_text())
+    template=template.replace('/*VIEW_MODEL*/',(core.ROOT/'assets/view-model.js').read_text())
+    template=template.replace('/*WORKBENCH_JS*/',(core.ROOT/'assets/workbench.js').read_text())
     return template.replace('/*STATUS_JSON*/',data).replace('/*LIVE_MODE*/','true' if live else 'false').encode()
 
 

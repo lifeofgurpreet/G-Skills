@@ -4,6 +4,7 @@ const VpsOperator=(()=>{
  const knownProviders=new Set(['contabo','hetzner','digitalocean','akamai','aws','other']);
  const origins=new Set(['docs.contabo.com','docs.hetzner.com','docs.digitalocean.com','techdocs.akamai.com','docs.aws.amazon.com']);
  let acknowledged=new Set(),storageKey='',desktopEnabled=false,seen=new Set(),lastState=null,setupMode='local';
+ const providerOpen=new Map();
  const make=(tag,text='',cls='')=>{const node=document.createElement(tag);node.textContent=text;if(cls)node.className=cls;return node};
  const byId=id=>document.getElementById(id);
  const finite=x=>typeof x==='number'&&Number.isFinite(x);
@@ -46,7 +47,7 @@ const VpsOperator=(()=>{
   acknowledged.add(item.id);
   const active=new Set(lastState.operator.items.map(i=>i.id));acknowledged=new Set([...acknowledged].filter(id=>active.has(id)));
   try{sessionStorage.setItem(storageKey,JSON.stringify([...acknowledged]))}catch{}
-  renderInbox(lastState);byId('operator-feedback').textContent='Acknowledged in this tab. The evidence and any HOLD are unchanged.';
+  renderInbox(lastState);byId('inspect-finding-'+item.id)?.focus({preventScroll:true});byId('operator-feedback').textContent='Acknowledged in this tab. The evidence and any HOLD are unchanged.';
  }
  function inspect(node){setView('overview');location.hash='overview';chooseNode(node);byId('node-selector').focus({preventScroll:true})}
  function renderInbox(value){
@@ -63,29 +64,31 @@ const VpsOperator=(()=>{
    const evidence=make('div','','finding-evidence');
    evidence.append(make('span','Accounted '+pct(item.evidence.mean)),make('span','Coverage '+pct(item.evidence.coverage,0)),make('span',fixed(item.evidence.observed_hours)+'h observed'));
    article.append(evidence,make('p',item.next_action,'finding-next'));
-   const actions=make('div','','finding-actions'),look=make('button','Inspect evidence','button primary');look.type='button';look.onclick=()=>inspect(item.node);
+   const actions=make('div','','finding-actions'),look=make('button','Inspect evidence','button primary');look.type='button';look.id='inspect-finding-'+item.id;look.onclick=()=>inspect(item.node);
    const ack=make('button',acknowledged.has(item.id)?'Acknowledged':'Acknowledge','button');ack.type='button';ack.id='ack-'+item.id;ack.disabled=acknowledged.has(item.id);ack.onclick=()=>acknowledge(item);
    const handoff=make('button','Copy agent task','button');handoff.onclick=()=>copyTask(item);
    actions.append(look,ack,handoff);article.append(actions);grid.append(article);
   }
  }
- async function copyText(text){
-  try{await navigator.clipboard.writeText(text);byId('operator-feedback').textContent='Copied locally. Nothing was executed or sent.'}
-  catch{const box=byId('copy-fallback');box.hidden=false;box.value=text;box.focus();box.select();byId('operator-feedback').textContent='Clipboard unavailable. Copy the selected text manually.'}
+ async function copyText(text,options={}){
+  const message=options.feedback||byId('operator-feedback');
+  try{await navigator.clipboard.writeText(text);message.textContent='Copied locally. Nothing was executed or sent.';return true}
+  catch{
+   const box=options.fallback||byId('copy-fallback');box.hidden=false;box.value=text;
+   const disclosure=box.closest('details');if(disclosure)disclosure.open=true;
+   box.focus();box.select();message.textContent='Clipboard unavailable. The exact text is selected for manual copy; nothing was sent.';return false;
+  }
  }
- function copyTask(item){
-  const kind=lastState.synthetic?'This workspace is SYNTHETIC; demonstrate only.':'Use only the authorized private workspace.';
-  const draft=item.draft_eligible?'If I explicitly request a draft, use draft-email with my observed service impact. Do not send it.':'Do not prepare a real performance complaint from this evidence. A plan clarification can be requested separately.';
-  const task=`Read the installed vps-health/SKILL.md and its operator-playbook.md. ${kind}\nSubject: ${item.node}\nFinding: ${item.title}\nNext check: ${item.next_action}\nRun the read-only doctor first. Preserve captures and compare the same UTC window; do not change CPU limits, schedule a stress test, install a service or contact a provider. Report what is established and what is still unknown.\n${draft}`;
-  copyText(task);
- }
+ function copyTask(item){return copyText(VpsView.task(lastState,item.node))}
  function renderProviders(value){
   const selected=byId('provider-filter').value,ref=value.provider_reference;
   byId('provider-review').textContent=`Documentation reviewed ${ref.reviewed_on} · ${ref.review_state==='RECHECK_REQUIRED'?'Recheck the linked primary sources before relying on them.':'Dated reference, not live policy verification.'}`;
-  const grid=byId('provider-cards');grid.replaceChildren();
+  const grid=byId('provider-cards');
+  grid.querySelectorAll('[data-provider]').forEach(card=>providerOpen.set(card.dataset.provider,card.querySelector('details').open));
+  grid.replaceChildren();
   for(const provider of ref.providers.filter(p=>selected==='all'||p.id===selected)){
-   const card=make('article','','provider-card');card.append(make('span',provider.classes.join(' / '),'provider-class'),make('h3',provider.name),make('p',provider.summary));
-   const details=make('details'),summary=make('summary','Read the plan distinctions');details.append(summary);
+   const card=make('article','','provider-card');card.dataset.provider=provider.id;card.append(make('span',provider.classes.join(' / '),'provider-class'),make('h3',provider.name),make('p',provider.summary));
+   const details=make('details'),summary=make('summary','Read the plan distinctions');details.open=providerOpen.get(provider.id)||false;details.append(summary);
    for(const fact of provider.facts){const block=make('div','','policy-fact');block.append(make('strong',fact.scope+' · '+fact.kind.replaceAll('_',' ')),make('p',fact.text));const link=make('a','Primary documentation ↗');link.href=fact.source;link.target='_blank';link.rel='noopener noreferrer';block.append(link);details.append(block)}
    const list=make('ul');for(const check of provider.check_next)list.append(make('li',check));details.append(list);card.append(details,make('p',provider.not_a_promise,'policy-limit'));grid.append(card);
   }
@@ -185,5 +188,5 @@ const VpsOperator=(()=>{
  byId('copy-draft-instructions').onclick=()=>copyText('Read references/correspondence.md in the installed vps-health skill. First verify the exact provider, plan, service impact and UTC evidence window. Only after my explicit drafting request, run draft-email with --approve-draft and --impact. Use --example for synthetic or incomplete evidence. Ask one concise question, distinguish observations from inference, and never send the message or authorize a reboot/migration.');
  document.addEventListener('vps-status',()=>render(state));
  render(state);
- return {valid,render};
+ return {valid,render,copyText};
 })();
