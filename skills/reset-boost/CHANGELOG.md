@@ -2,6 +2,10 @@
 
 ## 0.3.0 — Preview
 
+A move with `--interrupt` never strands a message queued behind the session's
+turn: the interrupt drops it into the composer, so it is sent on and the
+session is left working (`move_held_queued`). Found on the first live move.
+
 Rehome: a session spending credits is no longer just skipped by a boost. It
 is moved to an account that still has quota (`rehome.prefer` first, then Pro
 plans, then the most quota left, never below `min_left_percent`) and only then

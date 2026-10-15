@@ -1024,7 +1024,10 @@ def move_session(terminal, move, settings):
         send(terminal, keys=["C-c"])
         time.sleep(3)
         if not ui_state(screen(terminal))["empty_composer"]:
-            return dict(row, status="move_held_draft", detail="interrupted; the composer is not empty")
+            # A message queued behind the turn (e.g. from a coordinator) drops into the composer on
+            # interrupt. Send it on, as the session would have, and leave the session working.
+            send(terminal, keys=["Enter"])
+            return dict(row, status="move_held_queued", detail="a queued message was waiting; it was sent and the session left working")
     execute(tmux + ["respawn-pane", "-k", "-t", terminal["pane"], "-c", facts["cwd"], launch], terminal["user"])
     verdict = boot(terminal, seconds)
     row["goal_resumed"] = False
