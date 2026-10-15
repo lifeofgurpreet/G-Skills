@@ -22,7 +22,7 @@ TITLES = {
     "HOST_UNREACHABLE": "Host unreachable", "CONFIG_ERROR": "Config could not be changed", "CONFIG_PENDING": "Launch configs not at target",
     "STILL_BOOSTED": "Session still boosted after turn-down", "PANE_SWITCH_FAILED": "Session switch failed", "PANE_BUSY": "Session busy, waiting to switch",
     "PANE_DRAFT": "Session has a draft in its composer", "PANE_ACCOUNT_UNKNOWN": "Session account unknown", "USAGE_DOWN": "Usage feed unavailable",
-    "DRIFT": "Sessions differ from baseline",
+    "DRIFT": "Sessions differ from baseline", "ON_CREDITS": "Session on credits, move it to an account with quota",
 }
 DEFAULT_AUTOPILOT = {"mode": "suggest", "after_minutes": 10, "max_per_hour": 3, "allow_interrupt": False,
                      "codes": ["STILL_BOOSTED", "PANE_SWITCH_FAILED", "HOST_UNREACHABLE", "CONFIG_ERROR", "USAGE_DOWN"]}
@@ -89,6 +89,10 @@ def signals(state, report, usage_error=None):
                 add("PANE_BUSY", "info", host, subject, f"{who}: busy at {footer}; switches when idle", ["retry_pane", "interrupt_pane", "agent"], row)
             elif status == "held_unrecognized_or_occupied_composer":
                 add("PANE_DRAFT", "warn", host, subject, f"{who}: unsent text in the composer, left alone ({footer})", ["retry_pane", "agent"], row)
+            elif status in ("held_credits", "move_suggested"):
+                add("ON_CREDITS", "info", host, subject, f"{who}: spending credits or out of quota; held at {footer} until moved", ["move", "agent"], row)
+            elif status == "moved":
+                continue
             elif status == "held_profile_unknown":
                 add("PANE_ACCOUNT_UNKNOWN", "warn", host, subject, f"cannot tell which account runs here ({footer}); held while pins are active", ["agent"], row)
             else:
@@ -209,6 +213,7 @@ def brief(state, config, signal=None, request=None, allow_interrupt=False):
               "- `reset_boost.py pane HOST PANE` to retry one live session at its planned target",
               "- `reset_boost.py converge --hosts HOST` to re-apply the current plan on one host",
               "- `reset_boost.py channel PROFILE follow|pin` to change one account's channel",
+              "- `reset_boost.py rehome` (dry run) and `reset_boost.py move HOST PANE [--to PROFILE]` to move a session on credits to an account with quota",
               "- `reset_boost.py done` to turn everything down (always safe)",
               "- read-only inspection over `ssh HOST`: process lists, `tmux list-panes`, `herdr agent list`, config file metadata",
               ]
@@ -216,7 +221,7 @@ def brief(state, config, signal=None, request=None, allow_interrupt=False):
         lines.append("- `reset_boost.py pane HOST PANE --interrupt` (cancels that session's current turn; allowed for this task)")
     lines += ["", "## Rules", "",
               "- Never read conversation transcripts or pane text beyond the model/settings footer the tool already reads.",
-              "- Never restart sessions or kill processes; never change credentials, accounts, SSH, networking or file permissions.",
+              "- Never restart sessions or kill processes yourself (`reset_boost.py move` is the only way a session changes account); never change credentials, SSH, networking or file permissions.",
               "- Never turn anything UP (no boost, no new solo channel); you converge to the current plan or turn down.",
               "" if allow_interrupt else "- Do not interrupt a running turn.",
               "- If the fix needs a human, say exactly what and stop.", "",

@@ -19,6 +19,7 @@ import re
 import shutil
 import subprocess
 import sys
+import threading
 import urllib.request
 
 PHASES = ("idle", "boosted", "cooling")
@@ -250,9 +251,10 @@ def pinned_profiles(state):
 
 def exhausted_profiles(accounts):
     """Accounts with no plan quota left in a window: anything more they spend is paid credits."""
-    result = set()
+    result, moment = set(), now()
+    full = lambda window: (window or {}).get("used", 0) >= 100 and not (parse_time(window.get("resets_at")) or moment) < moment
     for account in (accounts or {}).values():
-        if account.get("profile") and any((window or {}).get("used", 0) >= 100 for window in (account.get("windows") or {}).values()):
+        if account.get("profile") and any(full(window) for window in (account.get("windows") or {}).values()):
             result.add(account["profile"])
     return result
 
@@ -294,8 +296,16 @@ def sessions_path(store):
     return store.dir / "sessions.json"
 
 
+RECORD_LOCK = threading.Lock()
+
+
 def record_sessions(store, report):
     """Keep the freshest telemetry per host for the panel (observe passes and every apply)."""
+    with RECORD_LOCK:
+        return _record_sessions(store, report)
+
+
+def _record_sessions(store, report):
     path = sessions_path(store)
     try:
         current = json.loads(path.read_text())
@@ -329,7 +339,7 @@ def fleet_options(fm, config, store, state):
     # The panel's Settings switch (state) overrides the config default.
     guard = dict({"enabled": True, "floor": 0.0}, **(config.get("credit_guard") or {}), **(state.get("credit_guard") or {}))
     return {"baseline": state["baseline_target"], "credit_guard": guard, "credit_profiles": {fm.safe_profile(p) for p in exhausted},
-            "pane_targets": session_targets(state)}, exhausted
+            "pane_targets": session_targets(state), "rehome": rehome_settings(config, state)["enabled"]}, exhausted
 
 
 def boost_plan(state):
@@ -337,7 +347,14 @@ def boost_plan(state):
     return host, profiles, hold
 
 
-def converge(fm, config, state, store, quiet=True, hosts=None):
+def converge(fm, config, state, store, quiet=True, hosts=None, rehome=None):
+    if state.get("phase") == "boosted" and state.get("boost_target") != state.get("baseline_target"):
+        # Sessions on credits are moved to an account with quota first; then they follow the boost.
+        settings = rehome_settings(config, state)
+        if rehome is None:
+            rehome = state.get("rehome_boost")
+        if settings["enabled"] and (settings["auto"] if rehome is None else rehome):
+            auto_rehome(fm, config, store, state, hosts)
     extra, exhausted = fleet_options(fm, config, store, state)
     target, profiles, hold, label = plan(state, exhausted)
     report = fm.run_fleet(config, hosts or state["hosts"], target, apply=True, live=state.get("live", True), interrupt=state.get("interrupt", False),
@@ -375,6 +392,206 @@ def hosts_option(options, config):
     return hosts
 
 
+# ---------------------------------------------------------------- rehome
+
+DEFAULT_REHOME = {"enabled": None, "auto": False, "prefer": [], "min_left_percent": 15.0, "interrupt": False, "max_per_account": None,
+                  "spread_points": 5.0, "launch": None, "shell": None, "boot_seconds": 45, "fresh_minutes": 15}
+FINAL_MOVE_STATUSES = ("move_not_resumable", "move_no_thread", "move_manual", "move_refused")
+
+
+def rehome_settings(config, state=None):
+    """config `rehome` plus the panel's live overrides. Enabled by default once a launch template is set."""
+    settings = dict(DEFAULT_REHOME, **(config.get("rehome") or {}), **((state or {}).get("rehome") or {}))
+    if settings["enabled"] is None:
+        settings["enabled"] = bool(settings.get("launch"))
+    return settings
+
+
+def headroom(account, moment=None):
+    """Percent of plan quota left in the account's tightest window; a window past its reset counts as full."""
+    moment = moment or now()
+    left = []
+    for window in (account.get("windows") or {}).values():
+        resets = parse_time(window.get("resets_at"))
+        left.append(100.0 if resets and resets < moment else 100.0 - float(window.get("used") or 0))
+    return min(left) if left else None
+
+
+def is_pro(account):
+    return "pro" in str(account.get("plan") or "").lower()
+
+
+def resolve_profile(fm, name, accounts):
+    """The account manager's own profile name for NAME, or None.
+
+    Accepts the exact name (`ops@example.test`), its folder spelling (`ops_example.test`) or an
+    unambiguous short name (`ops`). Launching with a folder spelling makes the wrapper read it as a
+    prompt and start a NEW empty session, so anything unresolved is refused."""
+    names = sorted({account["profile"] for account in (accounts or {}).values() if account.get("profile")})
+    if name in names:
+        return name
+    for match in ([item for item in names if fm.safe_profile(item) == fm.safe_profile(name)], [item for item in names if item.split("@")[0] == name]):
+        if len(match) == 1:
+            return match[0]
+    return None
+
+
+def destinations(fm, accounts, settings, exhausted=()):
+    """Accounts that can take sessions now, best first: preferred, then Pro plans, then most quota left."""
+    prefer = [fm.safe_profile(item) for item in settings.get("prefer") or []]
+    rows = []
+    for account in (accounts or {}).values():
+        profile = account.get("profile")
+        if not profile or account.get("disabled") or profile in exhausted:
+            continue
+        left = headroom(account)
+        if left is None or left < settings["min_left_percent"]:
+            continue
+        safe = fm.safe_profile(profile)
+        rows.append({"profile": profile, "label": account.get("label") or profile, "plan": account.get("plan"), "left": left, "pro": is_pro(account),
+                     "rank": prefer.index(safe) if safe in prefer else len(prefer)})
+    return sorted(rows, key=lambda row: (row["rank"], not row["pro"], -row["left"], row["profile"]))
+
+
+def assign(candidates, dests, settings, fm):
+    """Give each candidate a destination. Each assigned session counts `spread_points` against its
+    account so a long list spreads once the preferred account nears `min_left_percent`."""
+    taken = {}
+    for item in candidates:
+        source = item.get("from")
+        best = None
+        for dest in sorted(dests, key=lambda row: (row["rank"], not row["pro"], -(row["left"] - settings["spread_points"] * taken.get(row["profile"], 0)))):
+            count = taken.get(dest["profile"], 0)
+            if fm.safe_profile(dest["profile"]) == source:
+                continue
+            if settings.get("max_per_account") and count >= settings["max_per_account"]:
+                continue
+            if dest["left"] - settings["spread_points"] * count < settings["min_left_percent"]:
+                continue
+            best = dest
+            break
+        if best:
+            taken[best["profile"]] = taken.get(best["profile"], 0) + 1
+            item.update(to=best["profile"], to_label=best["label"])
+        else:
+            item.update(to=None, to_label=None)
+    return candidates
+
+
+def load_live(store):
+    try:
+        return json.loads(sessions_path(store).read_text())
+    except (OSError, ValueError):
+        return {"hosts": {}}
+
+
+def rehome_plan(fm, config, store, state, include=(), hosts=None):
+    """Which sessions are on credits and where each should go. `include` adds HOST|PANE keys regardless."""
+    settings = rehome_settings(config, state)
+    usage = json.loads(store.usage_path.read_text()) if store.usage_path.exists() else {}
+    accounts = usage.get("accounts") or {}
+    exhausted = exhausted_profiles(accounts)
+    exhausted_safe = {fm.safe_profile(name) for name in exhausted}
+    guard = dict({"enabled": True, "floor": 0.0}, **(config.get("credit_guard") or {}), **(state.get("credit_guard") or {}))
+    live = load_live(store)
+    candidates, seen = [], set()
+    for host, value in (live.get("hosts") or {}).items():
+        if hosts and host not in hosts:
+            continue
+        for row in value.get("rows") or []:
+            key = host + "|" + row["pane"]
+            seen.add(key)
+            credits = fm.on_credits(row.get("telemetry"), guard.get("floor", 0.0)) or row.get("profile") in exhausted_safe
+            if credits or key in include:
+                candidates.append({"key": key, "host": host, "pane": row["pane"], "backend": row.get("backend"), "from": row.get("profile"),
+                                   "activity": row.get("activity"), "on_credits": bool(credits), "observed_at": value.get("at")})
+    for key in include:
+        if key not in seen:
+            host, _, pane = key.partition("|")
+            candidates.append({"key": key, "host": host, "pane": pane, "backend": None, "from": None, "activity": None, "on_credits": False, "observed_at": None})
+    dests = destinations(fm, accounts, settings, exhausted)
+    assign(candidates, dests, settings, fm)
+    local_proc = Path("/proc").is_dir()
+    for item in candidates:
+        kind = (config["hosts"].get(item["host"]) or {}).get("type")
+        if item["backend"] == "herdr" or kind == "windows" or (kind == "local" and not local_proc):
+            item["status"] = "move_manual"
+        elif not item["to"]:
+            item["status"] = "no_destination"
+        else:
+            item["status"] = "move_suggested"
+    return {"settings": settings, "destinations": dests, "moves": candidates}
+
+
+def perform_moves(fm, config, store, state, items, interrupt=False):
+    """Run moves ({host, pane, to, from}) and record each one: event log, session table, state."""
+    grouped = {}
+    for item in items:
+        grouped.setdefault(item["host"], []).append({"pane": item["pane"], "to": item["to"], "interrupt": bool(interrupt)})
+    if not grouped:
+        return []
+    for item in items:
+        store.event("move_started", host=item["host"], pane=item["pane"], to=item["to"], interrupt=bool(interrupt))
+    results = fm.run_moves(config, grouped, rehome_settings(config, state), progress_hook)
+    rows = []
+    attempts = state.setdefault("move_attempts", {})
+    moved = state.setdefault("moves", {})
+    for host, host_rows in results.items():
+        for row in host_rows:
+            key = host + "|" + str(row.get("pane"))
+            source = row.get("from") or next((item.get("from") for item in items if item["host"] == host and item["pane"] == row.get("pane")), None)
+            record = {"from": source, "to": row.get("to"), "status": row.get("status"), "at": iso(now())}
+            attempts[key] = record
+            if row.get("status") == "moved":
+                moved[key] = record
+            store.event("moved" if row.get("status") == "moved" else "move", host=host, pane=row.get("pane"), from_profile=source, to=row.get("to"),
+                        status=row.get("status"), thread=row.get("thread"), goal_resumed=row.get("goal_resumed"), detail=row.get("detail") or row.get("error"))
+            rows.append(dict(row, host=host, from_profile=source))
+    for key in list(moved)[:-200]:
+        moved.pop(key, None)
+    for key in list(attempts)[:-400]:
+        attempts.pop(key, None)
+    mark_moved(fm, store, [row for row in rows if row.get("status") == "moved"])
+    return rows
+
+
+def mark_moved(fm, store, rows):
+    """Show a moved session on its new account right away (the next read confirms it)."""
+    if not rows:
+        return
+    path = sessions_path(store)
+    with RECORD_LOCK:
+        live = load_live(store)
+        for row in rows:
+            for item in ((live.get("hosts") or {}).get(row["host"]) or {}).get("rows") or []:
+                if item.get("pane") == row.get("pane"):
+                    item.update(profile=fm.safe_profile(row["to"]), status="moved")
+        temporary = path.with_suffix(".moved.tmp")
+        temporary.write_text(json.dumps(live, indent=1))
+        os.replace(temporary, path)
+
+
+def auto_rehome(fm, config, store, state, hosts=None):
+    """During a boost: move sessions on credits (from a fresh session read) before the boost is applied."""
+    settings = rehome_settings(config, state)
+    proposal = rehome_plan(fm, config, store, state, hosts=hosts)
+    fresh = now() - dt.timedelta(minutes=settings["fresh_minutes"])
+    attempts = state.get("move_attempts") or {}
+    items = []
+    for item in proposal["moves"]:
+        if item["status"] != "move_suggested" or (parse_time(item.get("observed_at")) or fresh) < fresh:
+            continue
+        last = attempts.get(item["key"]) or {}
+        if last.get("status") in FINAL_MOVE_STATUSES and (parse_time(last.get("at")) or fresh) > now() - dt.timedelta(hours=6):
+            continue  # Its thread would not resume (or cannot be moved here); do not retry every tick.
+        items.append(item)
+    if not items:
+        return []
+    rows = perform_moves(fm, config, store, state, items, interrupt=settings["interrupt"])
+    store.event("rehome", moved=sum(row.get("status") == "moved" for row in rows), tried=len(rows))
+    return rows
+
+
 # ---------------------------------------------------------------- commands
 
 
@@ -405,7 +622,7 @@ def cmd_boost(fm, options, config, store):
     state = dict(keep, **{"phase": "boosted", "boost_name": name, "boost_target": target, "baseline_name": base_name, "baseline_target": base_target,
              "started_at": iso(started), "hosts": hosts_option(options, config), "exclude": exclude, "auto_down": rules,
              "snapshot": snap, "backed_down": backed, "live": not options.no_live, "interrupt": options.interrupt_current_turn,
-             "usage_error": usage_error, "note": options.note})
+             "usage_error": usage_error, "note": options.note, "rehome_boost": getattr(options, "rehome", None)})
     state.setdefault("channels", {})
     if options.dry_run:
         print(json.dumps({key: state[key] for key in ("boost_name", "boost_target", "baseline_name", "hosts", "exclude", "auto_down")}, indent=2))
@@ -690,6 +907,78 @@ def cmd_session(fm, options, config, store):
     return 0 if rows and all(row["status"] == "verified" for row in rows) else 2
 
 
+def observe_hosts(fm, config, store, hosts):
+    """One read-only pass over these hosts' live sessions, recorded for the panel."""
+    state = ensure_baseline(fm, config, store.load())
+    extra, exhausted = fleet_options(fm, config, store, state)
+    target, profiles, hold, label = plan(state, exhausted)
+    report = fm.run_fleet(config, hosts, target, profiles=profiles, hold_unknown=hold, quiet=True, label="observe",
+                          observe=True, save=False, **extra)
+    return record_sessions(store, report)
+
+
+def cmd_move(fm, options, config, store):
+    """Move one live session to another account (default: the best one with quota)."""
+    if options.host not in config["hosts"]:
+        raise ValueError("unknown host " + options.host)
+    state = ensure_baseline(fm, config, store.load())
+    settings = rehome_settings(config, state)
+    if not settings.get("launch"):
+        raise ValueError("rehome.launch is not configured (e.g. \"codex {profile} resume {thread}\")")
+    key = options.host + "|" + options.pane
+    proposal = rehome_plan(fm, config, store, state, include=[key])
+    item = next(row for row in proposal["moves"] if row["key"] == key)
+    usage = json.loads(store.usage_path.read_text()) if store.usage_path.exists() else {}
+    if options.to:
+        to = resolve_profile(fm, options.to, usage.get("accounts"))
+        if not to:
+            raise ValueError(f"cannot resolve the account manager's profile name for {options.to}; refusing to launch "
+                             "(a folder spelling would start a new, empty session)")
+        if to in exhausted_profiles(usage.get("accounts")):
+            raise ValueError(to + " has no quota left; moving there would still spend credits")
+        item.update(to=to, status="move_suggested" if item["status"] != "move_manual" else "move_manual")
+    if item["status"] == "move_manual":
+        print(f"{key}: move_manual (automatic moves need a tmux pane on a Linux host)")
+        return 2
+    if not item.get("to"):
+        print(f"{key}: no account has at least {settings['min_left_percent']:.0f}% quota left")
+        return 2
+    if options.dry_run:
+        print(f"{key}: would move {item.get('from') or '?'} -> {item['to']}")
+        return 0
+    rows = perform_moves(fm, config, store, state, [item], interrupt=options.interrupt)
+    store.save(state)
+    for row in rows:
+        print(f"{row['host']} {row['pane']}: {row['status']} {row.get('from_profile') or '?'} -> {row.get('to')}" + (f" ({row['detail']})" if row.get("detail") else ""))
+    return 0 if rows and rows[0]["status"] == "moved" else 2
+
+
+def cmd_rehome(fm, options, config, store):
+    """Sessions on credits and the account each should move to; --apply moves them."""
+    state = ensure_baseline(fm, config, store.load())
+    hosts = hosts_option(options, config) if options.hosts else None
+    proposal = rehome_plan(fm, config, store, state, hosts=hosts)
+    if options.json and not options.apply:
+        print(json.dumps(proposal, indent=2))
+        return 0
+    if not options.apply:
+        for item in proposal["moves"]:
+            print(f"{item['host']:8} {item['pane']:10} {str(item['from'] or '?')[:18]:18} -> {str(item['to'] or '-')[:22]:22} {item['status']}")
+        if not proposal["moves"]:
+            print("no session is on credits")
+        print("destinations: " + (", ".join(f"{row['profile']} ({row['plan']}, {row['left']:.0f}% left)" for row in proposal["destinations"]) or "none with quota"))
+        return 0
+    if not proposal["settings"].get("launch"):
+        raise ValueError("rehome.launch is not configured (e.g. \"codex {profile} resume {thread}\")")
+    items = [item for item in proposal["moves"] if item["status"] == "move_suggested"]
+    rows = perform_moves(fm, config, store, state, items, interrupt=options.interrupt or proposal["settings"]["interrupt"])
+    store.event("rehome", moved=sum(row.get("status") == "moved" for row in rows), tried=len(rows))
+    store.save(state)
+    for row in rows:
+        print(f"{row['host']:8} {row['pane']:10} {row['status']:20} {row.get('from_profile') or '?'} -> {row.get('to')}")
+    return 0 if all(row["status"] == "moved" for row in rows) else 2
+
+
 def cmd_observe(fm, options, config, store):
     """Read every live session's status line (model, effort, fast, run state, quota, credits). Changes nothing."""
     state = ensure_baseline(fm, config, store.load())
@@ -802,6 +1091,8 @@ def main(argv, fm):
     boost.add_argument("--no-live", action="store_true", help="change launch defaults only; leave running sessions")
     boost.add_argument("--interrupt-current-turn", action="store_true", help="allow cancelling a running turn to switch it")
     boost.add_argument("--note", help="why (shown on the dashboard)")
+    boost.add_argument("--rehome", dest="rehome", action="store_true", default=None, help="move sessions on credits to accounts with quota first")
+    boost.add_argument("--no-rehome", dest="rehome", action="store_false", help="leave sessions on credits where they are (held at baseline)")
     boost.add_argument("--dry-run", action="store_true")
     done = commands.add_parser("done", help="turn everything back down to the baseline")
     done.add_argument("--reason")
@@ -840,6 +1131,17 @@ def main(argv, fm):
     session.add_argument("--preset")
     session.add_argument("--tier", choices=("default", "fast", "priority", "flex"))
     session.add_argument("--interrupt", action="store_true", help="cancel a running turn first instead of waiting for idle")
+    move = commands.add_parser("move", help="move one live session to another account (verified first; keeps the conversation)")
+    move.add_argument("host")
+    move.add_argument("pane")
+    move.add_argument("--to", help="destination profile (default: the best account with quota)")
+    move.add_argument("--interrupt", action="store_true", help="cancel its running turn first instead of holding")
+    move.add_argument("--dry-run", action="store_true")
+    rehome = commands.add_parser("rehome", help="move sessions on credits to accounts with quota (dry run unless --apply)")
+    rehome.add_argument("--apply", action="store_true")
+    rehome.add_argument("--interrupt", action="store_true", help="cancel running turns first instead of holding")
+    rehome.add_argument("--hosts")
+    rehome.add_argument("--json", action="store_true")
     observe = commands.add_parser("observe", help="read every live session's status line; changes nothing")
     observe.add_argument("--hosts")
     observe.add_argument("--json", action="store_true")
@@ -865,11 +1167,11 @@ def main(argv, fm):
     store = Store(fm)
     handler = {"boost": cmd_boost, "done": cmd_done, "watch": cmd_watch, "status": cmd_status, "dashboard": cmd_dashboard, "converge": cmd_converge,
                "channel": cmd_channel, "rules": cmd_rules, "pane": cmd_pane, "signals": cmd_signals, "agent": cmd_agent, "serve": cmd_serve,
-               "session": cmd_session, "observe": cmd_observe}[options.command]
+               "session": cmd_session, "observe": cmd_observe, "move": cmd_move, "rehome": cmd_rehome}[options.command]
     if options.command == "watch" and not options.even_if_served and server_alive(store):
         print("the control panel's loop is running; it does the ticks")
         return 0
-    if options.command in ("status", "dashboard", "signals", "agent", "serve", "observe"):
+    if options.command in ("status", "dashboard", "signals", "agent", "serve", "observe") or (options.command == "rehome" and not options.apply):
         try:
             return handler(fm, options, config, store)
         except ValueError as error:

@@ -1,5 +1,37 @@
 # Reset Boost changelog
 
+## 0.3.0 — Preview
+
+Rehome: a session spending credits is no longer just skipped by a boost. It
+is moved to an account that still has quota (`rehome.prefer` first, then Pro
+plans, then the most quota left, never below `min_left_percent`) and only then
+follows the boost. `move HOST PANE [--to PROFILE]` moves one session and
+`rehome [--apply]` (a dry run by default) moves every session on credits; with
+`rehome.auto` a boost moves them before it applies, and `boost --rehome /
+--no-rehome` decides for one boost. The crank-up confirm offers "move them to
+<account> first", the alert offers "Move N", and session details have "Move
+to…"; moved sessions show the account they came from. A move resumes the same
+conversation in the same tmux pane and folder: the thread id comes from the
+process arguments or the *name* of its open rollout file (never its
+contents), the resume is proven in a hidden window first (threads with broken
+history are left untouched and not retried for 6 hours), working sessions and
+drafts are held, the pane is respawned in place, a paused goal is resumed, and
+the new account is read back. The launch is a config template
+(`rehome.launch`, e.g. `codex {profile} resume {thread}`); profile names are
+resolved to the account manager's own spelling from the usage feed and an
+unresolved or folder-spelled name is refused. Herdr, macOS and Windows
+sessions report `move_manual`. A new `ON_CREDITS` signal replaces the false
+"switch failed" these sessions used to raise.
+
+Also from the private deployment's 10-15 reset window: the panel re-reads each
+host continuously (`live_seconds`, default 5) and pushes every reading as it
+lands; each usage read checks for the reset and starts the turn-down at once;
+slash commands typed into a session pause before Enter, retry the whole
+command once and erase anything left, so `/model` or a fragment is never left
+in a composer and Enter is never pressed on a fragment; and a full usage
+window whose reset time has passed no longer counts as exhausted (feeds lag
+the provider). The composer check also accepts the `»` prompt marker.
+
 ## 0.2.1 — Preview
 
 First releasable preview. The panel now plans accounts with no quota left at

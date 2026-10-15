@@ -229,5 +229,140 @@ class DashboardTests(unittest.TestCase):
         self.assertIn("&lt;img src=x", page)
 
 
+class ExhaustedTests(unittest.TestCase):
+    def test_a_full_window_past_its_reset_time_is_not_exhausted(self):
+        past = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(minutes=5)).isoformat()
+        future = (dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=2)).isoformat()
+        accounts = {"a": {"profile": "stale", "windows": {"session": {"used": 100, "resets_at": past}}},
+                    "b": {"profile": "full", "windows": {"session": {"used": 100, "resets_at": future}}},
+                    "c": {"profile": "undated", "windows": {"weekly": {"used": 100}}}}
+        self.assertEqual(boost_lifecycle.exhausted_profiles(accounts), {"full", "undated"})
+
+
+class RehomeTests(unittest.TestCase):
+    """Sessions on credits move to an account with quota (Pro first) before a boost reaches them."""
+
+    def setUp(self):
+        self.directory = tempfile.TemporaryDirectory()
+        self.root = Path(self.directory.name)
+        future = "2026-12-20T00:00:00Z"
+
+        def acct(profile, plan, used, **extra):
+            return dict({"account_id": "acct-" + profile, "display_name": profile, "provider": "codex", "plan": plan, "observed_by_profile": profile,
+                         "windows": [{"key": "weekly", "used_percent": used, "window_seconds": 604800, "resets_at": future}]}, **extra)
+        (self.root / "usage.json").write_text(json.dumps({"accounts": [
+            acct("pro-a", "pro", 54), acct("pro-b", "pro", 100), acct("ops@example.test", "team", 30), acct("team-b", "team", 90),
+            acct("off", "pro", 0, usage_status="policy_disabled")]}))
+        self.config = {"hosts": {"box": {"type": "ssh"}, "win": {"type": "windows"}}, "baseline": "normal",
+                       "usage": {"type": "file", "path": str(self.root / "usage.json"), "provider": "codex"}, "dashboard": str(self.root / "dash.html"),
+                       "rehome": {"auto": True, "prefer": ["pro-a"], "launch": "codex {profile} resume {thread}"}}
+        (self.root / "config.json").write_text(json.dumps(self.config))
+        self.env = patch.dict(os.environ, {"RESET_BOOST_CONFIG": str(self.root / "config.json"), "RESET_BOOST_STATE_DIR": str(self.root / "state")})
+        self.env.start()
+        self.order, self.move_status = [], "moved"
+        fake = types.SimpleNamespace(**{name: getattr(rb, name) for name in dir(rb) if not name.startswith("__")})
+        fake.run_fleet, fake.run_moves, fake.report_exit = self.run_fleet, self.run_moves, (lambda report: 0)
+        self.fm = fake
+        self.store = boost_lifecycle.Store(fake)
+        self.write_sessions()
+        with patch("sys.stdout"):
+            boost_lifecycle.main(["status", "--refresh"], fake)
+        self.store.usage_path.write_text(json.dumps({"at": boost_lifecycle.iso(boost_lifecycle.now()), "accounts": boost_lifecycle.fetch_usage(rb.load_config())[0]}))
+
+    def tearDown(self):
+        self.env.stop()
+        self.directory.cleanup()
+
+    def write_sessions(self):
+        rows = [{"backend": "tmux", "pane": "%1", "profile": "pro-b", "activity": "idle", "telemetry": {"model": "gpt-6.1-sol", "effort": "medium", "weekly_left": 0.0}},
+                {"backend": "tmux", "pane": "%2", "profile": "ops_example.test", "activity": "idle", "telemetry": {"model": "gpt-6.1-sol", "effort": "medium", "weekly_left": 70.0}},
+                {"backend": "herdr", "pane": "w1:p2", "profile": "pro-b", "activity": "idle", "telemetry": {"model": "gpt-6.1-sol", "effort": "medium", "credits": "$3.10 credits"}}]
+        self.store.dir.mkdir(parents=True, exist_ok=True)
+        boost_lifecycle.sessions_path(self.store).write_text(json.dumps({"at": boost_lifecycle.iso(boost_lifecycle.now()), "hosts": {"box": {"at": boost_lifecycle.iso(boost_lifecycle.now()), "rows": rows}}}))
+
+    def run_fleet(self, config, hosts, target, **options):
+        self.order.append(("fleet", target["model"], options.get("rehome")))
+        self.live_at_apply = json.loads(boost_lifecycle.sessions_path(self.store).read_text())
+        path = self.root / f"report-{len(self.order)}.json"
+        report = {"created_at": boost_lifecycle.iso(boost_lifecycle.now()), "hosts": {host: {"configs": [], "errors": [], "terminals": []} for host in hosts}}
+        path.write_text(json.dumps(report))
+        return dict(report, _path=str(path))
+
+    def run_moves(self, config, moves, settings, progress=None):
+        self.order.append(("moves", json.loads(json.dumps(moves))))
+        return {host: [dict(item, status=self.move_status, **{"from": "pro-b"}) for item in items] for host, items in moves.items()}
+
+    def cli(self, *argv):
+        with patch("sys.stdout") as out:
+            code = boost_lifecycle.main(list(argv), self.fm)
+        return code, "".join(str(call.args[0]) for call in out.write.call_args_list if call.args)
+
+    def accounts(self):
+        return json.loads(self.store.usage_path.read_text())["accounts"]
+
+    def test_profile_names_resolve_to_the_account_managers_spelling_or_are_refused(self):
+        accounts = self.accounts()
+        self.assertEqual(boost_lifecycle.resolve_profile(rb, "ops_example.test", accounts), "ops@example.test")
+        self.assertEqual(boost_lifecycle.resolve_profile(rb, "ops", accounts), "ops@example.test")
+        self.assertEqual(boost_lifecycle.resolve_profile(rb, "pro-a", accounts), "pro-a")
+        self.assertIsNone(boost_lifecycle.resolve_profile(rb, "codex-ops_example.test", accounts))
+        self.assertIsNone(boost_lifecycle.resolve_profile(rb, "nobody", accounts))
+        with self.assertRaises(SystemExit), patch("sys.stderr"):
+            self.cli("move", "box", "%1", "--to", "codex-pro-a")
+        self.assertEqual(self.order, [])
+
+    def test_destinations_put_pro_first_and_skip_exhausted_low_and_disabled(self):
+        accounts = self.accounts()
+        settings = boost_lifecycle.rehome_settings(self.config)
+        exhausted = boost_lifecycle.exhausted_profiles(accounts)
+        self.assertEqual([row["profile"] for row in boost_lifecycle.destinations(rb, accounts, dict(settings, prefer=[]), exhausted)], ["pro-a", "ops@example.test"])
+        self.assertEqual([row["profile"] for row in boost_lifecycle.destinations(rb, accounts, dict(settings, prefer=["ops"]), exhausted)], ["pro-a", "ops@example.test"])
+        self.assertEqual([row["profile"] for row in boost_lifecycle.destinations(rb, accounts, dict(settings, prefer=["ops@example.test"]), exhausted)],
+                         ["ops@example.test", "pro-a"])
+        dests = boost_lifecycle.destinations(rb, accounts, settings, exhausted)
+        many = boost_lifecycle.assign([{"from": "pro-b"} for _ in range(9)], dests, settings, rb)
+        self.assertEqual([item["to"] for item in many].count("pro-a"), 7)  # 46% left, 5 points each, floor 15%
+        self.assertEqual([item["to"] for item in many].count("ops@example.test"), 2)
+        capped = boost_lifecycle.assign([{"from": "pro-b"} for _ in range(3)], dests, dict(settings, max_per_account=1), rb)
+        self.assertEqual([item["to"] for item in capped], ["pro-a", "ops@example.test", None])
+
+    def test_dry_run_plan_lists_moves_and_changes_nothing(self):
+        code, text = self.cli("rehome")
+        self.assertEqual(code, 0)
+        self.assertIn("%1", text)
+        self.assertIn("move_suggested", text)
+        self.assertIn("move_manual", text)  # herdr
+        self.assertNotIn("%2 ", text)  # has quota
+        plan = boost_lifecycle.rehome_plan(self.fm, rb.load_config(), self.store, {})
+        self.assertEqual({item["pane"]: (item["to"], item["status"]) for item in plan["moves"]},
+                         {"%1": ("pro-a", "move_suggested"), "w1:p2": ("pro-a", "move_manual")})
+        self.assertEqual(self.order, [])
+
+    def test_boost_moves_credit_sessions_first_then_applies(self):
+        self.cli("boost", "--preset", "astra-ultra-fast")
+        self.assertEqual(self.order[0], ("moves", {"box": [{"pane": "%1", "to": "pro-a", "interrupt": False}]}))
+        self.assertEqual(self.order[1], ("fleet", "gpt-6-astra", True))
+        state = json.loads(self.store.state_path.read_text())
+        self.assertEqual(state["moves"]["box|%1"]["to"], "pro-a")
+        self.assertEqual(self.live_at_apply["hosts"]["box"]["rows"][0]["profile"], "pro-a")  # shown on its new account before the apply
+        events = [event["event"] for event in self.store.events()]
+        self.assertIn("moved", events)
+        self.assertLess(events.index("moved"), events.index("applied"))
+
+    def test_no_rehome_holds_for_the_whole_boost(self):
+        self.cli("boost", "--preset", "astra-high", "--no-rehome")
+        self.cli("converge")
+        self.assertEqual([step[0] for step in self.order], ["fleet", "fleet"])
+        self.assertTrue(all(step[2] for step in self.order))  # held sessions are reported as move_suggested
+
+    def test_a_thread_that_will_not_resume_is_not_retried_every_tick(self):
+        self.move_status = "move_not_resumable"
+        self.cli("boost", "--preset", "astra-high")
+        self.cli("converge")
+        self.assertEqual([step[0] for step in self.order], ["moves", "fleet", "fleet"])
+        events = self.store.events()
+        self.assertEqual([event["status"] for event in events if event["event"] == "move"], ["move_not_resumable"])
+
+
 if __name__ == "__main__":
     unittest.main()

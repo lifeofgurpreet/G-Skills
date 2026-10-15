@@ -272,6 +272,25 @@ class ServerTests(Fixture):
         self.assertEqual(targets["team-a"], state["baseline_target"])
         self.assertEqual(targets["team-b"], ASTRA_HIGH)
 
+    def test_move_action_resolves_the_profile_and_refuses_folder_spellings(self):
+        moves = []
+        self.fm.run_moves = lambda config, m, settings, progress=None: moves.append(m) or {h: [dict(i, status="moved") for i in items] for h, items in m.items()}
+        self.panel.config = dict(self.panel.config, rehome={"launch": "codex {profile} resume {thread}", "prefer": ["team-b"]})
+        self.panel.refresh_usage()
+        snapshot = json.loads(self.request("GET", "/api/state")[1])
+        self.assertEqual(snapshot["rehome"]["best"]["profile"], "team-b")
+        self.assertTrue(snapshot["rehome"]["launch"])
+        self.assertEqual(self.request("POST", "/api/move", {"host": "box", "pane": "%1", "to": "team-b"})[0], 200)
+        self.wait_idle()
+        self.assertEqual(self.panel.last_job["status"], "done")
+        self.assertEqual(moves, [{"box": [{"pane": "%1", "to": "team-b", "interrupt": False}]}])
+        self.request("POST", "/api/move", {"host": "box", "pane": "%1", "to": "codex-team-b"})
+        self.wait_idle()
+        self.assertEqual(self.panel.last_job["status"], "failed")
+        self.assertIn("refusing to launch", self.panel.last_job["detail"])
+        self.assertEqual(len(moves), 1)
+        self.assertIn("moved", [event["event"] for event in self.store.events()])
+
     def test_stream_starts_with_a_snapshot(self):
         connection = http.client.HTTPConnection("127.0.0.1", self.port, timeout=10)
         connection.request("GET", "/api/stream?t=" + self.panel.token, headers={"Host": f"127.0.0.1:{self.port}"})

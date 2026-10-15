@@ -4,7 +4,7 @@ description: Turn every Codex coding-agent session in a fleet up for a provider 
 license: MIT
 compatibility: Python 3.11+ on the controlling machine and on each Linux/macOS host (3.10 runs the lifecycle, panel and dashboard but cannot read TOML). SSH aliases with key auth for remote hosts. Live switching needs Herdr or tmux and the Codex terminal UI. Windows hosts are config-only. No dependencies to install.
 metadata:
-  version: "0.2.1"
+  version: "0.3.0"
   author: lifeofgurpreet
 ---
 
@@ -27,8 +27,11 @@ You are changing what someone else's accounts spend. Turning up raises cost,
 so **propose the exact change and run it only on the user's instruction** (or
 let them press the button in the panel). `observe`, `status`, `signals` and
 `--dry-run` are always fine. Turning down (`done`) is the safe direction and is
-always allowed. Never edit credentials, switch accounts, restart sessions,
-read transcripts or send prompts to make a switch "work"; report what is held.
+always allowed. Never edit credentials, restart sessions, read transcripts
+or send prompts to make a switch "work"; report what is held. Moving a session
+to another account (`move`, `rehome --apply`, or a boost with `rehome.auto`)
+spends that account's quota, so it too needs the user's instruction or their
+`rehome.auto` setting; `rehome` without `--apply` is a dry run and always fine.
 
 ## The control panel
 
@@ -40,8 +43,11 @@ scripts/install-watch.sh --serve         # keep it running (LaunchAgent or syste
 Give the user the link from `serve-url`. The panel is built around **live
 sessions**: every row is a running Codex session read from its own status line
 (model, reasoning, fast mode, working/idle, the account's 5-hour and weekly
-quota left, credits spent, folder), re-read about every minute. Rows flash
-when a reading changes, so a human confirms a switch with their own eyes.
+quota left, credits spent, folder). Each host is re-read continuously
+(every `live_seconds`, default 5) and each reading reaches the page as soon as
+it lands. Rows flash when a reading changes, so a human confirms a switch with
+their own eyes. A usage read that shows the reset has landed starts the
+turn-down at once instead of waiting for the next tick.
 
 - **Live**: a one-line headline ("All systems go.", "Cranked up.", "2 things
   need you."), the session/host count and when they were read, and an alert
@@ -70,7 +76,24 @@ when a reading changes, so a human confirms a switch with their own eyes.
 whose status line shows credits spent or no quota left (at or below the floor
 set in Settings), or whose account is at 100% in the usage feed; such accounts
 also keep baseline launch configs during a boost. Turning down is never
-blocked. These sessions show as "skipped: out of quota".
+blocked.
+
+**Rehome: sessions on credits move, then follow.** A session on credits is
+never cranked up where it is. With `rehome.launch` configured, it is moved to
+an account that still has quota (accounts listed in `rehome.prefer` first,
+then Pro plans, then the most quota left; never below `min_left_percent`) and
+only then follows the boost. The crank-up confirm says "N sessions are on
+credits → move them to <account> first" with a checkbox (default:
+`rehome.auto`), the alert offers "Move N", and a session's details have
+"Move to…". A move keeps the pane, folder and conversation: the thread id
+comes from `resume <id>` in the process arguments or from the *file name* of
+the open `rollout-*.jsonl` (its contents are never read); the new launch is
+proven in a hidden tmux window first ("open in another app" or a status line
+means it resumes; "thread/resume failed" or "missing source rollout" leaves
+the session untouched); working sessions and drafts are held; then the pane is
+respawned in place, a paused goal is resumed with `/goal resume`, and the new
+account is read back from the process. Herdr panes, macOS and Windows report
+`move_manual`. See [live-sessions.md](references/live-sessions.md).
 
 **Agents handle what buttons can't.** Problems the buttons could not fix
 (unreachable host, failed or held switch, still boosted after turn-down, usage
@@ -128,6 +151,10 @@ reset_boost.py converge --hosts build-1        # re-apply the current plan on on
 reset_boost.py channel team-a pin              # follow | pin | <preset> | <model> <effort> [--tier fast]
 reset_boost.py rules --ceiling 90 --until 6h   # tune auto-down during a boost
 reset_boost.py agent "why won't build-1 switch?"  # hand a request to the configured agent
+reset_boost.py rehome                          # dry run: sessions on credits and where each would go
+reset_boost.py rehome --apply [--interrupt]    # move them (needs the user's instruction)
+reset_boost.py move build-1 %3 [--to pro-a] [--interrupt] [--dry-run]
+reset_boost.py boost --preset astra-high --no-rehome   # keep sessions on credits where they are
 ```
 
 `--interrupt` cancels the running turn before switching and is only for the

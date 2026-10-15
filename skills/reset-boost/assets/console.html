@@ -199,6 +199,7 @@ textarea.ask { width: 100%; min-height: 80px; resize: vertical; background: var(
           <div class="setting"><label>Back one account down at usage</label><input type="range" id="fCeiling" min="50" max="100" step="5"><span class="v num" id="vCeiling"></span></div></div>
         <div class="card"><div class="card-title">Credits &amp; reading</div>
           <div class="setting"><label>Never turn up a session that spends credits or has no quota left</label><button class="switch" id="fGuard"></button></div>
+          <div class="setting"><label>During a boost, move sessions on credits to an account with quota first</label><button class="switch" id="fRehome"></button></div>
           <div class="setting"><label>Count as out of quota at or below</label><input type="range" id="fFloor" min="0" max="20" step="1"><span class="v num" id="vFloor"></span></div>
           <div class="setting"><label>Read every session every</label><input type="range" id="fObserve" min="20" max="300" step="10"><span class="v num" id="vObserve"></span></div>
           <div class="setting"><label>Re-apply the plan every</label><input type="range" id="fTick" min="2" max="60" step="1"><span class="v num" id="vTick"></span></div>
@@ -280,6 +281,7 @@ textarea.ask { width: 100%; min-height: 80px; resize: vertical; background: var(
   function shortName(v) { return v ? String(v).split("@")[0] : v; }
   function safe(p) { return p ? p.replace(/[^A-Za-z0-9._-]/g, "_") : null; }
   function acctOf(profile) { return S.accounts.find(function (a) { return a.profile && safe(a.profile) === profile; }); }
+  function rehomeBest() { var r = S && S.rehome; return r && r.enabled && r.launch ? r.best : null; }
   function leverT() { return {model: lever.model, effort: lever.effort, tier: lever.fast ? "priority" : "default"}; }
   function affected(t) {
     var up = isUp(t), r = {up: up, will: 0, credit: 0, lock: 0, unknown: 0, already: 0};
@@ -320,8 +322,15 @@ textarea.ask { width: 100%; min-height: 80px; resize: vertical; background: var(
     $("lede").innerHTML = ledeText();
     var credit = rows().filter(function (r) { return r.on_credits; }).length;
     $("alert").classList.toggle("hidden", !credit);
-    $("alert").innerHTML = credit ? icon("warn", "width:16px;height:16px") + "<span>" + credit + (credit === 1 ? " session is on an account" : " sessions are on accounts") + " out of quota or spending credits. They are never cranked up.</span><button class=\"btn link small\" id=\"seeCredit\">See them</button>" : "";
+    var best = rehomeBest(), movable = rows().filter(function (r) { return r.on_credits && r.move_status === "move_suggested"; }).length;
+    $("alert").innerHTML = credit ? icon("warn", "width:16px;height:16px") + "<span>" + credit + (credit === 1 ? " session is" : " sessions are") + " on credits or out of quota. They are never cranked up where they are" +
+      (best ? "; they can move to " + esc(shortName(best.label)) + " (quota left)." : "; no account has quota to move them to.") + "</span>" +
+      (best && movable ? '<button class="btn link small" id="moveCredit">Move ' + movable + "</button>" : "") + '<button class="btn link small" id="seeCredit">See them</button>' : "";
     if ($("seeCredit")) $("seeCredit").onclick = function () { filter = "credits"; tab = "sessions"; renderSessions(); };
+    if ($("moveCredit")) $("moveCredit").onclick = function () {
+      confirmBox("Move " + movable + " sessions to accounts with quota?", "Each one is resumed on the new account in its own pane, folder and conversation. The resume is proven in a hidden window first; a session that cannot resume, or that is working or has a draft, is left alone.",
+        function () { api("rehome", {}).then(function () { toast("Moving sessions on credits…", "ok"); }); }, "Move them");
+    };
     if (!lever.touched) {
       var cur = S.phase === "boosted" ? S.boost.boost_target : lastBoost;
       lever.model = cur.model; lever.effort = cur.effort; lever.fast = cur.tier === "priority";
@@ -368,9 +377,11 @@ textarea.ask { width: 100%; min-height: 80px; resize: vertical; background: var(
     var downDesc = down === "reset" ? "It comes back down by itself when the reset lands." : down === "until" ? "It comes back down by itself after " + esc($("downAfter").value) + "." : "It stays up until you bring it down.";
     confirmBox((a.up ? "Crank up to " : "Set everything to ") + tlabel(t) + "?",
       "<b>" + a.will + "</b> sessions switch now; busy ones switch the moment they go idle, and new sessions start this way.<br>" +
-      (a.credit ? "<b>" + a.credit + "</b> are skipped because their account is out of quota or spending credits.<br>" : "") +
+      (a.credit ? (rehomeBest() ? '<label class="row" style="gap:10px;align-items:flex-start;margin:6px 0"><input type="checkbox" id="mvChk"' + (S.rehome.auto ? " checked" : "") + '><span><b>' + a.credit +
+        "</b> sessions are on credits → move them to <b>" + esc(shortName(rehomeBest().label)) + "</b> first (accounts with quota, Pro first); then they follow.</span></label>" :
+        "<b>" + a.credit + "</b> are on credits and stay at the baseline: no account has quota to move them to.<br>") : "") +
       (a.lock ? "<b>" + a.lock + "</b> are skipped because their account is locked.<br>" : "") + (a.up ? "<br>" + downDesc : ""),
-      function () { api("boost", body).then(function () { lastBoost = t; set("resetBoostLastBoost", JSON.stringify(t)); lever.touched = false; toast("Switching sessions…", "ok"); }); }, a.up ? "Crank up" : "Apply");
+      function () { if ($("mvChk")) body.rehome = $("mvChk").checked; api("boost", body).then(function () { lastBoost = t; set("resetBoostLastBoost", JSON.stringify(t)); lever.touched = false; toast("Switching sessions…", "ok"); }); }, a.up ? "Crank up" : "Apply");
   };
   $("allDown").onclick = function () {
     confirmBox("Bring everything back down?", "Every session returns to " + esc(tlabel(base())) + ". Busy ones switch the moment they go idle. Per-session settings are cleared; locked accounts stay locked.",
@@ -394,7 +405,8 @@ textarea.ask { width: 100%; min-height: 80px; resize: vertical; background: var(
     return a === "working" ? '<span class="status ok"><span class="dot"></span>Working</span>' : a === "draft" ? '<span class="status warn"><span class="dot"></span>Draft</span>' : '<span class="status idle"><span class="dot"></span>Idle</span>';
   }
   function why(r) {
-    if (r.on_credits && isUp(r.planned)) return '<div class="why bad">skipped: out of quota</div>';
+    if (r.on_credits && isUp(r.planned)) return r.move_to && r.move_status === "move_suggested" ? '<div class="why">on credits: moves to ' + esc(shortName(r.move_to_label || r.move_to)) + "</div>" :
+      r.move_status === "move_manual" ? '<div class="why bad">on credits: move it by hand</div>' : '<div class="why bad">on credits: no account with quota</div>';
     var s = r.status || "";
     if (s === "held_working" || r.activity === "working") return '<div class="why">switches when idle</div>';
     if (s === "held_unrecognized_or_occupied_composer") return '<div class="why">waits: text in its prompt</div>';
@@ -434,7 +446,7 @@ textarea.ask { width: 100%; min-height: 80px; resize: vertical; background: var(
           return '<tr class="data' + (selected[r.key] ? " sel" : "") + (flash[r.key] ? " flash" : "") + '" data-key="' + esc(r.key) + '">' +
             '<td><input type="checkbox" class="check" data-key="' + esc(r.key) + '"' + (selected[r.key] ? " checked" : "") + "></td>" +
             '<td><div class="row" style="gap:12px;flex-wrap:nowrap"><span class="dot ' + (r.activity === "working" ? "ok" : r.readable ? "" : "bad") + '"></span><div style="min-width:0"><div class="sname" title="' + esc(r.cwd || "") + '">' + esc(r.folder || r.pane) + '</div><div class="sub">' + esc(r.host + " · " + r.pane) + "</div></div></div></td>" +
-            '<td title="' + esc(r.account || "") + '"><div>' + esc(shortName(r.account || r.profile) || "unknown") + '</div><div class="sub">' + esc(r.plan || "") + (r.own ? " · own setting" : "") + "</div></td>" +
+            '<td title="' + esc(r.account || "") + '"><div>' + esc(shortName(r.account || r.profile) || "unknown") + '</div><div class="sub">' + esc(r.plan || "") + (r.own ? " · own setting" : "") + (r.moved ? " · moved from " + esc(shortName(r.moved.from) || "?") : "") + "</div></td>" +
             "<td>" + colored(r.model, r.effort, r.fast) + plan + "</td>" +
             "<td>" + stateCell(r) + "</td>" +
             '<td class="small num" style="white-space:nowrap">' + quota(r) + "</td>" +
@@ -529,11 +541,12 @@ textarea.ask { width: 100%; min-height: 80px; resize: vertical; background: var(
     var sig = (S.signals || []).find(function (s) { return s.host === r.host && s.evidence && s.evidence.pane === r.pane; });
     showMenu(anchor, '<div class="label">' + esc((r.folder || r.pane) + " · " + r.host) + "</div>" +
       (r.planned && !r.matches ? '<button data-x="retry">Switch now to ' + esc(tlabel(r.planned)) + '</button><button data-x="interrupt">Interrupt &amp; switch…</button>' : "") +
-      '<button data-x="select">Select for a different setting</button>' + (r.own ? '<button data-x="follow">Back to fleet setting</button>' : "") +
+      '<button data-x="select">Select for a different setting</button><button data-x="move">Move to another account…</button>' + (r.own ? '<button data-x="follow">Back to fleet setting</button>' : "") +
       (S.autopilot.configured ? '<button data-x="agent">Ask an agent to look at it</button>' : ""), function (b) {
       var x = b.getAttribute("data-x");
       if (x === "retry") api("pane", {host: r.host, pane: r.pane});
       if (x === "interrupt") confirmBox("Interrupt and switch?", "Cancels the running turn in <b>" + esc(r.folder || r.pane) + "</b> on " + esc(r.host) + ", then switches it to " + esc(tlabel(r.planned)) + ". The session stays open.", function () { api("pane", {host: r.host, pane: r.pane, interrupt: true}); }, "Interrupt & switch");
+      if (x === "move") showDetail(r.key);
       if (x === "select") { selected[r.key] = 1; renderSessions(); $("dock").classList.add("on"); }
       if (x === "follow") api("session", {sessions: [r.key], setting: "follow"});
       if (x === "agent") api("agent", sig ? {signal: sig.id} : {request: "Look at Codex session " + r.pane + " on " + r.host + " (account " + (r.profile || "unknown") + "). It reads " + label(r.model, r.effort, r.fast) + (r.planned ? ", planned " + tlabel(r.planned) : ", no plan for it") + ", status " + (r.status || "?") + ". Explain what you see; change it only with reset_boost.py verbs and only if clearly safe."}).then(function () { toast("Sent to an agent", "ok"); });
@@ -545,8 +558,24 @@ textarea.ask { width: 100%; min-height: 80px; resize: vertical; background: var(
       ["Running", label(r.model, r.effort, r.fast)], ["Planned", r.planned ? tlabel(r.planned) + (r.own ? " (its own setting)" : "") : "left as is"], ["State", r.activity || "?"],
       ["5-hour quota left", r.five_hour_left == null ? "–" : Math.round(r.five_hour_left) + "%"], ["Weekly quota left", r.weekly_left == null ? "–" : Math.round(r.weekly_left) + "%"],
       ["Credits", r.credits || (r.on_credits ? "account out of quota" : "none")], ["Last switch result", r.status || "–"], ["Read", ago(r.observed_at)]];
-    confirmBox(r.folder || r.pane, '<div class="detail"><dl>' + dl.map(function (x) { return "<dt>" + esc(x[0]) + "</dt><dd>" + esc(x[1]) + "</dd>"; }).join("") + "</dl></div>", null);
+    if (r.moved) dl.push(["Moved", "from " + (r.moved.from || "?") + " to " + r.moved.to + ", " + ago(r.moved.at)]);
+    if (r.last_move && r.last_move.status !== "moved") dl.push(["Last move", r.last_move.status + ", " + ago(r.last_move.at)]);
+    var dests = ((S.rehome || {}).destinations || []).filter(function (d) { return safe(d.profile) !== r.profile; });
+    var mv = !(S.rehome && S.rehome.launch) ? '<div class="small muted">Moving needs rehome.launch in the config.</div>' :
+      r.backend !== "tmux" ? '<div class="small muted">Only tmux sessions on Linux hosts move automatically; move this one by hand.</div>' :
+      !dests.length ? '<div class="small muted">No account has quota left to move to.</div>' :
+      '<div class="row" style="gap:10px;flex-wrap:wrap"><label class="pill" style="height:38px"><select id="mvTo">' + dests.map(function (d) {
+        return '<option value="' + esc(d.profile) + '"' + (d.profile === r.move_to ? " selected" : "") + ">" + esc(shortName(d.label) + " · " + (d.plan || "") + " · " + Math.round(d.left) + "% left") + "</option>"; }).join("") +
+      '</select><svg class="i chev"><use href="#i-chev"/></svg></label><label class="small row" style="gap:6px"><input type="checkbox" id="mvInt">interrupt if working</label><button class="btn primary" id="mvGo">Move</button></div>' +
+      '<div class="small faint" style="margin-top:8px">Resumes the same conversation on that account, in this pane and folder. Proven in a hidden window first; drafts are never touched.</div>';
+    confirmBox(r.folder || r.pane, '<div class="detail"><dl>' + dl.map(function (x) { return "<dt>" + esc(x[0]) + "</dt><dd>" + esc(x[1]) + "</dd>"; }).join("") + "</dl></div>" +
+      '<div class="eyebrow" style="margin:20px 0 10px">Move to…</div>' + mv, null);
     $("mCancel").textContent = "Close";
+    if ($("mvGo")) $("mvGo").onclick = function () {
+      var to = $("mvTo").value, interrupt = $("mvInt").checked;
+      $("modal").classList.remove("on");
+      api("move", {host: r.host, pane: r.pane, to: to, interrupt: interrupt}).then(function () { toast("Moving " + (r.folder || r.pane) + " to " + shortName(to) + "…", "ok"); });
+    };
   }
 
   // ---------- right column
@@ -634,6 +663,10 @@ textarea.ask { width: 100%; min-height: 80px; resize: vertical; background: var(
       case "session": return "Set " + (e.sessions || []).length + " sessions → " + (typeof e.setting === "string" ? e.setting : tlabel(e.setting));
       case "channel": return (e.profile || "") + (e.mode === "pin" ? " locked at normal" : e.mode === "follow" ? " follows the fleet" : " → " + (e.name || ""));
       case "pane": return "Switch " + (e.host || "") + " " + (e.pane || "") + ": " + (e.status || "");
+      case "moved": return "Moved " + (e.host || "") + " " + (e.pane || "") + ": " + (e.from_profile || "?") + " → " + (e.to || "") + (e.goal_resumed ? " (goal resumed)" : "");
+      case "move": return "Move " + (e.host || "") + " " + (e.pane || "") + " → " + (e.to || "") + ": " + (e.status || "").replace(/_/g, " ");
+      case "move_started": return "Moving " + (e.host || "") + " " + (e.pane || "") + " → " + (e.to || "");
+      case "rehome": return "Moved " + (e.moved || 0) + " of " + (e.tried || 0) + " sessions on credits";
       case "applied": case "converged": case "audited": return ({applied: "Applied", converged: "Re-applied", audited: "Checked every host"})[e.event] + (e.exit === 0 ? ": all on plan" : e.exit === 2 ? ": some still switching" : e.exit === 1 ? ": a host had errors" : "");
       case "agent_started": return "Agent started: " + (e.code || "question");
       case "agent_finished": return "Agent " + e.status + ": " + (e.code || "question");
@@ -662,6 +695,8 @@ textarea.ask { width: 100%; min-height: 80px; resize: vertical; background: var(
     range("fDrop", "vDrop", a.drop_points || 15, function (v) { return v + " pts"; }, function (v) { if (boosted) api("rules", {drop_points: v}); });
     range("fCeiling", "vCeiling", a.ceiling == null ? 100 : a.ceiling, function (v) { return v >= 100 ? "off" : v + "%"; }, function (v) { if (boosted) api("rules", {ceiling: v >= 100 ? "off" : String(v)}); });
     sw($("fGuard"), g.enabled, function (on) { api("guard", {enabled: on}); });
+    sw($("fRehome"), S.rehome && S.rehome.auto, function (on) { api("guard", {rehome_auto: on}); });
+    $("fRehome").disabled = !(S.rehome && S.rehome.launch);
     range("fFloor", "vFloor", g.floor || 0, function (v) { return v + "%"; }, function (v) { api("guard", {floor: v}); });
     range("fObserve", "vObserve", S.observe_seconds, function (v) { return v < 60 ? v + "s" : Math.round(v / 6) / 10 + "m"; }, function (v) { api("loop", {observe_seconds: v}); });
     range("fTick", "vTick", S.loop.tick_minutes, function (v) { return v + "m"; }, function (v) { api("loop", {tick_minutes: v}); });

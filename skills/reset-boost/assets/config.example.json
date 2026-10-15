@@ -9,5 +9,7 @@
   "exclude_profiles": ["pro-1"],
   "auto_down": {"reset": true, "quorum": 0.5, "drop_points": 15, "ceiling": null},
   "cooling_hours": 12,
-  "usage": {"type": "url", "url": "https://usage.example.test/v1/accounts", "provider": "codex", "timeout": 30}
+  "usage": {"type": "url", "url": "https://usage.example.test/v1/accounts", "provider": "codex", "timeout": 30},
+  "live_seconds": 5,
+  "rehome": {"enabled": true, "auto": false, "prefer": [], "min_left_percent": 15, "interrupt": false, "launch": "codex {profile} resume {thread}"}
 }

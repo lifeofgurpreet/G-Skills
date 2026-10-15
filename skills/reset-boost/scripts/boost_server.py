@@ -131,6 +131,8 @@ class Panel:
                              "weekly": windows.get("weekly"), "session": windows.get("session"), "before": row.get("before"), "reset": row.get("reset"),
                              "mode": mode, "solo": channel.get("name"), "backed_down": (state.get("backed_down") or {}).get(profile),
                              "target": effective, "panes": panes_by_profile.get(safe, [])})
+        proposal = boost_lifecycle.rehome_plan(fm, config, store, state)
+        rehome = dict(proposal, **{key: proposal["settings"][key] for key in ("enabled", "auto", "interrupt", "min_left_percent")})
         hosts = []
         for row in boost_dashboard.host_rows(report):
             hosts.append(dict(row, panes=row["panes"], errors_detail=((report or {}).get("hosts") or {}).get(row["host"], {}).get("errors", [])))
@@ -151,12 +153,15 @@ class Panel:
             "job": self.job or self.last_job,
             "events": list(reversed(store.events(80))),
             "presets": fm.presets(),
-            "sessions": self.sessions(state, usage, profiles, target),
+            "sessions": self.sessions(state, usage, profiles, target, rehome),
+            "rehome": {key: rehome[key] for key in ("enabled", "auto", "interrupt", "min_left_percent")} | {
+                "launch": bool(rehome["settings"].get("launch")), "destinations": rehome["destinations"],
+                "best": rehome["destinations"][0] if rehome["destinations"] else None},
             "credit_guard": dict({"enabled": True, "floor": 0.0}, **(config.get("credit_guard") or {}), **(state.get("credit_guard") or {})),
             "observe_seconds": (state.get("loop") or {}).get("observe_seconds", config.get("observe_seconds", 60)),
         }
 
-    def sessions(self, state, usage, profiles, host_target):
+    def sessions(self, state, usage, profiles, host_target, rehome=None):
         """Every live session with what it reports right now and what the plan wants for it."""
         fm = self.fm
         live = json.loads(boost_lifecycle.sessions_path(self.store).read_text()) if boost_lifecycle.sessions_path(self.store).exists() else {"hosts": {}}
@@ -165,6 +170,8 @@ class Panel:
         by_profile = {fm.safe_profile(name): value for name, value in profiles.items()}
         overrides = state.get("sessions") or {}
         guard = dict({"enabled": True, "floor": 0.0}, **(self.config.get("credit_guard") or {}), **(state.get("credit_guard") or {}))
+        suggested = {item["key"]: item for item in (rehome or {}).get("moves") or []}
+        moved = state.get("moves") or {}
         rows = []
         for host, value in (live.get("hosts") or {}).items():
             for row in value.get("rows") or []:
@@ -187,7 +194,10 @@ class Panel:
                              "activity": row.get("activity"), "run_state": info.get("run_state"), "five_hour_left": info.get("five_hour_left"),
                              "weekly_left": info.get("weekly_left"), "credits": info.get("credits"), "on_credits": credits,
                              "status": row.get("status"), "planned": planned, "own": (own or {}).get("name"), "matches": matches,
-                             "observed_at": value.get("at")})
+                             "observed_at": value.get("at"), "move_to": (suggested.get(key) or {}).get("to"),
+                             "move_to_label": (suggested.get(key) or {}).get("to_label"), "move_status": (suggested.get(key) or {}).get("status"),
+                             "moved": moved[key] if key in moved and fm.safe_profile(moved[key].get("to") or "") == profile else None,
+                             "last_move": (state.get("move_attempts") or {}).get(key)})
         return {"at": live.get("at"), "rows": rows, "errors": {host: value.get("error") for host, value in (live.get("hosts") or {}).items() if value.get("error")}}
 
     def publish_snapshot(self, force=False):
@@ -265,7 +275,8 @@ class Panel:
             fields = {"preset": body.get("preset") or None, "model": body.get("model") or None, "effort": body.get("effort") or None,
                       "tier": body.get("tier") or None, "exclude": body.get("exclude") or [], "until": body.get("until") or None,
                       "ceiling": body.get("ceiling"), "quorum": body.get("quorum"), "no_auto_down": body.get("down") in ("manual", "until") or not body.get("auto_reset", True),
-                      "no_live": False, "interrupt_current_turn": False, "note": body.get("note") or None}
+                      "no_live": False, "interrupt_current_turn": False, "note": body.get("note") or None,
+                      "rehome": None if body.get("rehome") is None else bool(body.get("rehome"))}
             if fields["preset"]:
                 fields["model"] = fields["effort"] = None
             name_ = fields["preset"] or f"{fields['model']} {fields['effort']}"
@@ -284,6 +295,14 @@ class Panel:
             host, pane, interrupt = body["host"], body["pane"], bool(body.get("interrupt"))
             label = ("Interrupt and switch " if interrupt else "Retry ") + f"{host} {pane}"
             return self.run_job("pane", label, lambda: self.call(fb.cmd_pane, host=host, pane=pane, interrupt=interrupt))
+        if name == "move":
+            host, pane, interrupt = body["host"], body["pane"], bool(body.get("interrupt"))
+            to = body.get("to") or None
+            label = f"Move {host} {pane}" + (f" to {to}" if to else "")
+            return self.run_job("move", label, lambda: self.call(fb.cmd_move, host=host, pane=pane, to=to, interrupt=interrupt))
+        if name == "rehome":
+            interrupt = bool(body.get("interrupt"))
+            return self.run_job("rehome", "Move sessions on credits", lambda: self.call(fb.cmd_rehome, apply=True, interrupt=interrupt, json=False))
         if name == "channel":
             fields = {"profile": body["profile"], "setting": body["setting"], "effort": body.get("effort"), "preset": body.get("preset"),
                       "tier": body.get("tier"), "no_apply": False}
@@ -349,6 +368,9 @@ class Panel:
                 if "floor" in body:
                     guard["floor"] = max(0.0, min(50.0, float(body["floor"])))
                 state["credit_guard"] = guard
+                if "rehome_auto" in body:
+                    state["rehome"] = dict(state.get("rehome") or {}, auto=bool(body["rehome_auto"]))
+                    self.store.event("rehome_setting", auto=bool(body["rehome_auto"]))
                 self.store.save(state)
                 self.store.event("credit_guard", **guard)
             return {"ok": True}
@@ -360,11 +382,31 @@ class Panel:
         accounts, error = boost_lifecycle.fetch_usage(self.config)
         if accounts is not None:
             self.store.usage_path.write_text(json.dumps({"at": boost_lifecycle.iso(boost_lifecycle.now()), "accounts": accounts}, indent=2) + "\n")
+            # The reset is the event: come down on the read that shows it, not on the next scheduled tick.
+            state = self.store.load()
+            if self.loop and state.get("phase") == "boosted" and state.get("auto_down", {}).get("reset", True):
+                reason, _, _ = boost_lifecycle.evaluate(state, accounts)
+                if reason:
+                    self.store.event("reset_seen", reason=reason)
+                    self.next_tick = time.time()
+
+    def watch_host(self, host):
+        """Re-read one host's sessions continuously; each read reaches the page as soon as it lands."""
+        while True:
+            live = (self.store.load().get("loop") or {}).get("live_seconds", self.config.get("live_seconds", 5))
+            if self.loop and live:
+                try:
+                    boost_lifecycle.observe_hosts(self.fm, self.config, self.store, [host])
+                except Exception:
+                    traceback.print_exc()
+            time.sleep(max(2, live or 30))
 
     def background(self):
         last_usage = 0
         last_autopilot = 0
         last_observe = 0
+        for host in self.config["hosts"]:
+            threading.Thread(target=self.watch_host, args=(host,), name="live-" + host, daemon=True).start()
         while True:
             try:
                 self.publish_snapshot()
@@ -372,7 +414,8 @@ class Panel:
                 (self.store.dir / "serve.json").write_text(json.dumps({"pid": os.getpid(), "port": self.options.port, "loop": self.loop,
                                                                        "at": boost_lifecycle.iso(boost_lifecycle.now())}))
                 observe_every = (self.store.load().get("loop") or {}).get("observe_seconds", self.config.get("observe_seconds", 60))
-                if self.loop and not self.job and stamp - last_observe > observe_every and stamp < self.next_tick - 30:
+                live = (self.store.load().get("loop") or {}).get("live_seconds", self.config.get("live_seconds", 5))
+                if not live and self.loop and not self.job and stamp - last_observe > observe_every and stamp < self.next_tick - 30:
                     last_observe = stamp
                     try:
                         self.run_job("observe", "Reading sessions", lambda: self.call(boost_lifecycle.cmd_observe), quiet=True)

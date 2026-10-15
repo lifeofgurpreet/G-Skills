@@ -356,5 +356,129 @@ class LaunchGuardTests(unittest.TestCase):
             self.assertIn("model_reasoning_effort=medium", argv)
 
 
+THREAD = "0199a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a5b"
+IDLE = "› Ask Codex to do anything\n\n  GPT-6.1-Sol medium · Pursuing goal · weekly 0% left\n"
+
+
+class RehomeEngineTests(unittest.TestCase):
+    def test_thread_id_comes_from_argv_or_the_rollout_file_name_only(self):
+        self.assertEqual(rb.thread_from(["codex", "resume", THREAD.upper(), "--search"]), THREAD)
+        self.assertEqual(rb.thread_from(["codex", "resume", "--dangerously-bypass-approvals-and-sandbox", THREAD]), THREAD)
+        rollout = "/home/u/orch-homes/codex-team-c/.codex/sessions/2026/10/15/rollout-2026-10-15T09-12-44-" + THREAD + ".jsonl"
+        self.assertEqual(rb.thread_from(["codex", "--search"], ["/dev/pts/3", "socket:[1234]", rollout]), THREAD)
+        self.assertIsNone(rb.thread_from(["codex", "resume", "--last"], ["/tmp/notes-" + THREAD + ".txt"]))
+        self.assertEqual(rb.home_profile("/home/u/orch-homes/codex-ops_example.test/.codex"), "ops_example.test")
+        self.assertIsNone(rb.home_profile("/home/u/.codex"))
+
+    def test_launch_command_quotes_and_keeps_the_bypass_only_when_present(self):
+        settings = {"launch": "MY_WRAPPER=1 codex {profile} resume {thread}", "shell": "zsh"}
+        line = rb.launch_command(settings, "ops@example.test", THREAD, "--dangerously-bypass-approvals-and-sandbox")
+        self.assertEqual(line, "zsh -lic 'MY_WRAPPER=1 codex ops@example.test resume " + THREAD +
+                         " --dangerously-bypass-approvals-and-sandbox; exec zsh -l'")
+        self.assertNotIn("dangerously", rb.launch_command(settings, "pro-a", THREAD))
+        for bad in (("pro-a; rm x", THREAD), ("pro-a", "not-a-thread")):
+            with self.assertRaises(ValueError):
+                rb.launch_command(settings, *bad)
+        with self.assertRaises(ValueError):
+            rb.launch_command({"launch": "codex resume {thread}"}, "pro-a", THREAD)
+
+    def test_resume_and_goal_screens(self):
+        self.assertEqual(rb.resume_state("This conversation is open in another app", probe=True), "ok")
+        self.assertIsNone(rb.resume_state("This conversation is open in another app"))
+        self.assertEqual(rb.resume_state("Error: thread/resume failed: missing source rollout", probe=True), "failed")
+        self.assertEqual(rb.resume_state("Do you trust the contents of this directory?\n› 1. Yes, Trust this folder"), "trust")
+        self.assertEqual(rb.resume_state(IDLE), "ok")
+        self.assertEqual(rb.goal_state(IDLE), "active")
+        self.assertEqual(rb.goal_state("  GPT-6.1-Sol medium · Goal paused (/goal resume)\n"), "paused")
+        self.assertIsNone(rb.goal_state("› Ask Codex to do anything\n  GPT-6.1-Sol medium · Idle\n"))
+        self.assertTrue(rb.ui_state("» Ask Codex to do anything\n  GPT-6.1-Sol medium\n")["empty_composer"])
+
+    def test_a_session_on_credits_is_never_cranked_in_place(self):
+        terminal = {"backend": "tmux", "user": "u", "pane": "%3", "profile": "pro-b"}
+        args = target_args("gpt-6-astra", "ultra", True, live=True, interrupt=True, baseline={"model": "gpt-6.1-sol", "effort": "medium", "tier": "default"},
+                           credit_guard={"enabled": True, "floor": 0.0})
+        for rehome, status in ((True, "move_suggested"), (False, "held_credits")):
+            with patch.object(rb, "screen", return_value=IDLE), patch.object(rb, "send") as send, patch.object(rb, "execute") as execute:
+                self.assertEqual(rb.live_setting(terminal, dict(args, rehome=rehome))["status"], status)
+                send.assert_not_called()
+                execute.assert_not_called()
+
+
+class MoveSessionTests(unittest.TestCase):
+    """The move sequence against a fake tmux: verify first, respawn in place, resume the goal, read back."""
+
+    def setUp(self):
+        self.calls, self.keys, self.respawned = [], [], False
+        self.probe_screen = "This conversation is open in another app"
+        self.original = IDLE
+        self.terminal = {"backend": "tmux", "user": "u", "socket": "/tmp/tmux-1/default", "pane": "%3", "profile": "pro-b", "pid": 4242}
+        self.settings = {"launch": "codex {profile} resume {thread}", "shell": "zsh", "boot_seconds": 0.3}
+        facts = {"thread": THREAD, "cwd": "/srv/work/x", "profile": "pro-b", "bypass": "--dangerously-bypass-approvals-and-sandbox"}
+        self.patches = [patch.object(rb, "codex_facts", return_value=facts), patch.object(rb, "screen", side_effect=self.screen),
+                        patch.object(rb, "send", side_effect=self.send), patch.object(rb, "execute", side_effect=self.execute),
+                        patch.object(rb, "pane_account", side_effect=lambda terminal: ("pro-a", THREAD) if self.respawned else ("pro-b", THREAD)),
+                        patch.object(rb, "proc_available", return_value=True), patch.object(rb.time, "sleep")]
+        for item in self.patches:
+            item.start()
+
+    def tearDown(self):
+        for item in self.patches:
+            item.stop()
+
+    def screen(self, terminal):
+        if terminal["pane"] == "%99":
+            return self.probe_screen
+        return "› Ask Codex to do anything\n  GPT-6.1-Sol medium · Goal paused · weekly 46% left\n" if self.respawned else self.original
+
+    def send(self, terminal, text=None, keys=()):
+        self.keys.append((terminal["pane"], text, tuple(keys)))
+
+    def execute(self, argv, user=None, timeout=15, env=None):
+        self.calls.append(argv)
+        if "respawn-pane" in argv:
+            self.respawned = True
+        if "#{session_name}" in argv:
+            return "main\n"
+        if "new-window" in argv:
+            return "%99\n"
+        return ""
+
+    def verbs(self):
+        return [argv[3] for argv in self.calls]
+
+    def test_verified_move_respawns_in_place_and_resumes_the_goal(self):
+        row = rb.move_session(self.terminal, {"pane": "%3", "to": "pro-a"}, self.settings)
+        self.assertEqual(row["status"], "moved")
+        self.assertTrue(row["goal_resumed"])
+        self.assertEqual(self.verbs(), ["display-message", "new-window", "kill-pane", "respawn-pane"])
+        respawn = self.calls[3]
+        self.assertEqual(respawn[respawn.index("-t") + 1], "%3")
+        self.assertIn("codex pro-a resume " + THREAD + " --dangerously-bypass-approvals-and-sandbox", respawn[-1])
+        self.assertIn(("%3", "/goal resume", ()), self.keys)
+        self.assertNotIn(THREAD, json.dumps(row))  # only a short prefix is reported
+
+    def test_a_thread_that_does_not_resume_is_left_untouched(self):
+        self.probe_screen = "Error: thread/resume failed: missing source rollout"
+        row = rb.move_session(self.terminal, {"pane": "%3", "to": "pro-a"}, self.settings)
+        self.assertEqual(row["status"], "move_not_resumable")
+        self.assertNotIn("respawn-pane", self.verbs())
+        self.assertIn("kill-pane", self.verbs())  # the probe is closed
+        self.assertFalse([key for key in self.keys if key[0] == "%3"])
+
+    def test_busy_and_draft_sessions_are_held_before_any_probe(self):
+        self.original = "working\n• Working (12s • esc to interrupt)\n› Ask Codex to do anything\n  GPT-6.1-Sol medium · weekly 0% left\n"
+        self.assertEqual(rb.move_session(self.terminal, {"pane": "%3", "to": "pro-a"}, self.settings)["status"], "move_held_working")
+        self.original = "› my private draft\n  GPT-6.1-Sol medium · weekly 0% left\n"
+        row = rb.move_session(self.terminal, {"pane": "%3", "to": "pro-a"}, self.settings)
+        self.assertEqual(row["status"], "move_held_draft")
+        self.assertNotIn("private", json.dumps(row))
+        self.assertEqual(self.calls, [])
+
+    def test_herdr_and_same_account_are_not_moved(self):
+        self.assertEqual(rb.move_session(dict(self.terminal, backend="herdr"), {"pane": "w1:p2", "to": "pro-a"}, self.settings)["status"], "move_manual")
+        self.assertEqual(rb.move_session(self.terminal, {"pane": "%3", "to": "pro-b"}, self.settings)["status"], "move_same_account")
+        self.assertEqual(self.calls, [])
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -36,16 +36,22 @@ and Herdr or tmux for live switching. Nothing to install on remote hosts.
   chosen sessions, or send them back to the fleet setting.
 - `signals` / `pane` / `converge` / `channel` / `rules` / `agent`: the
   verbs behind the panel's buttons, for agents and scripts.
+- `rehome` / `move`: a session spending credits is not cranked up in place;
+  it is moved to an account with quota (preferred accounts, then Pro plans)
+  by resuming the same conversation in the same tmux pane, proven in a hidden
+  window first, and then follows the boost.
 - `dashboard`: a static HTML snapshot for offline viewing.
 - `audit` / `set`: one-off read-only check or change of the whole fleet.
 
-It never sends an inference prompt, reads a transcript, restarts a session or
-touches credentials. Busy panes and unsent drafts are held, not interrupted.
+It never sends an inference prompt, reads a transcript or touches
+credentials; the only restart is a verified `move`, which resumes the same
+conversation on another account. Busy panes and unsent drafts are held, not
+interrupted.
 CAAM account-manager layouts are supported when present and ignored otherwise.
 
 ## Preview status
 
-Preview 0.2.1. Ported from a working private deployment; the tests are
+Preview 0.3.0. Ported from a working private deployment; the tests are
 provider-free and synthetic (status lines, a fake fleet and a fake agent
 command). It has not been qualified on another person's estate. Desktop apps
 and Windows terminals are not switched, and status-line telemetry depends on

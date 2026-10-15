@@ -6,7 +6,7 @@ templates and idle live Herdr/tmux sessions. Never sends an inference prompt,
 reads a transcript, restarts a session or changes accounts or credentials.
 
 Control panel:   reset_boost.py serve --help
-Agent verbs:     reset_boost.py {signals,pane,converge,channel,rules,agent} --help
+Agent verbs:     reset_boost.py {signals,pane,converge,channel,rules,move,rehome,agent} --help
 Boost lifecycle: reset_boost.py {boost,done,watch,status,dashboard} --help
 One-off policy:  reset_boost.py {audit,set,presets} --help
 """
@@ -32,7 +32,7 @@ try:
 except ModuleNotFoundError:  # Python 3.10: the boost lifecycle and dashboard still work.
     tomllib = None
 
-VERSION = "0.2.1"
+VERSION = "0.3.0"
 ALIASES = {"sol61": "gpt-6.1-sol", "sol": "gpt-6.1-sol", "luna": "gpt-6-luna", "terra": "gpt-5.6-terra", "astra": "gpt-6-astra"}
 EFFORTS = ("low", "medium", "high", "xhigh", "max", "ultra")
 TIERS = ("default", "priority", "flex")
@@ -495,7 +495,7 @@ def terminals():
                     if owns_codex:
                         break
                 if owns_codex:
-                    found.append({"backend": "tmux", "user": user, "socket": socket, "pane": pane, "profile": pid_profiles.get(codex_pid)})
+                    found.append({"backend": "tmux", "user": user, "socket": socket, "pane": pane, "profile": pid_profiles.get(codex_pid), "pid": codex_pid})
         except Exception as error:
             issues.append({"backend": "tmux", "user": user, "error": str(error)})
     for home in homes():
@@ -596,7 +596,7 @@ def ui_state(text):
     modal = re.search(r"(?ms)^\s*(?:Select (?:Model(?: and Effort)?|[^\n]*Reasoning[^\n]*)|Advanced Reasoning)\n.*?^\s*enter [^\n]*esc [^\n]*", text)
     # Never append /model to an existing user draft. Known built-in placeholders
     # are safe to replace; unrecognized composers are held for manual control.
-    composer = re.findall(r"^\s*›\s*(.*)$", text, re.M)
+    composer = re.findall(r"^\s*[›»]\s*(.*)$", text, re.M)
     empty = any(not line.strip() or re.fullmatch(r"(?:Ask Codex to do anything|Implement \{feature\}|Explain this codebase|Write tests for @filename|Find and fix a bug in @filename|Improve documentation in @filename|Summarize recent commits|Use /skills to list available skills)", line.strip()) for line in composer)
     busy = "esc to interrupt" in text.lower() or bool(info and info.get("run_state") in ("working", "thinking", "running"))
     return {"footer": tuple(part.lower() for part in footers[-1]) if footers else None, "modal": modal[0] if modal else "", "empty_composer": empty,
@@ -614,7 +614,7 @@ def send(terminal, text=None, keys=()):
         if text is not None:
             execute(terminal["prefix"] + ["pane", "send-text", terminal["pane"], text], terminal["user"])
         if keys:
-            key_names = [{"Escape": "esc", "Enter": "enter", "Up": "up", "Down": "down", "C-c": "ctrl+c"}.get(key, key) for key in keys]
+            key_names = [{"Escape": "esc", "Enter": "enter", "Up": "up", "Down": "down", "C-c": "ctrl+c", "BSpace": "backspace"}.get(key, key) for key in keys]
             execute(terminal["prefix"] + ["agent", "send-keys", terminal["pane"]] + key_names, terminal["user"])
 
 
@@ -678,8 +678,34 @@ def wants_fast(target):
     return None if tier is None else tier == "priority"
 
 
+def leftover(terminal, text):
+    """What remains of our typed command in the composer (it may have lost its first keystrokes)."""
+    found = re.findall(r"^\s*[›»]\s*(\S+)\s*$", screen(terminal), re.M)
+    return found[-1] if found and len(found[-1]) >= 2 and text.endswith(found[-1]) else ""
+
+
+def command(terminal, text):
+    """Type a slash command and submit it. Codex reads fast keystrokes as a paste and can
+    swallow the Enter, so pause first, retry once, and erase our text if it still sits there."""
+    send(terminal, text=text)
+    time.sleep(.35)
+    send(terminal, keys=["Enter"])
+    time.sleep(.5)
+    rest = leftover(terminal, text)
+    if rest == text:
+        # Only the whole command is retried: Enter on a fragment would send it to the agent.
+        send(terminal, keys=["Enter"])
+        time.sleep(.6)
+        rest = leftover(terminal, text)
+    if rest:
+        send(terminal, keys=["BSpace"] * (len(rest) + 1))
+        return False
+    return True
+
+
 def toggle_fast(terminal, desired):
-    send(terminal, text="/fast", keys=["Enter"])
+    if not command(terminal, "/fast"):
+        return False
     state = wait_ui(terminal, lambda value: bool(value["telemetry"]) and value["telemetry"]["fast"] == desired)
     return bool(state["telemetry"]) and state["telemetry"]["fast"] == desired
 
@@ -708,7 +734,8 @@ def live_setting(terminal, args):
     guard = args.get("credit_guard") or {}
     if guard.get("enabled", True) and is_up(chosen, args.get("baseline")) and \
             (on_credits(info, guard.get("floor", 0.0)) or terminal.get("profile") in set(args.get("credit_profiles") or [])):
-        return dict(row, status="held_credits")
+        # It is moved to an account with quota (rehome) and only then follows the boost.
+        return dict(row, status="move_suggested" if args.get("rehome") else "held_credits")
     if not args["live"] or not args["apply"]:
         return dict(row, status="live_mismatch" if state["footer"] else "live_unknown")
     if state["footer"] == target and not fast_ok:
@@ -731,13 +758,17 @@ def live_setting(terminal, args):
             send(terminal, keys=["C-c"])
             time.sleep(.5)
         zoomed = zoom(terminal)
-        send(terminal, text="/model", keys=["Enter"])
+        command(terminal, "/model")
         state = wait_ui(terminal, lambda value: bool(value["modal"]))
     else:
         zoomed = False
     opened = bool(state["modal"])
     try:
         if not opened:
+            # Take back our own "/model" so the session is left exactly as we found it.
+            rest = leftover(terminal, "/model")
+            if rest:
+                send(terminal, keys=["BSpace"] * (len(rest) + 1))
             return dict(row, status="held_picker_unavailable")
         normalize = lambda value: re.sub(r"[^a-z0-9]", "", value.lower())
         if "Select Model" in state["modal"]:
@@ -783,6 +814,251 @@ def zoom(terminal, rows=16):
         return False
 
 
+# ---------------------------------------------------------------- rehome: move a session to another account
+
+UUID_RE = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", re.I)
+BYPASS_FLAGS = ("--dangerously-bypass-approvals-and-sandbox", "--yolo")
+SHELL_RE = re.compile(r"/?[A-Za-z0-9._/-]+")
+
+
+def thread_from(argv, fd_targets=()):
+    """The Codex thread a process runs: the id after `resume` in its argv, else the id in the
+    file NAME of its open rollout-*.jsonl. File contents are never read (they are transcripts)."""
+    if "resume" in argv:
+        for arg in argv[argv.index("resume") + 1:]:
+            if UUID_RE.fullmatch(arg):
+                return arg.lower()
+    for target in fd_targets:
+        name = os.path.basename(str(target))
+        if name.startswith("rollout-") and name.endswith(".jsonl"):
+            found = UUID_RE.findall(name)
+            if found:
+                return found[-1].lower()
+    return None
+
+
+def home_profile(codex_home):
+    """The profile a CODEX_HOME belongs to, in folder (safe) spelling."""
+    match = re.search(r"/orch-homes/codex-([^/]+)/\.codex/?$", codex_home or "")
+    return safe_profile(match[1]) if match else None
+
+
+def codex_facts(pid):
+    """Thread, folder, account and bypass flag of one Codex process (Linux /proc only).
+
+    Reads argv, cwd, CODEX_HOME and fd link NAMES; argv is never returned (it may hold a prompt).
+    Descendant processes are searched for the rollout file when the process itself has none."""
+    ps = processes()
+    family = [pid] + [child for child in ps if child != pid and descends(child, pid, ps)]
+    proc = Path("/proc") / str(pid)
+    argv = [part.decode(errors="replace") for part in proc.joinpath("cmdline").read_bytes().split(b"\0") if part]
+    targets = []
+    for member in family:
+        try:
+            for fd in (Path("/proc") / str(member) / "fd").iterdir():
+                try:
+                    targets.append(os.readlink(fd))
+                except OSError:
+                    continue
+        except OSError:
+            continue
+    home = None
+    for entry in proc.joinpath("environ").read_bytes().split(b"\0"):
+        if entry.startswith(b"CODEX_HOME="):
+            home = entry[11:].decode(errors="replace")
+    return {"thread": thread_from(argv, targets), "cwd": os.readlink(proc / "cwd"), "profile": home_profile(home),
+            "bypass": next((flag for flag in BYPASS_FLAGS if flag in argv), None)}
+
+
+def proc_available():
+    return Path("/proc").is_dir()
+
+
+def descends(pid, ancestor, ps):
+    seen = set()
+    while pid in ps and pid not in seen:
+        if pid == ancestor:
+            return True
+        seen.add(pid)
+        pid = ps[pid][0]
+    return False
+
+
+def launch_command(settings, profile, thread, bypass=None, shell=None):
+    """The pane command that resumes THREAD on PROFILE, from the configured template.
+
+    `rehome.launch` holds `{profile}` and `{thread}`, e.g. "codex {profile} resume {thread}".
+    PROFILE must be the account manager's own name (a folder spelling starts a new, empty session)."""
+    template = settings.get("launch") or ""
+    if "{profile}" not in template or "{thread}" not in template:
+        raise ValueError("rehome.launch must contain {profile} and {thread}")
+    if not PROFILE_RE.fullmatch(profile or "") or not UUID_RE.fullmatch(thread or ""):
+        raise ValueError("refusing to launch: unsafe profile or thread id")
+    shell = settings.get("shell") or shell or "/bin/bash"
+    if not SHELL_RE.fullmatch(shell):
+        raise ValueError("rehome.shell must be a plain shell path")
+    inner = template.replace("{profile}", shlex.quote(profile)).replace("{thread}", shlex.quote(thread))
+    if bypass in BYPASS_FLAGS:
+        inner += " " + bypass
+    return shell + " -lic " + shlex.quote(inner + "; exec " + shell + " -l")
+
+
+def resume_state(text, probe=False):
+    """ok / failed / trust (a folder-trust prompt to accept) / None (still starting).
+
+    A probe opened beside the running original sees "open in another app": that proves the
+    thread resumes. Broken history lineage shows a resume failure; such threads stay put."""
+    if re.search(r"thread/resume failed|missing source rollout|No saved session", text, re.I):
+        return "failed"
+    if re.search(r"Trust this folder|Do you trust", text):
+        return "trust"
+    if probe and "open in another app" in text:
+        return "ok"
+    if re.search(r"GPT-[A-Za-z0-9.\-]+ [a-z]", "\n".join(text.splitlines()[-6:])):
+        return "ok"
+    return None
+
+
+def goal_state(text):
+    """'active' / 'paused' / None from the Codex footer (last lines only)."""
+    tail = "\n".join(text.splitlines()[-8:])
+    if re.search(r"Goal paused|Goal hit usage limits|/goal resume", tail):
+        return "paused"
+    if "Pursuing goal" in tail:
+        return "active"
+    return None
+
+
+def boot(terminal, seconds, probe=False):
+    """Wait for a resumed Codex to come up; accepts a folder-trust prompt. Returns ok, failed or timeout."""
+    end = time.monotonic() + seconds
+    while time.monotonic() < end:
+        time.sleep(1)
+        try:
+            verdict = resume_state(screen(terminal), probe)
+        except RuntimeError:
+            continue
+        if verdict == "trust":
+            send(terminal, keys=["Enter"])
+        elif verdict:
+            return verdict
+    return "timeout"
+
+
+def pane_account(terminal):
+    """Which account the Codex now running in a tmux pane uses (folder spelling), or None."""
+    root = int(execute(["tmux", "-S", terminal["socket"], "display-message", "-p", "-t", terminal["pane"], "#{pane_pid}"], terminal["user"]).strip())
+    ps = processes()
+    for pid, (_, name) in ps.items():
+        if (name == "codex" or name.endswith("/codex")) and descends(pid, root, ps):
+            try:
+                facts = codex_facts(pid)
+            except OSError:
+                continue
+            if facts["profile"]:
+                return facts["profile"], facts["thread"]
+    return None, None
+
+
+def move_session(terminal, move, settings):
+    """Move one live Codex session to another account, keeping its pane, folder and conversation.
+
+    Verify first: the new launch is proven in a hidden window while the original keeps running;
+    a thread that does not resume there is left untouched. Busy sessions and drafts are held
+    (a busy one is interrupted only with `interrupt`). The pane is respawned in place, a goal
+    that was running is resumed, and the account is read back from the new process."""
+    to = move["to"]
+    row = {"backend": terminal["backend"], "pane": terminal["pane"], "from": terminal.get("profile"), "to": to}
+    if terminal["backend"] != "tmux" or not terminal.get("pid") or not proc_available():
+        return dict(row, status="move_manual", detail="automatic moves need a tmux pane on a Linux host")
+    if not PROFILE_RE.fullmatch(to or ""):
+        return dict(row, status="move_refused", detail="destination is not a profile name")
+    if terminal.get("profile") == safe_profile(to):
+        return dict(row, status="move_same_account")
+    facts = codex_facts(terminal["pid"])
+    if not facts["thread"]:
+        return dict(row, status="move_no_thread", detail="no resumable thread id found")
+    row["thread"] = facts["thread"][:8]
+    user_shell = None
+    try:
+        user_shell = pwd.getpwnam(terminal["user"]).pw_shell
+    except KeyError:
+        pass
+    launch = launch_command(settings, to, facts["thread"], facts["bypass"], user_shell)
+    text = screen(terminal)
+    state = ui_state(text)
+    goal = goal_state(text)
+    if state["modal"] or not state["empty_composer"]:
+        return dict(row, status="move_held_draft")
+    if state["busy"] and not move.get("interrupt"):
+        return dict(row, status="move_held_working")
+    seconds = float(settings.get("boot_seconds") or 45)
+    tmux = ["tmux", "-S", terminal["socket"]]
+    session = execute(tmux + ["display-message", "-p", "-t", terminal["pane"], "#{session_name}"], terminal["user"]).strip()
+    probe = execute(tmux + ["new-window", "-d", "-P", "-F", "#{pane_id}", "-t", session + ":", "-c", facts["cwd"], launch], terminal["user"]).strip()
+    try:
+        verdict = boot(dict(terminal, pane=probe), seconds, probe=True)
+    finally:
+        # Leave the probe's thread untouched: stop it as a user would, then close the window.
+        for key, pause in (("C-c", .4), ("C-c", 1.5)):
+            try:
+                send(dict(terminal, pane=probe), keys=[key])
+            except RuntimeError:
+                break
+            time.sleep(pause)
+        try:
+            execute(tmux + ["kill-pane", "-t", probe], terminal["user"])
+        except RuntimeError:
+            pass
+    if verdict != "ok":
+        return dict(row, status="move_not_resumable", detail="resume on " + to + " " + verdict + "; original untouched")
+    # The session may have started work while the probe ran: check again right before the swap.
+    text = screen(terminal)
+    state = ui_state(text)
+    goal = goal or goal_state(text)
+    if state["modal"] or not state["empty_composer"]:
+        return dict(row, status="move_held_draft")
+    if state["busy"]:
+        if not move.get("interrupt"):
+            return dict(row, status="move_held_working")
+        send(terminal, keys=["C-c"])
+        time.sleep(3)
+        if not ui_state(screen(terminal))["empty_composer"]:
+            return dict(row, status="move_held_draft", detail="interrupted; the composer is not empty")
+    execute(tmux + ["respawn-pane", "-k", "-t", terminal["pane"], "-c", facts["cwd"], launch], terminal["user"])
+    verdict = boot(terminal, seconds)
+    row["goal_resumed"] = False
+    if verdict == "ok" and goal and goal_state(screen(terminal)) == "paused":
+        row["goal_resumed"] = command(terminal, "/goal resume")
+    now_profile, now_thread = pane_account(terminal)
+    moved = verdict == "ok" and now_profile == safe_profile(to) and now_thread in (None, facts["thread"])
+    return dict(row, status="moved" if moved else "move_unverified", observed_profile=now_profile, boot=verdict)
+
+
+def run_moves(config, moves, settings, progress=None):
+    """Move sessions: moves = {host: [{"pane", "to", "interrupt"}]}. Returns {host: [row]}."""
+    progress = progress or (lambda host, event: None)
+    source = Path(__file__).resolve().read_text()
+
+    def one(name):
+        host, items = config["hosts"][name], moves[name]
+        progress(name, {"stage": "start"})
+        if host["type"] == "windows":
+            rows = [dict(item, status="move_manual", detail="Windows hosts are moved by hand") for item in items]
+        else:
+            args = {"moves": items, "rehome": settings, "target": {}, "timeout": 120 + 150 * len(items)}
+            try:
+                rows = run_host(name, host, args, source, lambda event: progress(name, event)).get("moves") or []
+            except Exception as error:
+                message = f"unreachable: timed out after {error.timeout:.0f}s" if isinstance(error, subprocess.TimeoutExpired) else str(error)[:300]
+                rows = [dict(item, status="move_error", error=message) for item in items]
+        progress(name, {"stage": "done", "summary": {"moves": len(rows), "moved": sum(row.get("status") == "moved" for row in rows)}})
+        return rows
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, len(moves))) as pool:
+        return dict(zip(moves, pool.map(one, list(moves))))
+
+
 PROGRESS_PREFIX = "RESET-BOOST-PROGRESS "
 
 
@@ -801,6 +1077,22 @@ def worker(args, emit=None):
               "desktop_task_overrides": "unverified: no supported desktop model-control API"}
     if tomllib is None:
         result["errors"].append({"backend": "python", "error": "Python 3.11+ (tomllib) is required on this host; nothing was read or changed"})
+        return result
+    if args.get("moves"):
+        # Rehome: move the named sessions to other accounts; nothing else is touched.
+        result["moves"] = []
+        found, issues = terminals()
+        result["errors"] += issues
+        by_pane = {terminal["pane"]: terminal for terminal in found}
+        for move in args["moves"]:
+            terminal = by_pane.get(move.get("pane"))
+            try:
+                row = move_session(terminal, move, args.get("rehome") or {}) if terminal else \
+                    {"pane": move.get("pane"), "to": move.get("to"), "status": "move_pane_gone", "detail": "no Codex session in that pane now"}
+            except Exception as error:
+                row = {"pane": move.get("pane"), "to": move.get("to"), "status": "move_error", "error": type(error).__name__ + ": " + str(error)[:200]}
+            result["moves"].append(row)
+            emit({"stage": "move", "row": row})
         return result
     if not only and not observe:
         for path, kind in sorted(config_paths(args.get("profiles") or {}, args.get("project_roots") or ()).items()):
@@ -909,10 +1201,11 @@ def run_host(name, host, args, source, emit=None):
     output = []
     reader = threading.Thread(target=lambda: output.append(process.stdout.read()), daemon=True)
     reader.start()
-    reader.join(300)
+    limit = args.get("timeout", 300)
+    reader.join(limit)
     if reader.is_alive():
         process.kill()
-        raise subprocess.TimeoutExpired(alias, 300)
+        raise subprocess.TimeoutExpired(alias, limit)
     process.wait(10)
     threads[1].join(5)
     if process.returncode:
@@ -921,7 +1214,8 @@ def run_host(name, host, args, source, emit=None):
 
 
 def run_fleet(config, hosts, target, apply=False, live=False, interrupt=False, profiles=None, hold_unknown=False, quiet=False, label=None,
-              progress=None, only_panes=None, save=True, pane_targets=None, observe=False, baseline=None, credit_guard=None, credit_profiles=None):
+              progress=None, only_panes=None, save=True, pane_targets=None, observe=False, baseline=None, credit_guard=None, credit_profiles=None,
+              rehome=False):
     """Apply or audit one target (plus per-profile targets) on every host in parallel; returns the saved report.
 
     progress(host, event) receives live events: start, configs, panes, pane (one per session), done, error.
@@ -929,7 +1223,8 @@ def run_fleet(config, hosts, target, apply=False, live=False, interrupt=False, p
     progress = progress or (lambda host, event: None)
     args = {"target": target, "model": target["model"], "effort": target["effort"], "profiles": profiles or {},
             "apply": apply, "live": live, "interrupt": interrupt, "hold_unknown": hold_unknown, "observe": observe,
-            "baseline": baseline, "credit_guard": credit_guard or {}, "credit_profiles": sorted(credit_profiles or [])}
+            "baseline": baseline, "credit_guard": credit_guard or {}, "credit_profiles": sorted(credit_profiles or []),
+            "rehome": bool(rehome)}
 
     def host_args(name):
         # only_panes / pane_targets may be keyed by host: pane ids repeat across hosts.
@@ -989,7 +1284,8 @@ def report_exit(report):
     return 1 if errors else 2 if gaps or config_gaps or launch_gaps else 0
 
 
-BOOST_COMMANDS = ("boost", "done", "watch", "status", "dashboard", "serve", "converge", "channel", "rules", "pane", "signals", "agent", "session", "observe")
+BOOST_COMMANDS = ("boost", "done", "watch", "status", "dashboard", "serve", "converge", "channel", "rules", "pane", "signals", "agent", "session", "observe",
+                  "move", "rehome")
 
 
 def main():

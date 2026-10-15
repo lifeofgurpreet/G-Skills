@@ -20,6 +20,8 @@ machine is managed. A full synthetic example is
 | `usage_poll_seconds` | `60` | How often the panel re-reads the usage source. |
 | `observe_seconds` | `60` | How often the panel re-reads every session's status line (adjustable live, 20-900). |
 | `credit_guard` | `{"enabled": true, "floor": 0}` | Never turn up a session on credits or at/below `floor`% quota left; the panel's Settings switch overrides it. |
+| `live_seconds` | `5` | How often the panel re-reads each host's sessions (one reader per host; `0` falls back to `observe_seconds` passes). |
+| `rehome` | off until `launch` is set | Move sessions on credits to an account with quota; see below. |
 
 ## Hosts
 
@@ -118,7 +120,8 @@ interrupt verb to the brief; otherwise the brief forbids interrupting turns.
 
 The brief carries the signal, its settings-only evidence, the current plan,
 the allowed verbs and the rules: never turn anything up, never restart
-sessions or kill processes, never read transcripts, never change credentials,
+sessions or kill processes (a verified `move` is the only way a session
+changes account), never read transcripts, never change credentials,
 SSH, networking or permissions, and stop with a NEEDS HUMAN line when a person
 must act. Those are instructions to the agent, not a sandbox: run it with the
 permissions you would give any agent on this machine.
@@ -131,7 +134,40 @@ the same model without fast mode) when the session's status line shows credits
 spent or a quota window at or below `floor` percent left, or its account is at
 100% in the usage feed. Out-of-quota accounts also keep baseline launch configs
 during a boost. Turning down is never blocked. Such sessions report
-`held_credits`.
+`held_credits`, or `move_suggested` when rehome is enabled.
+
+## Rehome
+
+```json
+"rehome": {"enabled": true, "auto": false, "prefer": ["pro-a"], "min_left_percent": 15,
+           "interrupt": false, "max_per_account": null, "spread_points": 5,
+           "launch": "codex {profile} resume {thread}", "shell": null, "boot_seconds": 45}
+```
+
+- `launch` is the command that resumes thread `{thread}` on account
+  `{profile}` with your account manager's wrapper. It runs as
+  `<shell> -lic '<launch>[ <bypass flag>]; exec <shell> -l'` in the pane;
+  `shell` defaults to the pane owner's login shell. The approval-bypass flag
+  is kept only when the original process had it. `{profile}` is the account
+  manager's own profile name from the usage feed: a folder spelling
+  (`ops_example.test` for `ops@example.test`) or an unknown name is refused,
+  because a wrapper that does not recognize it may start a new, empty session.
+  Without `launch`, rehome is off and the panel says so.
+- Destinations are accounts in the usage feed that are enabled, not exhausted
+  and have at least `min_left_percent` left in their tightest window (a window
+  past its reset counts as full): `prefer` in order, then plans whose name
+  contains "pro", then the most quota left. Each assigned session counts
+  `spread_points` against its account, so a long list spreads once the
+  preferred account nears the floor; `max_per_account` caps it.
+- `auto` moves sessions on credits during a boost before the boost is applied
+  (from a session reading no older than `fresh_minutes`, default 15), and is
+  the default of the crank-up checkbox. `boost --rehome/--no-rehome` decides
+  for one boost. A thread that would not resume is not retried for 6 hours.
+- `interrupt` lets automatic moves cancel a running turn; otherwise working
+  sessions are held and moved on a later tick.
+
+Every move is in the event log (`move_started`, then `moved` or `move` with
+its status and an 8-character thread prefix), never with conversation text.
 
 ## State
 
