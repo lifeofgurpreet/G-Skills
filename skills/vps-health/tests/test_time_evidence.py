@@ -1,0 +1,131 @@
+#!/usr/bin/env python3
+"""Observation duration, not a reassuring average or a sample count, is evidence."""
+from pathlib import Path
+import copy
+import json
+import math
+import random
+import sys
+import tempfile
+import unittest
+from unittest import mock
+sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'scripts'))
+import vps_health as core
+import vps_workspace as ws
+sys.path.insert(0,str(Path(__file__).parent))
+from test_workspace import args,capture,NOW
+
+POLICY={'acceptable_ratio':.9,'investigate_below':.8}
+def point(end,value=.95,duration=300,execution=.2,pressure=.01,cfs=0.,**more):
+    return {'timestamp':float(end),'duration_seconds':duration,'cpu_accounted_ratio':value,
+            'executing_ratio':execution,'cpu_pressure_ratio':pressure,'cfs_throttled_periods_ratio':cfs,
+            'quality':[],**more}
+
+class ContextCoverageTest(unittest.TestCase):
+    def setUp(self):
+        self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup)
+        self.root=Path(self.temp.name)/'private';ws.bootstrap(args(self.root,'local'));self.cfg=ws.config_load(self.root)[1]
+    def test_one_quiet_sample_cannot_clear_three_days_of_unknown_workload_context(self):
+        cap=capture(start=NOW-3*86400,ratio=.96)
+        for p in cap['samples']:p.update(executing_ratio=.2,cpu_pressure_ratio=None,cfs_throttled_periods_ratio=None)
+        cap['samples'][-1].update(cpu_pressure_ratio=0.,cfs_throttled_periods_ratio=0.)
+        ws.ingest(self.root,self.cfg,[cap],NOW);value=ws.status(self.root,NOW);n=value['assets'][0]
+        self.assertEqual(n['context'],'CONTEXT_INCOMPLETE')
+        self.assertEqual(n['decision'],'WITHIN_TOLERANCE')  # CPU policy is not rewritten.
+        self.assertIn('workload_context_sparse',n['holds'])
+        self.assertAlmostEqual(n['evidence_profile']['channels']['cfs']['coverage'],300/(3*86400))
+        self.assertEqual(value['operator']['items'][0]['kind'],'workload_context_gap')
+    def test_old_context_does_not_become_current_because_cpu_counters_are_fresh(self):
+        cap=capture(start=NOW-3*86400,ratio=.96)
+        for p in cap['samples']:
+            p['executing_ratio']=.2
+            if p['timestamp']>NOW-3600:p.update(cpu_pressure_ratio=None,cfs_throttled_periods_ratio=None)
+        ws.ingest(self.root,self.cfg,[cap],NOW);n=ws.status(self.root,NOW)['assets'][0]
+        self.assertFalse(n['stale']);self.assertEqual(n['context'],'CONTEXT_INCOMPLETE')
+    def test_elevated_partial_pressure_is_not_erased_by_incomplete_coverage(self):
+        cap=capture(start=NOW-3*86400,ratio=.96)
+        for p in cap['samples']:p.update(cpu_pressure_ratio=None,cfs_throttled_periods_ratio=None)
+        cap['samples'][-1]['cpu_pressure_ratio']=.4
+        ws.ingest(self.root,self.cfg,[cap],NOW);n=ws.status(self.root,NOW)['assets'][0]
+        self.assertEqual(n['context'],'CONTENTION_PRESENT');self.assertIn('workload_context_sparse',n['holds'])
+        self.assertFalse(n['provider_cause_proven'])
+    def test_fully_observed_quiet_context_preserves_existing_classification(self):
+        cap=capture(start=NOW-3*86400,ratio=.96)
+        for p in cap['samples']:p['executing_ratio']=.2
+        ws.ingest(self.root,self.cfg,[cap],NOW);n=ws.status(self.root,NOW)['assets'][0]
+        self.assertEqual(n['context'],'NO_HIGH_PRESSURE_IN_RECORDED_CONTEXT')
+        self.assertNotIn('workload_context_sparse',n['holds'])
+
+class TemporalProfileTest(unittest.TestCase):
+    def setUp(self):
+        import vps_evidence
+        self.e=vps_evidence
+    def profile(self,points,start=0,end=3600):return self.e.summarize(points,start,end,POLICY,300)
+    def test_time_weighted_bands_not_sample_count_or_peak(self):
+        d=self.profile([point(300,.5),point(3600,1.,3300)])
+        self.assertAlmostEqual(d['bands']['investigate_seconds'],300)
+        self.assertAlmostEqual(d['bands']['within_seconds'],3300)
+        self.assertAlmostEqual(d['channels']['accounted']['mean'],3450/3600)
+        self.assertEqual(d['episodes']['longest_seconds'],300)
+    def test_chosen_policy_boundaries_are_exact_and_not_new_thresholds(self):
+        d=self.profile([point(300,.9),point(600,.8),point(900,.799)],end=900)
+        self.assertEqual(d['bands'],{'within_seconds':300.,'watch_seconds':300.,'investigate_seconds':300.})
+    def test_outages_split_shortfall_runs_and_stay_unobserved(self):
+        d=self.profile([point(300,.5),point(600,.6),point(1500,.5),point(1800,.5)],end=1800)
+        self.assertEqual(d['episodes']['count'],2);self.assertEqual(d['episodes']['longest_seconds'],600)
+        self.assertEqual(d['unobserved_seconds'],600);self.assertEqual(d['observed_seconds'],1200)
+    def test_quality_failure_splits_runs_and_is_not_interpolated(self):
+        d=self.profile([point(300,.5),point(600,.1,quality=['counter_reset']),point(900,.5)],end=900)
+        self.assertEqual(d['episodes']['count'],2);self.assertEqual(d['invalid_seconds'],300)
+        self.assertEqual(d['unobserved_seconds'],0);self.assertEqual(d['missing_seconds'],300)
+    def test_overlapping_or_repeated_intervals_never_add_extra_time(self):
+        data=[point(300,.7),point(300,.7),point(450,.7,300),point(600,.7)]
+        d=self.profile(data,end=600);self.assertEqual(d['observed_seconds'],600)
+        self.assertEqual(d['episodes']['longest_seconds'],600)
+    def test_missing_context_is_a_separate_channel_not_zero(self):
+        d=self.profile([point(300,.9,pressure=None,cfs=None),point(600,.9,pressure=0,cfs=0)],end=600)
+        self.assertEqual(d['channels']['accounted']['coverage'],1)
+        self.assertEqual(d['channels']['pressure']['coverage'],.5)
+        self.assertEqual(d['channels']['pressure']['mean'],0)
+        self.assertFalse(d['channels']['pressure']['qualified'])
+    def test_low_execution_is_not_low_demand_or_provider_guilt(self):
+        d=self.profile([point(300,.4,execution=.15,pressure=.8)],end=300)
+        row=next(r for r in d['execution_bands'] if r['id']=='low')
+        self.assertEqual(row['seconds'],300);self.assertEqual(row['pressure_mean'],.8)
+        self.assertFalse(d['provider_cause_proven']);self.assertIn('not demand',d['method'])
+    def test_missing_execution_has_its_own_retained_bucket(self):
+        d=self.profile([point(300,.5,execution=None)],end=600)
+        row=next(r for r in d['execution_bands'] if r['id']=='unknown')
+        self.assertEqual(row['seconds'],300);self.assertEqual(d['unobserved_seconds'],300)
+    def test_recent_window_delta_requires_two_complete_observed_windows(self):
+        d=self.profile([point(t,.6 if t>3600 else .98) for t in range(300,7201,300)],end=7200)
+        self.assertEqual(d['recent_change']['state'],'OBSERVED_WINDOWS')
+        self.assertAlmostEqual(d['recent_change']['mean_delta'],-.38)
+        early=self.profile([point(300,.6)],end=300)
+        self.assertEqual(early['recent_change']['state'],'INSUFFICIENT_EVIDENCE');self.assertIsNone(early['recent_change']['mean_delta'])
+    def test_source_mean_does_not_change_when_only_the_display_is_decimated(self):
+        data=[point(i*300,.95 if i%7 else .5) for i in range(1,4001)]
+        before=self.profile(data,end=1200000);ws.chart_history(data,300)
+        self.assertEqual(before,self.profile(data,end=1200000));self.assertLessEqual(len(before['episodes']['longest']),5)
+    def test_duration_partitions_and_input_are_preserved(self):
+        rng=random.Random(87);data=[point(t,rng.uniform(.2,1.)) for t in range(300,7201,300)]
+        for p in data[::7]:p['quality']=['unknown']
+        del data[10:12];saved=copy.deepcopy(data);d=self.profile(data,end=7200)
+        self.assertAlmostEqual(d['observed_seconds']+d['invalid_seconds']+d['unobserved_seconds'],7200)
+        self.assertAlmostEqual(sum(d['bands'].values()),d['observed_seconds'])
+        self.assertAlmostEqual(sum(r['seconds'] for r in d['execution_bands']),d['observed_seconds'])
+        self.assertEqual(data,saved)
+    def test_translation_changes_only_time_not_durations_or_values(self):
+        data=[point(300,.5),point(900,.5)];a=self.profile(data,end=900)
+        moved=[{**p,'timestamp':p['timestamp']+10000} for p in data];b=self.profile(moved,start=10000,end=10900)
+        self.assertEqual(a['bands'],b['bands']);self.assertEqual(a['episodes']['count'],b['episodes']['count'])
+        self.assertEqual(a['episodes']['longest_seconds'],b['episodes']['longest_seconds'])
+    def test_empty_and_zero_span_never_fabricate_measurements(self):
+        for end in (0,3600):
+            d=self.profile([],end=end);self.assertIsNone(d['channels']['accounted']['mean']);self.assertEqual(d['observed_seconds'],0)
+            self.assertEqual(d['unobserved_seconds'],end);self.assertEqual(d['episodes']['count'],0)
+    def test_bad_order_and_nonfinite_inputs_fail(self):
+        for data in ([point(600),point(300)],[point(float('nan'))],[point(300,duration=-1)]):
+            with self.subTest(data=data),self.assertRaises(core.InvalidEvidence):self.profile(data)
+
+if __name__=='__main__':unittest.main()
