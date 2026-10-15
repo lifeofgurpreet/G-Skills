@@ -11,7 +11,7 @@ description: >-
 license: MIT
 compatibility: Python 3.10+ and SQLite. Managed lifecycle and passive local collection currently qualify Linux; demo/offline/foreground views remain portable. Use the terminal agent's actual authorized host, browser and connector tools. No bundled OAuth service, provider sender, root service or public dashboard exposure.
 metadata:
-  version: "0.9.4"
+  version: "0.9.5"
   author: lifeofgurpreet
 ---
 
@@ -21,6 +21,26 @@ Your user should not assemble a monitoring stack or follow a shell tutorial.
 Carry the workflow from their goal to a functioning private dashboard and retained
 evidence. Ask for target clarification, authentication and consequential approvals
 only when necessary. Execute routine authorized operations yourself.
+
+## Find this installation's executable
+
+Resolve the absolute folder containing this `SKILL.md` from the host-provided
+installed skill path. The executable is [scripts/vps_health.py](scripts/vps_health.py)
+inside that folder; do not assume a `vps-health` command is on PATH or that the
+terminal's working directory is the skill directory. The agent substitutes the
+actual folder below and runs the argument vector through its authorized tool:
+
+```bash
+python3 "<absolute-skill-folder>/scripts/vps_health.py" capabilities
+python3 "<absolute-skill-folder>/scripts/vps_health.py" --help
+```
+
+These two reads create no workspace, collector or connection. Check the returned
+version and capability scope; if Python/SQLite or execution permission is missing,
+report that boundary rather than silently installing dependencies or widening
+permissions. Use the same resolved executable for the operations below.
+Before promising compatibility, read [this release's support scope](references/support-scope.md).
+It ships with the skill; parsing successfully is not proof of agent behavior.
 
 ## Pick the shortest useful route
 

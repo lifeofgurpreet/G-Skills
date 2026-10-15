@@ -1,5 +1,15 @@
 # VPS Health changelog
 
+## 0.9.5 — An explicit first step and portable support scope
+
+SKILL.md now locates the actual executable before naming operations, without
+assuming PATH or the current directory. The release includes its support limits
+instead of relying only on a mutable online page. Package acceptance checks local
+Markdown link targets and exercises the CLI from an unrelated directory through a
+path containing spaces, with site-packages disabled. Runtime behavior, measurement
+policy, UI, connectors and the original qualification pilot are unchanged.
+
+
 ## 0.9.4 — Parseable discovery and agent-evaluation contracts
 
 Fix invalid YAML in the public skill description. A real frontmatter parser now
