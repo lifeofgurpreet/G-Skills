@@ -14,11 +14,12 @@ This is one skill within G-Skills. Its work does not define the whole collection
 | `gs-2uh.10` Fix same-route Prometheus setup retries without scope drift | closed | 1 | runtime-agent | 2026-10-21 | — |
 | `gs-2uh.11` Verify cold and resumed client journeys from actual artifacts | closed | 1 | verification-agent | 2026-10-28 | — |
 | `gs-2uh.12` Audit private-state boundaries and release failure recovery | closed | 1 | safety-review-agent | 2026-11-07 | — |
-| `gs-2uh.13` Qualify the narrow passive preview before broader promotion | open | 1 | Gurpreet-and-quality-maintainer | 2026-11-14 | `gs-2uh.12`, `gs-2uh.15`, `gs-2uh.6`, `gs-2uh.8`, `gs-nah.2` |
+| `gs-2uh.13` Qualify the narrow passive preview before broader promotion | open | 1 | Gurpreet-and-quality-maintainer | 2026-11-14 | `gs-2uh.12`, `gs-2uh.15`, `gs-2uh.18`, `gs-2uh.6`, `gs-2uh.8`, `gs-nah.2` |
 | `gs-2uh.14` Deliver the evidence-first workbench from the design sprint | closed | 1 | design-implementation-agent | 2026-11-07 | — |
-| `gs-2uh.15` Qualify workload context by time and expose repeated shortfall evidence | blocked | 1 | evidence-implementation-agent | 2026-11-07 | — |
+| `gs-2uh.15` Qualify workload context by time and expose repeated shortfall evidence | closed | 1 | evidence-implementation-agent | 2026-11-07 | — |
 | `gs-2uh.16` Ship realistic agent eval contracts and an actionable UI CLI support map | closed | 1 | skill-quality-agent | 2026-11-07 | — |
 | `gs-2uh.17` Make the public entry explicit and bundle its release support boundary | closed | 1 | publication-verification-agent | 2026-11-07 | — |
+| `gs-2uh.18` Make workspace summary exports verifiable and snapshot-consistent | closed | 1 | export-implementation-agent | 2026-10-17 | — |
 | `gs-2uh.2` Manage collector and viewer beyond a terminal-agent session | closed | 1 | Unassigned | — | `gs-2uh.1` |
 | `gs-2uh.3` Expose agent progress and recovery in the dashboard | closed | 1 | Unassigned | — | `gs-2uh.2` |
 | `gs-2uh.4` Discover host-native connector capabilities only when needed | in_progress | 1 | connector-agent | 2026-11-28 | `gs-2uh.1` |
@@ -44,13 +45,15 @@ flowchart LR
   gs_2uh_13["gs-2uh.13: open"]
   gs_2uh_12 --> gs_2uh_13
   gs_2uh_15 --> gs_2uh_13
+  gs_2uh_18 --> gs_2uh_13
   gs_2uh_6 --> gs_2uh_13
   gs_2uh_8 --> gs_2uh_13
   gs_nah_2 --> gs_2uh_13
   gs_2uh_14["gs-2uh.14: closed"]
-  gs_2uh_15["gs-2uh.15: blocked"]
+  gs_2uh_15["gs-2uh.15: closed"]
   gs_2uh_16["gs-2uh.16: closed"]
   gs_2uh_17["gs-2uh.17: closed"]
+  gs_2uh_18["gs-2uh.18: closed"]
   gs_2uh_2["gs-2uh.2: closed"]
   gs_2uh_1 --> gs_2uh_2
   gs_2uh_3["gs-2uh.3: closed"]
@@ -147,6 +150,8 @@ A real source regression allows one quiet CFS/pressure sample to describe three 
 
 **Acceptance:** Failure-first sparse/stale-context cases pass; no missing-as-zero, duplicate-time inflation, gap stitching or provider guilt. Means agree with the existing union-weighted source. Actual legacy workspace report is read-only; standalone export and browser coverage/timeline cases pass. Native Beads closure is source acceptance, not completion of the 72-hour field pilot.
 
+**Receipt:** Remaining inline UI acceptance is now delivered: per-channel duration/coverage/currentness beside means, full-source Evidence duration/shortfall tables and pinned review/agent task retain denominators through refresh. Legacy absence and malformed temporal payloads remain explicitly unknown/refused.18 new JS contracts plus6 new real-browser groups pass; full totals45 JS/51 browser and575 Python. CLI/source math is unchanged. This closes source/UI acceptance only, not native model or72h field trials. See community-path-v0.10.0.md and community-proof-v0.10.0.json.
+
 ### gs-2uh.16 — Ship realistic agent eval contracts and an actionable UI CLI support map
 
 Apply Anthropic skill-creator task/grading conventions and outcome-based eval guidance to VPS Health. Include concrete synthetic artifact tasks, balanced trigger/nontrigger queries, actual old/new native attempts and a grader that separates no-inference failures from incomplete execution and real outcomes. Teach the existing UI/CLI/host workflow and local software support without unnecessary OAuth.
@@ -162,6 +167,14 @@ Publication audit of the actual v0.9.4 archive found its 39 authored local links
 **Acceptance:** Official metadata validation and extracted archive checks pass; first capabilities/help work via a spaced absolute install path from an unrelated directory without site-packages or creating a workspace. Missing/unshipped reference fixtures fail. Existing runtime/UI behavior and all unresolved native-client/field/connector gates remain unchanged.
 
 **Receipt:** Publication first-use source acceptance delivered: exact CLI entry and release-local support boundary; 6 new artifact tests including real no-site-package execution through a spaced absolute path from an unrelated cwd. 550 Python tests,27 JS contracts,45 browser groups pass. Actual 61-file archive and all46 authored local inline targets verified; extracted candidate passes pinned Anthropic validator. Runtime logic/UI and the original pilot unchanged. This is not native model behavior, guaranteed adoption or closure of client/field/UI/mail gates. See publication-first-use-v0.9.5.md and publication-entry-proof-v0.9.5.json. Exact-source hosted CI still required before release.
+
+### gs-2uh.18 — Make workspace summary exports verifiable and snapshot-consistent
+
+Published v0.9.5 can create a workspace summary that the same CLI verify command rejects as invalid manifest. Actual synthetic capture arrival between its separate summary/index reads produces disagreeing batch counts with valid hashes. Preserve raw replay semantics; give the agent a coherent private summary and a truthful integrity verification route. Additional acceptance covers partial-output recovery, destination scope and preflight.
+
+**Acceptance:** The existing CLI verifies its own summary type without claiming raw replay or independent attestation. Summary and index reflect one source snapshot; racing captures cannot create mismatched counts. Failed setup does not strand a published partial output, destinations are bounded, existing raw replay remains valid, and actual installed-file tests pass. No new collection, contact, production or pilot changes.
+
+**Receipt:** Actual source correction delivered: existing export and verify complete the summary path with one SQLite snapshot, stage/retry preservation and honest replay/attestation scope. Original 9 failure-first cases plus16 integrity/recovery cases pass. Actual v0.9.5 archives/workspace and old summary remain byte-identical; new archive verifies old/new summary types and preserves raw replay,3 subjects and2288 observations. Final source has575 Python tests; exact-main hosted CI is still a release gate. See community-path-v0.10.0.md and community-proof-v0.10.0.json.
 
 ### gs-2uh.2 — Manage collector and viewer beyond a terminal-agent session
 
