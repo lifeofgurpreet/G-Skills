@@ -39,7 +39,9 @@ Inspect the declared profile and interval before collecting. Reuse the existing
 approved monitoring endpoint; do not discover credentials, scan unrelated targets
 or deploy another exporter. The default 300-second cadence is suitable for the
 fixed stock query window. If an existing plan deliberately samples more slowly,
-retain its gaps. To change cadence, obtain any necessary new bounded-plan approval
+retain its gaps. The canonical workbench/agent finding now asks for a plan review,
+not more days of waiting that cannot fill scheduled gaps. To change cadence,
+obtain any necessary new bounded-plan approval
 instead of silently modifying a running investigation.
 
 Use `evidence-report` for an explicit private UTC window, or the existing workbench

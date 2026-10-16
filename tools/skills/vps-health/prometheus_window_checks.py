@@ -14,7 +14,7 @@ import vps_evidence as evidence
 
 def run(context,out,passed):
     with tempfile.TemporaryDirectory() as tmp:
-        base=Path(tmp);root=base/'observations';end=int(time.time()//3600)*3600;start=end-3*86400
+        base=Path(tmp);root=base/'observations';end=int(time.time()//300)*300;start=end-3*86400
         requests=[]
         class Metrics(http.server.BaseHTTPRequestHandler):
             def log_message(self,*args):pass
@@ -43,6 +43,8 @@ def run(context,out,passed):
             expect(page.locator('#selected-status')).to_contain_text('On hold')
             expect(page.locator('#count-held')).to_have_text('01')
             expect(page.locator('#count-tolerance')).to_have_text('00')
+            expect(page.locator('#action-title')).to_have_text('Review the monitoring interval')
+            expect(page.locator('#action-copy')).to_contain_text('existing approved Prometheus plan')
             page.get_by_role('link',name='Evidence',exact=True).click()
             expect(page.locator('#time-channel-rows [data-channel=accounted]')).to_contain_text('6.0 h')
             row=page.locator('#time-channel-rows [data-channel=accounted]').inner_text()
@@ -50,7 +52,7 @@ def run(context,out,passed):
             page.get_by_role('link',name='Overview',exact=True).click()
             page.get_by_role('button',name='Review next step',exact=True).click()
             task=page.locator('#review-task').input_value()
-            assert 'Measured time: 6.0 h' in task and 'insufficient_coverage' in task,task
+            assert 'Measured time: 6.0 h' in task and 'insufficient_coverage' in task and 'at most 300 seconds' in task,task
             page.keyboard.press('Escape')
             with page.expect_download() as dl:page.get_by_role('button',name='Save summary JSON').click()
             value=json.loads(Path(dl.value.path()).read_text());node=value['assets'][0]

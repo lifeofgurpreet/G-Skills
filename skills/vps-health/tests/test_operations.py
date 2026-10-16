@@ -46,6 +46,25 @@ class AttentionTest(unittest.TestCase):
         b=ops.brief(value(assets=[row(decision='HOLD',mean=.2,holds=['insufficient_coverage'])]))
         self.assertNotIn('performance_review',[i['kind'] for i in b['items']])
 
+    def test_known_coarse_query_gap_calls_for_plan_review_not_waiting_longer(self):
+        n=row(decision='HOLD',coverage=1/12,observed_hours=6,holds=['insufficient_coverage'],
+              query_timing={'rate_window_seconds':300,'configured_evaluation_step_seconds':3600})
+        finding=ops.brief(value(mode='prometheus',assets=[n]))['items'][0]
+        self.assertEqual(finding['kind'],'query_window_gap')
+        self.assertIn('approved',finding['next_action']);self.assertIn('300',finding['next_action'])
+        self.assertFalse(finding['contact_authorized']);self.assertFalse(finding['draft_eligible'])
+
+    def test_coarse_query_gap_does_not_outrank_failed_or_conflicting_collection(self):
+        for holds,kind in [(['insufficient_coverage','conflicting_sample_values'],'identity_or_conflict'),
+                           (['insufficient_coverage','latest_collection_failed'],'collection_gap')]:
+            n=row(decision='HOLD',holds=holds,query_timing={'rate_window_seconds':300,'configured_evaluation_step_seconds':3600})
+            self.assertEqual(ops.brief(value(assets=[n]))['items'][0]['kind'],kind)
+
+    def test_regular_cadence_or_unknown_source_does_not_invent_coarse_query_diagnosis(self):
+        for timing in (None,{'rate_window_seconds':300,'configured_evaluation_step_seconds':300}):
+            n=row(decision='HOLD',holds=['insufficient_coverage'],query_timing=timing)
+            self.assertEqual(ops.brief(value(assets=[n]))['items'][0]['kind'],'collect_history')
+
     def test_single_snapshot_waits_instead_of_panicking(self):
         b=ops.brief(value(assets=[row(decision='HOLD',elapsed_hours=.1,holds=['less_than_24_hours'])]))
         self.assertEqual(b['items'][0]['kind'],'collect_history')

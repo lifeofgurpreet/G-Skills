@@ -158,6 +158,11 @@ def brief(value):
                 args=('start_collection','info','Collect the first measured interval',
                       'Setup creates a workspace; it does not start monitoring. Local collection needs two ticks.',
                       'Choose one explicitly approved collector: foreground watch, generated timer or your existing scheduler.')
+            elif ('insufficient_coverage' in holds and node.get('query_timing')
+                  and node['query_timing']['configured_evaluation_step_seconds']>node['query_timing']['rate_window_seconds']):
+                args=('query_window_gap','info','Review the monitoring interval',
+                      'The configured query step is longer than the fixed five-minute rate window. Waiting for more days does not fill those scheduled gaps.',
+                      'Your agent should review the existing approved Prometheus plan and propose an interval of at most 300 seconds if suitable. Obtain any required new scope approval; do not modify a running collector or start a second one.')
             else:
                 args=('collect_history','info','Let the evidence window develop',
                       'At least a day of sufficiently covered, current observations is required for this accounting screen.',

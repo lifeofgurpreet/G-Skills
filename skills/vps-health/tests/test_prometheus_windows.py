@@ -144,6 +144,12 @@ class RetainedWindowTest(unittest.TestCase):
         self.assertEqual(d['decision'],'HOLD');self.assertAlmostEqual(d['mean'],.96)
         self.assertEqual(before,self.unchanged())
 
+    def test_workbench_and_agent_get_the_same_actionable_cadence_review(self):
+        d=ws.status(self.root,now=self.end);node=d['assets'][0]
+        self.assertEqual(node['query_timing']['configured_evaluation_step_seconds'],3600)
+        self.assertFalse(node['query_timing']['raw_scrape_coverage_verified'])
+        self.assertEqual(d['operator']['items'][0]['kind'],'query_window_gap')
+
     def test_full_range_report_shows_unmeasured_time_and_no_cause_or_contact(self):
         r=evidence.report(self.root,'example-metrics',START,self.end);p=r['profile']
         self.assertEqual(p['observed_seconds'],6*3600);self.assertEqual(p['unobserved_seconds'],66*3600)

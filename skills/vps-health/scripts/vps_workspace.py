@@ -560,6 +560,7 @@ def status(root,now=None,days=None,*,window_start=None,_read_db=None):
             assets.append({'id':node,'observed':observed,'decision':decision,'context':context,'mean':mean,
                            'execution':means.get('executing_ratio'),'pressure':pressure,'cfs':cfs,'coverage':coverage,
                            'evidence_profile':profile,
+                           'query_timing':({'rate_window_seconds':core.PROMETHEUS_RATE_WINDOW_SECONDS,'configured_evaluation_step_seconds':cfg['interval_seconds'],'raw_scrape_coverage_verified':False} if latest.get('kind')=='prometheus' else None),
                            'elapsed_hours':span/3600,'observed_hours':w['represented']/3600,'window_start':core.iso(start),'window_end':core.iso(now),'last_sample':last_sample,'last_capture_end':latest.get('end'),
                            'age_seconds':age,'stale':stale,'points':len(points),'holds':holds,
                            'recommendation':action,'daily':daily,'history':history,'epoch':latest.get('epoch'),
