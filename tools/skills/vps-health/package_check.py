@@ -7,7 +7,7 @@ from urllib.parse import unquote,urlsplit
 def validate_files(files):
     required={'SKILL.md','scripts/vps_health.py','scripts/vps_workspace.py','assets/chart-adapter.js',
               'assets/workspace-dashboard.html','assets/view-model.js','assets/workbench.js','references/dashboard.md','references/providers.md','tests/test_provider_reference.py','assets/vendor/uplot/manifest.json','assets/vendor/uplot/LICENSE','LICENSE',
-              'tests/test_workspace_export.py','references/exports.md','scripts/vps_support.py','tests/test_support_draft.py','assets/support-request.example.json','references/local-support-draft.md','references/support-scope.md','evals/evals.json','evals/trigger-evals.json','references/agent-actions.md','scripts/vps_evidence.py','references/time-evidence.md','scripts/vps_ops.py','assets/operator.js','assets/operator.css','assets/provider-catalog.json',
+              'tests/test_workspace_export.py','references/exports.md','scripts/vps_support.py','tests/test_support_draft.py','assets/support-request.example.json','references/local-support-draft.md','references/support-scope.md','evals/evals.json','evals/trigger-evals.json','references/agent-actions.md','tests/test_prometheus_windows.py','references/prometheus-windows.md','scripts/vps_evidence.py','references/time-evidence.md','scripts/vps_ops.py','assets/operator.js','assets/operator.css','assets/provider-catalog.json',
               'references/first-hour.md','references/operator-playbook.md','references/support.md','references/workspace-recovery.md','tests/test_private_workspace.py',
               'scripts/vps_viewer.py','tests/test_viewer_access.py','references/remote-viewer.md','scripts/vps_agent.py','scripts/vps_forensics.py','references/forensics.md','references/agent-workflow.md','references/agent-connectors.md'}
     if not required<=set(files):raise ValueError('installable skill is missing required runtime/license files')
@@ -134,6 +134,9 @@ def cold_check(target):
             capture_output=True,text=True,timeout=90)
         if result.returncode:
             raise ValueError('extracted initialization/agent recovery check failed: '+result.stderr[-3000:])
+
+    result=subprocess.run([sys.executable,str(target/'tests/test_prometheus_windows.py'),'RetainedWindowTest','RealHTTPTest'],capture_output=True,text=True,timeout=45)
+    if result.returncode:raise ValueError('exported Prometheus window/gap checks failed: '+result.stderr[-2500:])
 
 def main():
     p=argparse.ArgumentParser();p.add_argument('--skill-dir',required=True,type=Path);a=p.parse_args()

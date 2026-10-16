@@ -31,7 +31,7 @@ import uuid
 
 import vps_health as core
 
-VERSION = '0.11.0'
+VERSION = '0.11.1'
 SCHEMA = 'g-skills.workspace.v1'
 SELF_HASH = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
 MAX_STORE_BYTES = 256 * 1024 * 1024
@@ -255,7 +255,7 @@ def ingest(root,cfg,captures,observed=None):
             for point in capture['samples']:
                 ts=point['timestamp'];body=core.canonical(point).decode();h=core.digest(point)
                 capture_start=core.stamp(capture['start'])
-                observed_duration=min(point['duration_seconds'],max(0,min(ts,end)-capture_start))
+                observed_duration=min(core.represented_duration(point['duration_seconds'],capture['source']['kind'],capture['interval_seconds']),max(0,min(ts,end)-capture_start))
                 prior=db.execute('SELECT hash FROM points WHERE subject=? AND epoch=? AND ts=?',(node,epoch,ts)).fetchone()
                 if prior and prior[0]!=h:
                     db.execute('INSERT OR IGNORE INTO conflicts VALUES (?,?,?)',(node,epoch,ts))
@@ -514,7 +514,10 @@ def status(root,now=None,days=None,*,window_start=None,_read_db=None):
             WHERE p.subject=? AND p.epoch=? AND p.ts>=? AND p.ts<=? ORDER BY p.ts LIMIT 100001'''
             rows=db.execute(sql,(node,'' if epoch_changed else latest.get('epoch',''),begin,now)).fetchall()
             if len(rows)>100000:fail('too many points for dashboard window; reduce history_days')
-            points=[dict(core.decode(r['body']),duration_seconds=r['duration'],conflict=bool(r['conflict'])) for r in rows]
+            # Old releases stored query step as duration even when the fixed
+            # five-minute rate window covered less time. Re-project on read;
+            # never rewrite the original row/hash or raw capture to fix display.
+            points=[dict(core.decode(r['body']),duration_seconds=core.represented_duration(r['duration'],latest.get('kind')),conflict=bool(r['conflict'])) for r in rows]
             start=begin if window_start is not None else max(begin,min((p['timestamp']-p['duration_seconds'] for p in points),default=now))
             w=weighted(points,start,now);means=w['means'];mean=means.get('cpu_accounted_ratio');span=now-start
             coverage=w['represented']/span if span>0 else 0
@@ -536,6 +539,7 @@ def status(root,now=None,days=None,*,window_start=None,_read_db=None):
             if means.get('cfs_throttled_periods_ratio') is None:holds.append('workload_limits_unknown')
             pressure=means.get('cpu_pressure_ratio');cfs=means.get('cfs_throttled_periods_ratio')
             profile=evidence.summarize(points,start,now,cfg['policy'],cfg['interval_seconds'])
+            if latest.get('kind')=='prometheus':profile['method']+=' Prometheus estimates represent at most their fixed five-minute rate window, not proof of complete raw scrape coverage.'
             context_qualified=all(profile['channels'][key]['qualified'] for key in ('pressure','cfs'))
             if not context_qualified:holds.append('workload_context_sparse')
             context=('CONTENTION_PRESENT' if pressure is not None and pressure>.1 or cfs is not None and cfs>.05

@@ -6,6 +6,8 @@ The local reader sums the first eight `/proc/stat` modes and does not add guest/
 
 The Prometheus adapter uses stock counter rates normalized by observed CPU count. Minimum sample, reset, target-up and mode-count checks screen obvious observer faults. It does not claim that exporter and hypervisor clocks, kernel accounting, collection boundaries or arbitrary missing series are perfectly calibrated. Native query extrapolation and sparse retention can affect estimates. Reconcile multiple exporter jobs before use. A rendered point is not proof of continuous coverage.
 
+The stock Prometheus adapter additionally caps represented duration at its fixed five-minute rate window, independently of HTTP query step. [Query-window coverage](prometheus-windows.md) explains coarse histories and unchanged raw-scrape limitations.
+
 Report coverage counts represented elapsed intervals, capped by the requested cadence. Many points concentrated in a short burst cannot manufacture a full day. Values with explicit quality failures do not support the aggregate. Missing pressure and workload-limit context remain limitations, not zeros.
 
 The default 0.90 threshold sorts investigation, not blame or contractual acceptance. Values within tolerance still require application/service checks. A lower value with contention means mixed evidence: high demand, restricted supply, quotas or several factors may coexist. The script never produces `provider_cause_proven=true` or authorizes contact.

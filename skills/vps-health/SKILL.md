@@ -11,7 +11,7 @@ description: >-
 license: MIT
 compatibility: Python 3.10+ and SQLite. Managed lifecycle and passive local collection currently qualify Linux; demo/offline/foreground views remain portable. Use the terminal agent's actual authorized host, browser and connector tools. No bundled OAuth service, provider sender, root service or public dashboard exposure.
 metadata:
-  version: "0.11.0"
+  version: "0.11.1"
   author: lifeofgurpreet
 ---
 
@@ -71,6 +71,13 @@ If the user is exploring, build a synthetic demo without host measurements. If
 access is missing, ask one precise question or start the host's approved connector
 discovery flow. Do not request every integration during bootstrap: CPU observation
 does not need Gmail.
+
+For existing Prometheus data, query spacing is not measurement duration: the
+stock expressions use five-minute rate windows. Hourly evaluations leave gaps;
+never describe them as an hour of observation. The source, historical readback,
+workbench and exports preserve that distinction. Read
+[query-window coverage](references/prometheus-windows.md) before interpreting a
+coarse history or changing the approved collection cadence.
 
 ## Execute the owned workflow
 

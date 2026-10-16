@@ -1,5 +1,15 @@
 # VPS Health changelog
 
+## 0.11.1 — Query spacing no longer inflates measured time
+
+Cap stock Prometheus observations at their fixed five-minute rate window, not an
+hourly query step. Read old retained intervals conservatively without rewriting
+raw captures, so coverage, shortfall duration, chart gaps and exports agree.
+Validate the full scalar matrix/grid before accepting a channel; malformed
+optional responses become retained errors rather than erasing other subjects.
+No cadence, CPU threshold, raw-scrape guarantee, provider action or live pilot
+change is introduced.
+
 ## 0.11.0 — Verified remote viewing and usable dashboard links
 
 Integrate the existing remote-viewer draft without reverting newer evidence,

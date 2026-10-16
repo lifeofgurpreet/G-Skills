@@ -21,7 +21,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-VERSION = '0.11.0'
+VERSION = '0.11.1'
 SCHEMA = 'g-skills.vps-capture.v1'
 ROOT = Path(__file__).resolve().parents[1]
 MAX_BYTES = 8 * 1024 * 1024
@@ -316,6 +316,52 @@ def profile_load(path):
     return profile
 
 
+# query_range step is evaluation spacing, not the duration of rate([5m]).
+PROMETHEUS_RATE_WINDOW_SECONDS=300
+
+
+def represented_duration(duration,source_kind,interval=None):
+    value=finite(duration,minimum=0,maximum=3600)
+    if interval is not None:value=min(value,finite(interval,minimum=.2,maximum=3600))
+    return min(value,PROMETHEUS_RATE_WINDOW_SECONDS) if source_kind=='prometheus' else value
+
+
+def range_samples(body,start,end,step):
+    """Validate one bounded scalar range series before adding any of its values.
+
+    Preserve empty/non-finite samples as missing. Reject irregular point shapes
+    per channel instead of crashing the remaining expected-subject collection.
+    This validates API outputs, not continuity of the underlying raw scrapes.
+    """
+    if not isinstance(body,dict) or body.get('status')!='success' or body.get('warnings'):
+        raise InvalidEvidence('range response failed or contains partial-result warnings')
+    data=body.get('data')
+    if not isinstance(data,dict) or data.get('resultType')!='matrix':raise InvalidEvidence('expected range matrix')
+    rows=data.get('result')
+    if not isinstance(rows,list) or len(rows)>1:raise InvalidEvidence('ambiguous metric series')
+    if not rows:return []
+    row=rows[0]
+    if not isinstance(row,dict) or not isinstance(row.get('metric'),dict) or 'histograms' in row:
+        raise InvalidEvidence('expected one float series, not histogram or malformed data')
+    values=row.get('values');limit=min(MAX_POINTS,int(math.floor((end-start)/step))+1)
+    if not isinstance(values,list) or len(values)>limit:raise InvalidEvidence('range values exceed requested evaluation grid')
+    result=[];previous=None
+    for pair in values:
+        if not isinstance(pair,(list,tuple)) or len(pair)!=2:raise InvalidEvidence('invalid metric sample pair')
+        stamp,value=pair;finite(stamp,minimum=start,maximum=end)
+        grid=round((stamp-start)/step)
+        if abs(stamp-(start+grid*step))>1e-6 or previous is not None and stamp<=previous:
+            raise InvalidEvidence('off-grid, duplicate or unordered metric timestamp')
+        previous=stamp
+        if type(value) not in (str,int,float):raise InvalidEvidence('invalid metric sample value')
+        try:value=float(value)
+        except (TypeError,ValueError,OverflowError):raise InvalidEvidence('malformed metric sample')
+        if math.isfinite(value):
+            if not 0<=value<=1.02:raise InvalidEvidence('metric ratio outside supported domain')
+            result.append((stamp,value))
+    return result
+
+
 def metrics_queries(instance):
     labels = 'instance='+json.dumps(instance)
     cpu = 'node_cpu_seconds_total{'+labels+'}'
@@ -347,9 +393,11 @@ def collect_prometheus(profile, base, start, end, step=300, token=None, loki=Non
     for asset in profile['assets']:
         capture = new_capture(asset['id'], 'prometheus', start, end, step)
         capture['subject'].update(provider=asset.get('provider','unknown'),plan=asset.get('plan','unknown'))
+        capture['source']['range_query']={'rate_window_seconds':PROMETHEUS_RATE_WINDOW_SECONDS,'evaluation_step_seconds':step,'raw_scrape_coverage_verified':False}
         capture['notes'] = ['Stock node-exporter accounting screen, not calibrated physical CPU delivery.',
             'Matched graph points are not a contractual CPU floor.',
             'Workload-specific limits and service impact need separate evidence.']
+        capture['notes'].append('Each estimate uses a five-minute rate window. Coarser query steps leave unobserved gaps; normalized window coverage is not raw scrape completeness.')
         points = {}
         for name, query in metrics_queries(asset['instance']).items():
             capture['raw'][name] = {'query': query}
@@ -358,22 +406,9 @@ def collect_prometheus(profile, base, start, end, step=300, token=None, loki=Non
                 if remaining <= 0: raise InvalidEvidence('collection time budget exhausted')
                 body = get_json(base, '/api/v1/query_range', {'query':query,'start':start,'end':end,'step':step}, token, timeout=min(15,remaining))
                 capture['raw'][name]['response'] = body
-                rows = body['data']['result']
-                if not isinstance(rows,list) or len(rows)>1:
-                    raise InvalidEvidence('ambiguous metric series; refusing to choose one')
-                if not rows:
-                    continue
-                if body['data'].get('resultType') != 'matrix':
-                    raise InvalidEvidence('expected range-matrix response')
-                seen=set()
-                for ts, value in rows[0].get('values',[]):
-                    finite(ts,minimum=start,maximum=end)
-                    if ts in seen: raise InvalidEvidence('duplicate metric timestamp')
-                    seen.add(ts)
-                    try: value=float(value)
-                    except (ValueError,TypeError): raise InvalidEvidence('malformed metric sample')
-                    if not math.isfinite(value): continue
-                    points.setdefault(ts,{'timestamp':ts,'duration_seconds':step,'quality':[]})[name]=value
+                samples=range_samples(body,start,end,step)
+                for ts,value in samples:
+                    points.setdefault(ts,{'timestamp':ts,'duration_seconds':represented_duration(step,'prometheus'),'quality':[]})[name]=value
             except (InvalidEvidence,KeyError,TypeError) as exc:
                 capture['errors'].append(name+': '+type(exc).__name__)
                 for row in points.values(): row.pop(name,None)
@@ -434,7 +469,7 @@ def assess(capture):
     weights={}
     previous=start
     for row in rows:
-        weights[row['timestamp']]=min(row['duration_seconds'],interval,max(0,row['timestamp']-previous))
+        weights[row['timestamp']]=min(represented_duration(row['duration_seconds'],capture['source']['kind'],interval),max(0,row['timestamp']-previous))
         previous=row['timestamp']
     represented=sum(weights[r['timestamp']] for r in usable)
     coverage=min(1,represented/max(interval,end-start))
