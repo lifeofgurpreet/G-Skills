@@ -1,0 +1,8 @@
+{
+  "schema": "g-skills.support-request.v1",
+  "summary": "Synthetic example: offline plot does not render",
+  "observed": "The synthetic offline dashboard opens and its evidence table is readable, but its plot is blank.",
+  "expected": "The plot should render the same retained observations as the table.",
+  "question": "Which chart diagnostic or recovery step should I try next?",
+  "steps": ["Open the saved synthetic dashboard.", "Select a node and its full history."]
+}

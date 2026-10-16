@@ -11,7 +11,7 @@ description: >-
 license: MIT
 compatibility: Python 3.10+ and SQLite. Managed lifecycle and passive local collection currently qualify Linux; demo/offline/foreground views remain portable. Use the terminal agent's actual authorized host, browser and connector tools. No bundled OAuth service, provider sender, root service or public dashboard exposure.
 metadata:
-  version: "0.10.0"
+  version: "0.10.1"
   author: lifeofgurpreet
 ---
 
@@ -41,6 +41,16 @@ report that boundary rather than silently installing dependencies or widening
 permissions. Use the same resolved executable for the operations below.
 Before promising compatibility, read [this release's support scope](references/support-scope.md).
 It ships with the skill; parsing successfully is not proof of agent behavior.
+
+## Local software help without a connection
+
+When the user asks for a software-support draft, use `support-draft` with a private
+issue request and an optional existing workspace. The agent prepares the request,
+executes the local command and reviews the actual text/hash. No Gmail or provider
+access is needed. Missing/broken workspaces remain partial diagnostics, not a
+reason to launch tests or rebuild the user's setup. Read the
+[local draft workflow](references/local-support-draft.md); issue prose still needs
+privacy review and no local result authorizes a send.
 
 ## Pick the shortest useful route
 

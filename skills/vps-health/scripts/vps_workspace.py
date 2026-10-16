@@ -31,11 +31,11 @@ import uuid
 
 import vps_health as core
 
-VERSION = '0.10.0'
+VERSION = '0.10.1'
 SCHEMA = 'g-skills.workspace.v1'
 SELF_HASH = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
 MAX_STORE_BYTES = 256 * 1024 * 1024
-COMMANDS = ('bootstrap','collect','watch','dashboard','serve','export','schedule','draft-email','capabilities','doctor','brief','providers','support-report','agent-plan','agent-start','agent-status','agent-verify','agent-stop','agent-request','agent-resolve','_agent-worker','forensic-snapshot','forensic-observe','forensic-compare','evidence-report')
+COMMANDS = ('bootstrap','collect','watch','dashboard','serve','export','schedule','draft-email','capabilities','doctor','brief','providers','support-report','support-draft','agent-plan','agent-start','agent-status','agent-verify','agent-stop','agent-request','agent-resolve','_agent-worker','forensic-snapshot','forensic-observe','forensic-compare','evidence-report')
 SQL = '''
 CREATE TABLE IF NOT EXISTS state (key TEXT PRIMARY KEY, value TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS captures (
@@ -921,6 +921,8 @@ def learning_proposal(root,out):
 
 
 def register(sub):
+    import vps_support as support
+    support.register(sub)
     import vps_evidence as evidence
     evidence.register(sub)
     from vps_ops import PROVIDERS
@@ -954,6 +956,9 @@ def register(sub):
 
 
 def dispatch(args):
+    if args.cmd=='support-draft':
+        import vps_support as support
+        return support.create(args)
     if args.cmd=='evidence-report':
         import vps_evidence as evidence
         return evidence.dispatch(args)

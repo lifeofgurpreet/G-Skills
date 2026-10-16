@@ -41,3 +41,8 @@ reviewed minimal report only when useful. Use the collection's private-security
 contact guidance for a sensitive issue; do not post an exploit with customer data.
 No report or issue template authorizes a provider message, remote access or a
 change to the host's permissions.
+
+
+## A requested local draft
+
+Use [support-draft](local-support-draft.md) to turn the actual issue and these minimal diagnostics into a private maintainer draft. The agent creates the small issue request, runs the command and inspects the output. No mailbox connection, raw attachment or provider complaint is created. User-supplied issue text still needs a privacy review.

@@ -1,5 +1,9 @@
 # VPS Health changelog
 
+## 0.10.1 — Local software support without mailbox setup
+
+Add an explicit agent-callable support-draft path using the existing minimal diagnostics. It works with no workspace or a broken one, keeps the maintainer/provider distinction clear, refuses recipient/attachment/send fields and produces a private NOT SENT artifact with a content hash. User issue prose still requires review. No sender, OAuth integration, collector or workbench rendering change is introduced.
+
 ## 0.10.0 — Complete the evidence-to-review path
 
 Show contextual mean denominators, sparse/stale qualification, full-window duration

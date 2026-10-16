@@ -14,7 +14,7 @@ A UI label, command example or remembered tool name is not proof a capability ra
 | Explain context / Evidence | Read `evidence_profile`; use `evidence-report` for an explicit UTC window | Each channel's duration and freshness, not only the CPU mean |
 | Continue after a new chat / Agent | Read HANDOFF.md and actual status, then attach or make a new approved plan | Same run/deadline reused while active; stopped runs are not silently renewed |
 | Save private findings / Export snapshot | For a multi-file bundle: `export`, then `verify` on that directory; use `evidence-report` for a bounded node report | Actual local integrity result, with raw replay unavailable for a summary; preserve the original database |
-| Viewer or skill malfunction / Support report | Run `support-report`; compose a local software-support draft when asked | Minimal report and observed software problem, no raw VPS logs or unnecessary mail access |
+| Viewer or skill malfunction / Support report | Use `support-draft` for a requested local draft; `support-report` for minimal diagnostics alone | Minimal report and observed software problem, no raw VPS logs or unnecessary mail access |
 | Unclear purchased terms / Providers | Verify owner-confirmed plan; `providers`; approved `draft-email --purpose plan-question` | Dated relevant source and concise question, not a performance allegation |
 | Persistent degraded service / Review next step | Same-window evidence and actual service impact; evidence-gated `draft-email` only when requested | Local draft accurately states scope, context gaps and uncertainty |
 | Mailbox draft or reply | Discover the current host's exact `mail.draft` or `mail.read` action only when needed | Native tool result; a local file or HOST_REPORTED_AVAILABLE is not an external result |
@@ -85,3 +85,5 @@ could not run. Do not invent a success status to make a demonstration smoother.
 For the exact distinctions between the browser JSON snapshot, verified summary
 bundle and raw-capture replay, read [exports.md](exports.md). Verification never
 executes HTML or grants permission to share the output.
+
+The implemented [local support-draft route](local-support-draft.md) converts the user issue and minimal diagnostics into a private NOT SENT file. It requires no node selection, recipient or mailbox; it does not replace the distinct provider drafting or external-action reconciliation workflow.

@@ -35,6 +35,7 @@ def main():
     subprocess.run([sys.executable,str(SKILL/'tests/test_operations.py')],check=True)
     subprocess.run([sys.executable,str(SKILL/'tests/test_provider_reference.py')],check=True)
     subprocess.run([sys.executable,str(SKILL/'tests/test_support_report.py')],check=True)
+    subprocess.run([sys.executable,str(SKILL/'tests/test_support_draft.py')],check=True)
     subprocess.run([sys.executable,str(SKILL/'tests/test_agent_runtime.py')],check=True)
     subprocess.run([sys.executable,str(SKILL/'tests/test_private_workspace.py')],check=True)
     subprocess.run([sys.executable,str(SKILL/'tests/test_forensics.py')],check=True)

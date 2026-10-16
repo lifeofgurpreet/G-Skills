@@ -20,6 +20,7 @@ This is one skill within G-Skills. Its work does not define the whole collection
 | `gs-2uh.16` Ship realistic agent eval contracts and an actionable UI CLI support map | closed | 1 | skill-quality-agent | 2026-11-07 | — |
 | `gs-2uh.17` Make the public entry explicit and bundle its release support boundary | closed | 1 | publication-verification-agent | 2026-11-07 | — |
 | `gs-2uh.18` Make workspace summary exports verifiable and snapshot-consistent | closed | 1 | export-implementation-agent | 2026-10-17 | — |
+| `gs-2uh.19` Create local software-support drafts from minimal diagnostics without mailbox access | in_progress | 1 | support-workflow-agent | 2026-11-07 | — |
 | `gs-2uh.2` Manage collector and viewer beyond a terminal-agent session | closed | 1 | Unassigned | — | `gs-2uh.1` |
 | `gs-2uh.3` Expose agent progress and recovery in the dashboard | closed | 1 | Unassigned | — | `gs-2uh.2` |
 | `gs-2uh.4` Discover host-native connector capabilities only when needed | in_progress | 1 | connector-agent | 2026-11-28 | `gs-2uh.1` |
@@ -54,6 +55,7 @@ flowchart LR
   gs_2uh_16["gs-2uh.16: closed"]
   gs_2uh_17["gs-2uh.17: closed"]
   gs_2uh_18["gs-2uh.18: closed"]
+  gs_2uh_19["gs-2uh.19: in_progress"]
   gs_2uh_2["gs-2uh.2: closed"]
   gs_2uh_1 --> gs_2uh_2
   gs_2uh_3["gs-2uh.3: closed"]
@@ -175,6 +177,12 @@ Published v0.9.5 can create a workspace summary that the same CLI verify command
 **Acceptance:** The existing CLI verifies its own summary type without claiming raw replay or independent attestation. Summary and index reflect one source snapshot; racing captures cannot create mismatched counts. Failed setup does not strand a published partial output, destinations are bounded, existing raw replay remains valid, and actual installed-file tests pass. No new collection, contact, production or pilot changes.
 
 **Receipt:** Actual source correction delivered: existing export and verify complete the summary path with one SQLite snapshot, stage/retry preservation and honest replay/attestation scope. Original 9 failure-first cases plus16 integrity/recovery cases pass. Actual v0.9.5 archives/workspace and old summary remain byte-identical; new archive verifies old/new summary types and preserves raw replay,3 subjects and2288 observations. Final source has575 Python tests; exact-main hosted CI is still a release gate. See community-path-v0.10.0.md and community-proof-v0.10.0.json.
+
+### gs-2uh.19 — Create local software-support drafts from minimal diagnostics without mailbox access
+
+The installed skill could export minimal software diagnostics but left composing a local maintainer draft entirely to prose. Implement one bounded support-draft command reusing that report, without adding a sender, provider escalation, credential discovery, new collector or user-written config requirement. Missing/broken workspaces must remain useful partial diagnostics.
+
+**Acceptance:** Actual installed CLI produces a private NOT SENT file and matching content hash from an agent-prepared request, including from an unrelated directory without site-packages. No recipient/account/attachments are needed. Missing/broken/private sources and unexpected action fields stay bounded; existing workspace bytes remain unchanged. Native external mail and model-behavior gates are separate and not closed.
 
 ### gs-2uh.2 — Manage collector and viewer beyond a terminal-agent session
 

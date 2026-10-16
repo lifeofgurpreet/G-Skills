@@ -7,7 +7,7 @@ from urllib.parse import unquote,urlsplit
 def validate_files(files):
     required={'SKILL.md','scripts/vps_health.py','scripts/vps_workspace.py','assets/chart-adapter.js',
               'assets/workspace-dashboard.html','assets/view-model.js','assets/workbench.js','references/dashboard.md','references/providers.md','tests/test_provider_reference.py','assets/vendor/uplot/manifest.json','assets/vendor/uplot/LICENSE','LICENSE',
-              'tests/test_workspace_export.py','references/exports.md','references/support-scope.md','evals/evals.json','evals/trigger-evals.json','references/agent-actions.md','scripts/vps_evidence.py','references/time-evidence.md','scripts/vps_ops.py','assets/operator.js','assets/operator.css','assets/provider-catalog.json',
+              'tests/test_workspace_export.py','references/exports.md','scripts/vps_support.py','tests/test_support_draft.py','assets/support-request.example.json','references/local-support-draft.md','references/support-scope.md','evals/evals.json','evals/trigger-evals.json','references/agent-actions.md','scripts/vps_evidence.py','references/time-evidence.md','scripts/vps_ops.py','assets/operator.js','assets/operator.css','assets/provider-catalog.json',
               'references/first-hour.md','references/operator-playbook.md','references/support.md','references/workspace-recovery.md','tests/test_private_workspace.py',
               'scripts/vps_agent.py','scripts/vps_forensics.py','references/forensics.md','references/agent-workflow.md','references/agent-connectors.md'}
     if not required<=set(files):raise ValueError('installable skill is missing required runtime/license files')
@@ -94,6 +94,17 @@ def cold_check(target):
             raise ValueError('exported minimal support summary contract failed')
         if any(v in json.dumps(support) for v in ('example-stable','example-contended',str(workspace))):
             raise ValueError('private context entered exported support summary')
+        issue=Path(temp)/'support-request.json';issue.write_bytes((target/'assets/support-request.example.json').read_bytes());issue.chmod(0o600)
+        output=Path(temp)/'support-draft.txt'
+        draft=json.loads(subprocess.check_output([sys.executable,'-B','-S',entry,'support-draft','--issue',str(issue),
+             '--workspace',str(workspace),'--out',str(output),'--approve-draft'],text=True,cwd=temp,timeout=30))
+        text=output.read_text()
+        if (draft['sent'] or draft['connector_needed_for_local_draft'] or draft['attachments'] or not draft['draft_created']
+                or not text.startswith('LOCAL SOFTWARE SUPPORT DRAFT') or '2288' not in text
+                or any(private in text for private in (str(workspace),'example-stable','example-contended'))
+                or hashlib.sha256(output.read_bytes()).hexdigest()!=draft['sha256']):
+            raise ValueError('actual extracted support draft violated the local/private artifact contract')
+
 
         if sys.platform=='linux':
             options=['--workspace',str(workspace),'--mode','auto','--duration-seconds','10']
