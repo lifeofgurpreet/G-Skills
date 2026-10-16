@@ -30,6 +30,15 @@ names in shared scripts. Package with `tools/package_release.py --skill NAME` fr
 an immutable source commit; the actual extracted archive must pass its own check.
 Never silently update vendor hashes to bypass integrity checks.
 
+Agents on one host share that host's single checkout of this repository, on `main`
+(`/data/projects/G-Skills`, or `~/projects/G-Skills` on a workstation). Reserve the
+files you edit, commit only your paths, `git pull --rebase --autostash origin main`
+and push `HEAD:main`; never switch, stash or reset that checkout. A separate worktree
+is only for packaging or verifying an exact commit, a bisect, or reviewing someone
+else's branch: create it under `/data/worktrees/G-Skills/<task>` and remove it in the
+same command (team-skills `project-layout/scripts/pinned-worktree.sh` does both).
+Never a worktree or clone per branch, task or agent.
+
 Never commit user captures, fleet identities, messages, tokens, private repository
 material or licensed skill bodies. Public fixtures are synthetic. External reviews
 are hypotheses to assess and attribute, not authoritative replacements for source
