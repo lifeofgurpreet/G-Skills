@@ -22,7 +22,7 @@ This is one skill within G-Skills. Its work does not define the whole collection
 | `gs-2uh.18` Make workspace summary exports verifiable and snapshot-consistent | closed | 1 | export-implementation-agent | 2026-10-17 | — |
 | `gs-2uh.19` Create local software-support drafts from minimal diagnostics without mailbox access | closed | 1 | support-workflow-agent | 2026-11-07 | — |
 | `gs-2uh.2` Manage collector and viewer beyond a terminal-agent session | closed | 1 | Unassigned | — | `gs-2uh.1` |
-| `gs-2uh.20` Preserve Prometheus rate-window coverage and bound malformed range responses | in_progress | 1 | measurement-contract-agent | 2026-11-07 | — |
+| `gs-2uh.20` Preserve Prometheus rate-window coverage and bound malformed range responses | closed | 1 | measurement-contract-agent | 2026-11-07 | — |
 | `gs-2uh.3` Expose agent progress and recovery in the dashboard | closed | 1 | Unassigned | — | `gs-2uh.2` |
 | `gs-2uh.4` Discover host-native connector capabilities only when needed | in_progress | 1 | connector-agent | 2026-11-28 | `gs-2uh.1` |
 | `gs-2uh.5` Bind external actions to reviewed content and verified results | open | 1 | connector-verification-agent | 2026-12-07 | `gs-2uh.4` |
@@ -59,7 +59,7 @@ flowchart LR
   gs_2uh_19["gs-2uh.19: closed"]
   gs_2uh_2["gs-2uh.2: closed"]
   gs_2uh_1 --> gs_2uh_2
-  gs_2uh_20["gs-2uh.20: in_progress"]
+  gs_2uh_20["gs-2uh.20: closed"]
   gs_2uh_3["gs-2uh.3: closed"]
   gs_2uh_2 --> gs_2uh_3
   gs_2uh_4["gs-2uh.4: in_progress"]
@@ -201,6 +201,8 @@ One owned Linux worker launches detached with bounded lifetime, loopback dashboa
 The released stock adapter uses fixed five-minute rates but records query step as represented duration. Hourly evaluation can therefore turn six hours of supported windows into 72 apparently observed hours, stitch gaps and clear coverage incorrectly. Fix acquisition plus read-only legacy assessment, bound malformed matrix parsing and verify query semantics/HTTP/browser/archive behavior without changing CPU thresholds or the live pilot.
 
 **Acceptance:** Actual coarse-range fixture stays six supported hours out of72, HOLD and gap-separated shortfalls; existing stored rows and captures remain byte-identical. Default/finer cadences and passive Linux intervals do not regress. Malformed optional channels preserve other valid values and every expected subject. Actual PromQL engine, extracted archive and browser/export paths agree on the finite window; no claim of raw-scrape completeness or provider blame.
+
+**Receipt:** Delivered fixed five-minute Prometheus support independent of query step, bounded whole-channel parsing and read-only conservative legacy assessment. Actual released v0.11.0 showed72h/100% from hourly five-minute rates; candidate reads the same raw workspace as6h/8.33% with66h missing, HOLD and unchanged mean. 649 Python tests(27new),45JS contracts,58actual browser groups,3 actual installed-promtool expressions and the extracted72-file archive pass. Canonical brief asks the agent to review approved cadence instead of waiting forever. All stored files unchanged; default/finer cadence and passiveLinux unaffected. No raw-scrape completeness, native model or field completion claimed. See prometheus-window-v0.11.1.md and corresponding proof JSON. Exact-source hosted CI gates release.
 
 ### gs-2uh.3 — Expose agent progress and recovery in the dashboard
 

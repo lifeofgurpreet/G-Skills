@@ -1,0 +1,114 @@
+{
+  "schema": "g-skills.prometheus-window-acceptance.v1",
+  "bead": "gs-2uh.20",
+  "source_commit": "a982f4446ade8d2f7aec3b4ff8e6bf76b8bce0b4",
+  "python_total": 649,
+  "python_suites": [
+    11,
+    12,
+    8,
+    6,
+    36,
+    10,
+    82,
+    46,
+    24,
+    56,
+    25,
+    10,
+    27,
+    44,
+    17,
+    17,
+    18,
+    49,
+    29,
+    39,
+    28,
+    6,
+    12,
+    13,
+    15,
+    9
+  ],
+  "new_python_tests": 27,
+  "javascript_contracts": 45,
+  "browser_groups": 58,
+  "promql_engine": {
+    "schema": "g-skills.promql-window-proof.v1",
+    "state": "PASS",
+    "engine": "promtool, version 3.10.0 (branch: HEAD, revision: 54e010926b0a270cadb22be1113ad45fe9bcb90a)",
+    "query_source_sha256": "2e092de203a604b7019389c434d606cad3842f7961e2ac7ca42109b52fcd81aa",
+    "evaluated_cases": 3,
+    "reported_five_minute_ratio": 0.9375,
+    "synthetic_time_weighted_hour_ratio": 0.5364583333333334,
+    "query_window_seconds": 300,
+    "hourly_windows_do_not_imply_hourly_observation": true,
+    "raw_scrape_coverage_certified": false,
+    "network_or_service_started": false
+  },
+  "actual_archive": {
+    "commit": "a982f4446ade8d2f7aec3b4ff8e6bf76b8bce0b4",
+    "files": {
+      "vps-health-v0.11.1.zip": {
+        "bytes": 293754,
+        "sha256": "920ddfb799fd3ba99ba7ea9a7a3ff450340452ad150594ae8b364be3194e6c69"
+      }
+    },
+    "schema": "g-skills.skill-release.v1",
+    "skill": "vps-health",
+    "skill_files": 72,
+    "tag": "vps-health/v0.11.1",
+    "verification": "actual selected archive extraction and owning committed acceptance",
+    "version": "0.11.1"
+  },
+  "legacy_read_only": {
+    "schema": "g-skills.prometheus-window-archive-proof.v1",
+    "source_commit": "a982f4446ade8d2f7aec3b4ff8e6bf76b8bce0b4",
+    "new_archive_sha256": "920ddfb799fd3ba99ba7ea9a7a3ff450340452ad150594ae8b364be3194e6c69",
+    "old_archive_sha256": "66313c5ffbbbb021e3c64acc68b6217f8bdf880b0317e9606b5c81d7e4aaacda",
+    "old_result": {
+      "source_version": "0.11.0",
+      "observed_hours": 72.0,
+      "mean": 0.96,
+      "coverage": 1.0,
+      "decision": "WITHIN_TOLERANCE",
+      "stored_duration": 3600
+    },
+    "corrected_observed_hours": 6,
+    "unobserved_hours": 66,
+    "corrected_decision": "HOLD",
+    "source_mean_unchanged": true,
+    "raw_workspace_files_unchanged": true,
+    "one_consistent_export_verified": true,
+    "query_requests": 7,
+    "local_fixture_is_promql_engine": false,
+    "no_site_packages": true,
+    "new_collector_started": false,
+    "existing_pilot_modified": false,
+    "provider_contact": false,
+    "raw_scrape_coverage_certified": false
+  },
+  "canonical_agent_next_step": "Review existing approved cadence; waiting longer does not fill scheduled gaps.",
+  "default_and_finer_cadence_unchanged": true,
+  "passive_linux_intervals_unchanged": true,
+  "new_collector_started": false,
+  "existing_pilot_modified": false,
+  "provider_contact": false,
+  "native_model_behavior_qualified": false,
+  "full_raw_scrape_coverage_verified": false,
+  "retained_nonpassing_attempts": [
+    {
+      "scope": "unchanged Reset Boost full-collection panel check",
+      "result": "RemoteDisconnected at /api/state; no source/expectation changes; subsequent full run recorded separately"
+    },
+    {
+      "scope": "private exact-archive harness",
+      "result": "initial rolling export comparison used the fixed report end and then rounded ISO labels; corrected to same exact numerical bounds, no source change"
+    },
+    {
+      "scope": "promtool fixture",
+      "result": "decimal exact-float mismatch; replaced synthetic inputs with binary-exact increments, no product threshold change"
+    }
+  ]
+}
