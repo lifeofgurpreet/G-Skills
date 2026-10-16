@@ -11,6 +11,7 @@ A UI label, command example or remembered tool name is not proof a capability ra
 | User goal / interface | Agent's next operation | What establishes success |
 |---|---|---|
 | Show the investigation / Overview | Reuse the workspace; `agent-status`, `agent-verify`, `brief` | Actual owned run and matching HTTP; current canonical finding |
+| Open from another machine | `viewer-handoff` on the source, `viewer-plan` and native authorized SSH on the viewer, then `viewer-verify` | The expected run/configuration/inventory is reachable from the actual viewing machine; source readiness alone is not enough |
 | Explain context / Evidence | Read `evidence_profile`; use `evidence-report` for an explicit UTC window | Each channel's duration and freshness, not only the CPU mean |
 | Continue after a new chat / Agent | Read HANDOFF.md and actual status, then attach or make a new approved plan | Same run/deadline reused while active; stopped runs are not silently renewed |
 | Save private findings / Export snapshot | For a multi-file bundle: `export`, then `verify` on that directory; use `evidence-report` for a bounded node report | Actual local integrity result, with raw replay unavailable for a summary; preserve the original database |

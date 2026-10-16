@@ -24,7 +24,7 @@ This repository hosts independent public skills. Root work is catalog/distributi
 ## Skill programmes
 
 - [Reset Boost](docs/skills/reset-boost/ROADMAP.md): 2 open implementation/acceptance tasks; independent version 0.3.0.
-- [VPS Health](docs/skills/vps-health/ROADMAP.md): 9 open implementation/acceptance tasks; independent version 0.10.1.
+- [VPS Health](docs/skills/vps-health/ROADMAP.md): 9 open implementation/acceptance tasks; independent version 0.11.0.
 
 ## Collection acceptance
 

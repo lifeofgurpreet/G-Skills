@@ -9,7 +9,7 @@ def validate_files(files):
               'assets/workspace-dashboard.html','assets/view-model.js','assets/workbench.js','references/dashboard.md','references/providers.md','tests/test_provider_reference.py','assets/vendor/uplot/manifest.json','assets/vendor/uplot/LICENSE','LICENSE',
               'tests/test_workspace_export.py','references/exports.md','scripts/vps_support.py','tests/test_support_draft.py','assets/support-request.example.json','references/local-support-draft.md','references/support-scope.md','evals/evals.json','evals/trigger-evals.json','references/agent-actions.md','scripts/vps_evidence.py','references/time-evidence.md','scripts/vps_ops.py','assets/operator.js','assets/operator.css','assets/provider-catalog.json',
               'references/first-hour.md','references/operator-playbook.md','references/support.md','references/workspace-recovery.md','tests/test_private_workspace.py',
-              'scripts/vps_agent.py','scripts/vps_forensics.py','references/forensics.md','references/agent-workflow.md','references/agent-connectors.md'}
+              'scripts/vps_viewer.py','tests/test_viewer_access.py','references/remote-viewer.md','scripts/vps_agent.py','scripts/vps_forensics.py','references/forensics.md','references/agent-workflow.md','references/agent-connectors.md'}
     if not required<=set(files):raise ValueError('installable skill is missing required runtime/license files')
     if any(name.startswith(('skills/','.github/','tools/')) for name in files):
         raise ValueError('repository content incorrectly nested inside the skill ZIP')
@@ -107,7 +107,7 @@ def cold_check(target):
 
 
         if sys.platform=='linux':
-            options=['--workspace',str(workspace),'--mode','auto','--duration-seconds','10']
+            options=['--workspace',str(workspace),'--mode','auto','--duration-seconds','30']
             plan=json.loads(subprocess.check_output([sys.executable,entry,'agent-plan',*options],text=True,timeout=20))
             runtime=json.loads(subprocess.check_output([sys.executable,entry,'agent-start',*options,'--approve-plan',plan['plan_sha256']],text=True,timeout=15))
             try:
@@ -116,6 +116,13 @@ def cold_check(target):
                 if current['run_id']!=runtime['run_id']:raise ValueError('exported handoff lost owned identity')
                 verified=json.loads(subprocess.check_output([sys.executable,entry,'agent-verify','--workspace',str(workspace)],text=True,timeout=15))
                 if verified['state']!='VERIFIED' or not verified['http_verified']:raise ValueError('exported viewer readback not verified')
+                handoff=Path(temp)/'viewer-handoff.json'
+                subprocess.run([sys.executable,'-B','-S',entry,'viewer-handoff','--workspace',str(workspace),'--out',str(handoff)],check=True,stdout=subprocess.DEVNULL,timeout=15)
+                access=json.loads(subprocess.check_output([sys.executable,'-B','-S',entry,'viewer-plan','--handoff',str(handoff),'--ssh-target','example-host'],text=True,timeout=15))
+                if access['state']!='PLAN_ONLY' or access['ssh_connection_verified']:raise ValueError('packaged viewer plan invented a connection')
+                matched=json.loads(subprocess.check_output([sys.executable,'-B','-S',entry,'viewer-verify','--handoff',str(handoff)],text=True,timeout=15))
+                if matched['state']!='VIEWER_MATCHED' or not matched['http_identity_matched']:raise ValueError('packaged handoff readback failed')
+
             finally:
                 stop=subprocess.run([sys.executable,entry,'agent-stop','--workspace',str(workspace),'--run-id',runtime['run_id']],capture_output=True,text=True,timeout=20)
                 if stop.returncode or json.loads(stop.stdout)['state']!='STOPPED':raise ValueError('exported runtime stop not verified')

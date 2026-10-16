@@ -27,7 +27,7 @@ contains a deliberately smaller set of categories, counts and software versions.
 | Claude Code | Prior version-specific explicit-entry setup/resume/stop and project discovery/removal/restoration | Current-version paired task quality and trigger reliability; latest comparison attempts stopped at expired OAuth before inference |
 | Codex | Layout, instructions and prepared acceptance cases | A completed native user journey; the recorded authentication failure was not successful execution |
 | Mac/Windows | Selected portable demo, offline or foreground paths | Linux-local counters and the managed Linux lifecycle on these operating systems |
-| Remote browser path | A separate draft has native Mac/Linux SSH and HTTP evidence | That unpublished draft is not part of this installed release; external-link/browser acceptance remains open |
+| Remote browser path | Explicit viewer-port, private handoff and portable readback; real Chromium user-link/relay acceptance and separately exercised Mac/Linux SSH/HTTP | Actual macOS/Windows browser behavior, arbitrary SSH profiles and reboot-persistent connections; no public listener or automatic SSH daemon |
 | Mail support | Local provider draft commands, minimal software diagnostics and instructions for host-native connectors | End-to-end OAuth/send reconciliation in every host; no sender or OAuth service is bundled |
 | Long observations | History retention, interval qualification, gap handling and replay | Completed representative 72-hour live trials on both standalone and existing-monitoring routes |
 

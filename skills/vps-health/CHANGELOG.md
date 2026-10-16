@@ -1,5 +1,16 @@
 # VPS Health changelog
 
+## 0.11.0 — Verified remote viewing and usable dashboard links
+
+Integrate the existing remote-viewer draft without reverting newer evidence,
+export or support work. The agent can bind one laptop-side loopback port, export
+a private matching handoff, plan native SSH and verify the actual browser-side
+endpoint. Fix the draft's legitimate-link rejection: user-activated root navigation
+works while cross-site API requests and embedding remain refused. Browser and
+native cross-device proofs are separate; no new sender, public listener, daemon,
+provider policy or collector is introduced.
+
+
 ## 0.10.1 — Local software support without mailbox setup
 
 Add an explicit agent-callable support-draft path using the existing minimal diagnostics. It works with no workspace or a broken one, keeps the maintainer/provider distinction clear, refuses recipient/attachment/send fields and produces a private NOT SENT artifact with a content hash. User issue prose still requires review. No sender, OAuth integration, collector or workbench rendering change is introduced.

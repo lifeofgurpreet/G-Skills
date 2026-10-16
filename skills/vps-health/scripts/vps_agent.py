@@ -162,6 +162,8 @@ def plan(args):
     root=ws.public_path(args.workspace)
     seconds=ws.integer(args.duration_seconds,1,7*86400,'duration_seconds')
     port=ws.integer(args.port,0,65535,'port')
+    viewer_port=getattr(args,'viewer_port',None)
+    if viewer_port is not None:ws.integer(viewer_port,1,65535,'viewer_port')
     client=getattr(args,'client','generic')
     if client not in CLIENTS:raise core.InvalidEvidence('unsupported client label')
     needs=[]
@@ -191,9 +193,11 @@ def plan(args):
             if not isinstance(previous,dict) or not re.fullmatch('[a-f0-9]{32}',str(previous.get('run_id',''))):
                 raise core.InvalidEvidence('invalid previous runtime; preserve it for inspection')
             predecessor=previous['intent'].get('predecessor_run') if _run_locked(folder) else previous['run_id']
+            if viewer_port is None and _run_locked(folder):viewer_port=previous['intent'].get('viewer_port')
     intent={'schema':'g-skills.agent-intent.v1','workspace':str(root),'configuration':config_intent(cfg),
             'predecessor_run':predecessor,
             'duration_seconds':seconds,'port':port,'source':source_binding()}
+    if viewer_port is not None:intent['viewer_port']=viewer_port
     return {'schema':'g-skills.agent-plan.v1','ready':not needs,'needs':needs,'intent':intent,
             'plan_sha256':core.digest(intent),'operation':'reuse_workspace' if exists else 'create_private_workspace',
             'scope':{'mode':cfg['mode'],'subjects':[a['id'] for a in cfg['assets']],'account_census_verified':False},
@@ -221,7 +225,7 @@ def runtime_status(path):
     verified=alive is not None and alive==doc.get('process_identity')
     state=doc['state']
     if state not in TERMINAL and not verified and not _run_locked(folder):state='ORPHANED'
-    result.update({key:doc.get(key) for key in ('run_id','pid','started_at','deadline_utc','updated_at','dashboard_url','cycles','failed_cycles','events','plan_sha256','last_event')})
+    result.update({key:doc.get(key) for key in ('run_id','pid','started_at','deadline_utc','updated_at','dashboard_url','cycles','failed_cycles','events','plan_sha256','last_event','viewer_port')})
     result.update(state=state,process_verified=verified,
                   progress_scope='local worker actions, not proof that an AI agent is still connected',
                   persistence='ends at deadline; no boot or process-supervisor restart')
@@ -249,7 +253,7 @@ def read_viewer(url):
             raise core.InvalidEvidence('viewer payload exceeds the read limit')
         raw=response.read(VIEWER_READ_LIMIT+1)
         if len(raw)>VIEWER_READ_LIMIT:raise core.InvalidEvidence('viewer payload exceeds the read limit')
-        return json.loads(raw)
+        return core.decode(raw)
     finally:connection.close()
 
 
@@ -305,6 +309,8 @@ state, not fresh permission to change targets or contact a provider.
 
 Mode: {cfg['mode']}. Runtime: {d['state']}. Run: {d.get('run_id','none')}.
 Dashboard: {d.get('dashboard_url') or 'not verified yet'}
+That URL is local to this host. On another machine, use the installed
+references/remote-viewer.md workflow and verify the forwarded view there.
 Deadline: {d.get('deadline_utc') or 'not running'}.
 
 Use `agent-status` to recheck actual process identity before claiming it is alive.
@@ -438,7 +444,7 @@ def worker(path,run_id,fd):
     now=time.time();budget=intent['duration_seconds'];deadline=time.monotonic()+budget
     state={'schema':'g-skills.agent-state.v1','state':'STARTING','run_id':run_id,'pid':os.getpid(),
            'process_identity':process_identity(os.getpid()),'started_at':core.iso(now),'deadline_utc':core.iso(now+budget),
-           'updated_at':core.iso(now),'dashboard_url':None,'cycles':0,'failed_cycles':0,'events':[],
+           'updated_at':core.iso(now),'dashboard_url':None,'cycles':0,'failed_cycles':0,'events':[],'viewer_port':intent.get('viewer_port'),
            'plan_sha256':launch['plan_sha256'],'last_event':'starting'}
     def save(code=None):
         state['updated_at']=core.iso(time.time())
@@ -448,7 +454,7 @@ def worker(path,run_id,fd):
     server=None;thread=None
     save('runtime_starting')
     try:
-        server=ws.make_server(root,intent['port']);thread=threading.Thread(target=server.serve_forever,daemon=True);thread.start()
+        server=ws.make_server(root,intent['port'],viewer_port=intent.get('viewer_port'));thread=threading.Thread(target=server.serve_forever,daemon=True);thread.start()
         state.update(state='RUNNING',dashboard_url=f'http://127.0.0.1:{server.server_port}/');save('viewer_verified');handoff(root,runtime_status(root))
         next_collection=0.;next_heartbeat=0.
         while time.monotonic()<deadline:
@@ -537,7 +543,7 @@ def register(sub):
         p.add_argument('--token-env');p.add_argument('--loki-token-env');p.add_argument('--allow-http',action='store_true')
         p.add_argument('--interval',type=int,default=300);p.add_argument('--acceptable',type=float,default=.9);p.add_argument('--investigate-below',type=float,default=.8)
         p.add_argument('--provider',choices=sorted(PROVIDERS),default='unknown');p.add_argument('--plan')
-        p.add_argument('--duration-seconds',type=int,default=72*3600);p.add_argument('--port',type=int,default=0)
+        p.add_argument('--duration-seconds',type=int,default=72*3600);p.add_argument('--port',type=int,default=0);p.add_argument('--viewer-port',type=int,help='One approved client-side loopback port for a native SSH forward; no extra listener is opened')
         p.add_argument('--client',choices=sorted(CLIENTS),default='generic');p.add_argument('--approve-plan')
     p=sub.add_parser('agent-status',help='Read actual owned-process state and pending agent needs');p.add_argument('--workspace',required=True,type=Path)
     p=sub.add_parser('agent-verify',help='Read the owned loopback viewer and match current process/configuration');p.add_argument('--workspace',required=True,type=Path)

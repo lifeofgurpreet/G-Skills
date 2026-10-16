@@ -444,6 +444,8 @@ def main():
             assert not errors,errors
             import time_evidence_checks
             time_evidence_checks.run(context,args.out,passed)
+            import remote_viewer_checks
+            remote_viewer_checks.run(context,args.out,passed)
             passed('no JavaScript errors or external asset requests')
             receipt={'schema':'g-skills.browser-proof.v1','template_sha256':hashlib.sha256((ROOT/'skills/vps-health/assets/workspace-dashboard.html').read_bytes()).hexdigest(),
                      'chart_vendor_sha256':hashlib.sha256((ROOT/'skills/vps-health/assets/vendor/uplot/uPlot.iife.min.js').read_bytes()).hexdigest(),

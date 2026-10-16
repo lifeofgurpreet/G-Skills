@@ -37,6 +37,7 @@ def main():
     subprocess.run([sys.executable,str(SKILL/'tests/test_support_report.py')],check=True)
     subprocess.run([sys.executable,str(SKILL/'tests/test_support_draft.py')],check=True)
     subprocess.run([sys.executable,str(SKILL/'tests/test_agent_runtime.py')],check=True)
+    subprocess.run([sys.executable,str(SKILL/'tests/test_viewer_access.py')],check=True)
     subprocess.run([sys.executable,str(SKILL/'tests/test_private_workspace.py')],check=True)
     subprocess.run([sys.executable,str(SKILL/'tests/test_forensics.py')],check=True)
     subprocess.run([sys.executable,str(ROOT/'tools/skills/vps-health/test_vendor.py')],check=True)

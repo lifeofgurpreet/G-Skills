@@ -11,7 +11,7 @@ description: >-
 license: MIT
 compatibility: Python 3.10+ and SQLite. Managed lifecycle and passive local collection currently qualify Linux; demo/offline/foreground views remain portable. Use the terminal agent's actual authorized host, browser and connector tools. No bundled OAuth service, provider sender, root service or public dashboard exposure.
 metadata:
-  version: "0.10.1"
+  version: "0.11.0"
   author: lifeofgurpreet
 ---
 
@@ -119,9 +119,13 @@ releases do not retroactively gain the check. [Failure recovery](references/work
 ## Deliver an interface, not a folder tour
 
 Use `agent-verify` to check the owned loopback viewer directly through this skill's CLI. It matches the response to the current run, configured subjects and source; it follows no redirects and requires no generic curl/shell permission. Then open the returned dashboard with the host's browser capability. For a remote VPS,
-arrange an existing approved tunnel or remote browser path; localhost on the VPS
-is not automatically reachable from the user's laptop. Never bind publicly just
-to make the link convenient.
+use [the remote viewer workflow](references/remote-viewer.md). `viewer-handoff`
+checks the actual source worker; `viewer-plan` supplies a foreground native SSH
+argument vector for the user-authorized host; `viewer-verify` matches the local
+browser path from the machine that will view it. The host agent performs these
+steps. Use an explicitly planned `--viewer-port` for a different laptop port.
+Do not expose a public listener, bypass host-key checks or equate an SSH PID with
+a usable dashboard. No script here sends a message or executes SSH automatically.
 
 Lead with the actual selected node, its evidence state and the canonical next
 useful check. The workbench's Review next step pins the full-window evidence and
