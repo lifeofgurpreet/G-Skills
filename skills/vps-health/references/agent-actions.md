@@ -13,7 +13,7 @@ A UI label, command example or remembered tool name is not proof a capability ra
 | Show the investigation / Overview | Reuse the workspace; `agent-status`, `agent-verify`, `brief` | Actual owned run and matching HTTP; current canonical finding |
 | Explain context / Evidence | Read `evidence_profile`; use `evidence-report` for an explicit UTC window | Each channel's duration and freshness, not only the CPU mean |
 | Continue after a new chat / Agent | Read HANDOFF.md and actual status, then attach or make a new approved plan | Same run/deadline reused while active; stopped runs are not silently renewed |
-| Save private findings / Export snapshot | Use `export` or `evidence-report`, preserving the original database | Actual new local artifact; summary is not a raw replay archive |
+| Save private findings / Export snapshot | For a multi-file bundle: `export`, then `verify` on that directory; use `evidence-report` for a bounded node report | Actual local integrity result, with raw replay unavailable for a summary; preserve the original database |
 | Viewer or skill malfunction / Support report | Run `support-report`; compose a local software-support draft when asked | Minimal report and observed software problem, no raw VPS logs or unnecessary mail access |
 | Unclear purchased terms / Providers | Verify owner-confirmed plan; `providers`; approved `draft-email --purpose plan-question` | Dated relevant source and concise question, not a performance allegation |
 | Persistent degraded service / Review next step | Same-window evidence and actual service impact; evidence-gated `draft-email` only when requested | Local draft accurately states scope, context gaps and uncertainty |
@@ -81,3 +81,7 @@ the next necessary decision. A generated command list is not setup completion;
 a recorded request is not connectivity; a sent claim is not a connector result.
 For blocked execution, preserve useful progress and say exactly which operation
 could not run. Do not invent a success status to make a demonstration smoother.
+
+For the exact distinctions between the browser JSON snapshot, verified summary
+bundle and raw-capture replay, read [exports.md](exports.md). Verification never
+executes HTML or grants permission to share the output.

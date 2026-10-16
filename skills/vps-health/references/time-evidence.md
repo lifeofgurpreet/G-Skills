@@ -88,10 +88,12 @@ is null and the state is INSUFFICIENT_EVIDENCE. It is not a migration verdict.
 The existing workbench now receives the corrected contextual classification and
 canonical next-action finding. Private JSON snapshots carry the full profile;
 Markdown exports include per-channel means, observed coverage and qualification.
-The additional inline coverage table and duration widgets are not yet implemented:
-the renderer write was blocked. Do not claim that every metric card now shows its
-denominator. Until that follow-up lands, the agent should inspect the structured
-profile or this report before interpreting the compact context values.
+The workbench displays measured time, coverage and current/sparse/stale status
+beside each contextual mean. The Evidence view exposes per-channel detail,
+duration bands, missing/invalid time, shortfall runs and recorded-execution groups
+from this same profile. A pinned review and its agent handoff keep the original
+denominators while the background updates. Legacy profiles remain explicitly
+missing; malformed temporal payloads cannot replace the last accepted view.
 
 No chart zoom changes a full-window assessment, and decimation is never an input
 to temporal analysis. No change here permits active probes, account discovery,

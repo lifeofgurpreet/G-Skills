@@ -36,11 +36,12 @@ environment. It means that route has not earned an unconditional support claim.
 The host agent should check the actual environment and give one concrete missing
 access/dependency question rather than bypass permissions or invent results.
 
-The temporal analyzer and canonical workbench finding are implemented. Extra
-inline channel-coverage and duration widgets are not yet delivered; agents can
-read `evidence_profile`, `evidence-report` or the qualified Markdown export today.
-No documentation should imply that every compact context value already displays
-its denominator next to it.
+The temporal analyzer, inline channel-coverage captions, Evidence duration view
+and pinned review are implemented against the same source profile. They preserve
+missing/stale context instead of inventing a new frontend score. The CLI can also
+verify its own multi-file summary exports without claiming those summaries include
+raw replay. Current-version browser/process checks still do not establish every
+native agent workflow, external mail result or completed field pilot.
 
 ## A successful first use
 

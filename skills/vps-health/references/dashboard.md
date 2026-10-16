@@ -39,6 +39,13 @@ Enter selects an interval. Missing and partially covered cells remain distinct.
 Guest diagnostics show the latest retained storage/memory/network context, with
 its own currentness and uncertainty; old or unsupported context stays missing.
 
+The contextual mean captions now include their own measured duration, coverage
+and current/sparse/stale status. **Evidence** adds the full source window, observed
+preference-band durations, missing versus invalid time, and optional shortfall-run
+and recorded-execution details. Its node selector stays aligned with Overview.
+These are the CLI's existing values, not numbers recomputed from chart pixels.
+Legacy snapshots lacking a temporal profile show missing coverage explicitly.
+
 ## 3. Review a pinned next step
 
 **Review next step** opens the selected finding, full assessment window, accounted
@@ -126,3 +133,7 @@ single/dense inventories, malformed/disconnected states and private exports.
 Exercise every visible action with real user input. Read rendered screenshots
 separately from functional tests. The installed user still needs no chart CDN,
 Node build, remote font service or new monitoring stack.
+
+For an integrity-checked multi-file review, the agent runs `export` then `verify`.
+The browser snapshot alone is not a raw replay archive or a directory manifest.
+See [the export workflow](exports.md) for exact result semantics.

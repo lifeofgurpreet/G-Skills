@@ -48,12 +48,12 @@ channel has its own duration, coverage and freshness; elevated partial readings
 remain explicitly partial. Existing accounting preferences and no-provider-blame
 boundaries are unchanged.
 
-The agent can inspect `evidence_profile`, private JSON/Markdown exports and the
-bounded `evidence-report` command. The existing workbench displays the corrected
-canonical finding. Additional inline coverage/duration UI is still pending because
-its renderer write was blocked; it is not advertised as delivered. `gs-2uh.15`
-retains that remaining integration acceptance and still blocks broader promotion.
-Older releases and an unmodified pilot do not retroactively gain this correction.
+Version 0.10.0 carries those same values into the inline context captions,
+Evidence duration view, pinned review and copied agent task. Old snapshots without
+a profile remain unqualified. The CLI also completes `export` → `verify` for
+coherent private summaries; integrity is not raw replay or independent attestation.
+Older releases and the unmodified pilot do not retroactively gain these changes.
+Source/browser acceptance is separate from native-agent and sustained-field proof.
 
 Remote viewer PR #22, native-client and completed representative field-pilot gates
 remain independent; a correct report alone does not close them.

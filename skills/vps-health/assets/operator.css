@@ -258,3 +258,13 @@ dialog::backdrop{background:#19261750}
 /* Reference age describes the source, never the health of a node. */
 .provider-card .provider-review-state{margin-top:12px;font-size:10px;line-height:1.7;color:var(--muted)}
 .policy-fact .source-review-date{margin:7px 0 5px;font:9px/1.7 var(--mono);color:var(--muted)}
+
+/* Measured time travels beside the contextual mean, including in the pinned review. */
+.channel-coverage{display:block;font-size:9px;line-height:1.7;color:var(--muted);margin-top:6px;white-space:normal}
+.channel-coverage[data-qualified=false]{color:#805120}
+.time-evidence{padding:24px}.time-summary{font-size:13px;line-height:1.8;margin:16px 0 5px}
+.time-evidence>.table-shell{margin-top:18px}.time-table{min-width:570px}.time-table td{font-size:11px}
+.time-caveat{font-size:11px;line-height:1.8;color:var(--muted);margin:16px 0}.daily-heading{margin:25px 0 13px}
+#time-episodes{margin-top:12px;font-size:12px;line-height:1.8}#time-run-list .check-item{font-size:11px}
+#review-context p+p{margin-top:7px}
+@media(max-width:540px){.time-evidence{padding:19px 14px}.context-grid .channel-coverage{font-size:8px;flex-basis:100%;margin:0}.context-grid div{flex-wrap:wrap}.time-evidence .section-top{flex-wrap:wrap}.time-evidence .node-select{max-width:100%}}

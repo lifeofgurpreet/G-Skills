@@ -11,7 +11,7 @@ description: >-
 license: MIT
 compatibility: Python 3.10+ and SQLite. Managed lifecycle and passive local collection currently qualify Linux; demo/offline/foreground views remain portable. Use the terminal agent's actual authorized host, browser and connector tools. No bundled OAuth service, provider sender, root service or public dashboard exposure.
 metadata:
-  version: "0.9.5"
+  version: "0.10.0"
   author: lifeofgurpreet
 ---
 
@@ -160,12 +160,20 @@ and inspects the resulting channel denominators, missing intervals and shortfall
 runs; the human should not have to configure another collector. The report's data
 is private, not a minimal support attachment. [Time-evidence method](references/time-evidence.md).
 
-The workbench receives the corrected canonical finding and private JSON exports
-include the temporal profile. Extra inline duration/coverage widgets remain pending;
-read the profile or Markdown report instead of treating compact means as complete
-coverage. Chart selection remains a view, not a new full-window verdict. Reduced
-supply and our own demand can coexist; preserve gaps, failed runs and independent
-context. [Dashboard guide](references/dashboard.md).
+The workbench now shows each workload channel's measured time, coverage and
+qualification beside its mean. Evidence exposes the same full-window duration
+bands, missing time, shortfall runs and execution context as the CLI. The pinned
+review and copied agent task retain those denominators during refresh. Legacy
+snapshots without this profile remain visibly unqualified. Chart selection is
+still a view, not a new full-window verdict. Reduced supply and our own demand can
+coexist. [Dashboard guide](references/dashboard.md).
+
+For a private review bundle, run `export` to a new outside-workspace directory,
+then `verify` on that exact result. Summaries report integrity separately from
+`replay: NOT_AVAILABLE`; raw replay needs the original database/captures. The
+browser's single JSON snapshot and a minimal support report are different outputs.
+The agent performs this round trip without asking the human to copy checksums.
+[Export and verification workflow](references/exports.md).
 
 ## Correlate storage, memory and network without claiming host access
 

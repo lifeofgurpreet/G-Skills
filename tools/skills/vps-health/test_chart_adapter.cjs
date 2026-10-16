@@ -18,3 +18,5 @@ test('empty data remains empty, not a healthy default',()=>{assert.deepEqual(cha
 
 // One selected-skill UI acceptance entry, not another application runtime.
 require('./test_workbench.cjs');
+
+require('./test_time_view.cjs');

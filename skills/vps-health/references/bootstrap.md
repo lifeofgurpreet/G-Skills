@@ -89,6 +89,10 @@ python3 skills/vps-health/scripts/vps_health.py export \
   --workspace "$HOME/vps-health" --out "$HOME/vps-review-001"
 ```
 
+After `export`, the agent runs `verify` on that new directory. The result checks
+local integrity and summary/index consistency, not missing raw-data replay.
+[Export details and recovery](exports.md).
+
 `dashboard` updates `status.json`, `dashboard.html` and derived `daily/YYYY-MM-DD.json` rollups. `export` creates a **new** immutable summary directory and hashes; it never replaces an old export. It deliberately excludes credentials and raw log data. A summary is not a full replay archive: preserve the private workspace database and configuration as well.
 
 The default three-day view is configurable in `workspace.json` up to 14 days. Raw captures are content-addressed and compressed inside `history.sqlite3`; they are not automatically deleted when the view rolls forward. The compressed-raw limit is 256 MiB; reaching it stops ingestion and asks for archival, rather than destroying evidence. The normalized tables also use disk. For a safe full archive, stop the foreground collector or disable the generated timer, verify no collector holds the workspace, and copy the complete private workspace with its permissions preserved. Do not treat `cp` of a busy SQLite database as a verified backup. Keep the archive private and create a new workspace for continued collection.

@@ -64,6 +64,7 @@
   $('review-finding').textContent=r.title;$('review-next').textContent=r.next;
   $('review-mean').textContent=VpsView.percent(r.mean);$('review-coverage').textContent=VpsView.percent(r.coverage,1);$('review-hours').textContent=VpsView.hours(r.observedHours);
   $('review-window').textContent='Full assessment: '+r.window.start+' → '+r.window.end;
+  $('review-context').replaceChildren(...r.contextLines.map(line=>el('p',line)));
   $('review-limits').replaceChildren(...r.holds.map(h=>el('li',holds[h]||h.replaceAll('_',' '))));
   if(!r.holds.length)$('review-limits').append(el('li','Application impact and plan terms require their own evidence.'));
   $('review-task').value=pinnedTask;$('review-feedback').textContent='';reviewDialog.querySelector('details').open=false;

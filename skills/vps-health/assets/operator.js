@@ -37,7 +37,7 @@ const VpsOperator=(()=>{
   if(r.dashboard_url&&!/^http:\/\/127\.0\.0\.1:\d{1,5}\/$/.test(r.dashboard_url))return false;
   if(!Array.isArray(r.requests)||r.requests.length>8||!r.requests.every(q=>object(q)&&typeof q.purpose==='string'&&typeof q.required_capability==='string'&&['NEEDS_CONNECTION','HOST_REPORTED_AVAILABLE','DECLINED'].includes(q.state)&&q.send_authorized===false))return false;
   if(r.events&&(!Array.isArray(r.events)||r.events.length>32||!r.events.every(e=>object(e)&&typeof e.at==='string'&&typeof e.code==='string')))return false;
-  if(!value.assets.every(n=>validGuest(n.guest_context)))return false;
+  if(!value.assets.every(n=>validGuest(n.guest_context)&&VpsView.validTime(n.evidence_profile)))return false;
   return value.assets.every(n=>n.timeline===undefined||Array.isArray(n.timeline)&&n.timeline.length<=96&&n.timeline.every(c=>finite(c.start)&&finite(c.end)&&c.end>c.start&&finite(c.coverage)&&c.coverage>=0&&c.coverage<=1&&['unknown','partial','within','watch','investigate'].includes(c.state)));
  }
  function syncStorage(value){
@@ -175,6 +175,38 @@ const VpsOperator=(()=>{
   const env=d.environment;if(env)add('Guest-visible clock and CPU',(env.clocksource||'Clock unavailable')+' · '+(env.cpu?.models||['CPU model unavailable']).join(', ')+'. No physical-host attestation.');
  }
 
+ function renderTime(value){
+  const node=selected(),p=node?.evidence_profile,selector=byId('time-node');
+  if([...selector.options].map(o=>o.value).join('\n')!==value.assets.map(a=>a.id).join('\n')){
+   selector.replaceChildren(...value.assets.map(a=>{const option=make('option',a.id);option.value=a.id;return option}));
+  }
+  selector.disabled=!node;if(node)selector.value=node.id;
+  byId('time-subject').textContent=node?node.id+' · full assessment':'No configured subject';
+  for(const key of ['execution','pressure','cfs']){
+   const c=p?.channels[key],target=byId('context-'+key+'-coverage');target.dataset.qualified=String(Boolean(c?.qualified));
+   target.textContent=c?VpsView.duration(c.observed_seconds)+' · '+VpsView.coverage(c.coverage)+' coverage · '+(c.mean===null?'unmeasured':c.stale?'stale':c.qualified?'current':'sparse'):'Coverage not recorded';
+  }
+  for(const id of ['time-channel-rows','time-execution-rows','time-run-list'])byId(id).replaceChildren();
+  for(const id of ['time-summary','time-gaps','time-episodes','time-recent'])byId(id).textContent='';
+  if(!p){byId('time-window').textContent='Time qualification is missing from this snapshot. Use the agent’s evidence-report; missing context is not a healthy zero.';return}
+  const duration=VpsView.duration;
+  byId('time-window').textContent=utc(p.window_start)+' → '+utc(p.window_end)+' · full assessment, not the selected chart range';
+  byId('time-summary').textContent=duration(p.bands.within_seconds)+' within tolerance · '+duration(p.bands.watch_seconds)+' watch · '+duration(p.bands.investigate_seconds)+' below investigation preference';
+  byId('time-gaps').textContent=duration(p.unobserved_seconds)+' unobserved + '+duration(p.invalid_seconds)+' invalid/conflicting. Neither counts as healthy time.';
+  for(const [key,label]of [['accounted','Accounted CPU'],['execution','Recorded execution'],['pressure','CPU pressure'],['cfs','Throttled periods']]){
+   const c=p.channels[key],row=make('tr');row.dataset.channel=key;
+   const qualification=c.mean===null?'Unmeasured':c.stale?'Stale':c.qualified?'Qualified time coverage':'Sparse coverage';
+   for(const text of [label,VpsView.percent(c.mean),duration(c.observed_seconds),VpsView.coverage(c.coverage),qualification])row.append(make('td',text));
+   byId('time-channel-rows').append(row);
+  }
+  byId('time-episodes').textContent=p.episodes.count+' uninterrupted recorded shortfall runs. Longest: '+duration(p.episodes.longest_seconds)+'. Gaps and invalid intervals split runs.';
+  for(const run of p.episodes.longest){const item=make('div',utc(run.start)+' → '+utc(run.end),'check-item');item.append(make('span',duration(run.seconds)+' · mean '+VpsView.percent(run.mean)+' · minimum '+VpsView.percent(run.minimum)));byId('time-run-list').append(item)}
+  const r=p.recent_change;
+  byId('time-recent').textContent=r.state==='OBSERVED_WINDOWS'?'Accounted mean changed '+(r.mean_delta>=0?'+':'')+(r.mean_delta*100).toFixed(1)+' percentage points across the last two qualified one-hour windows. This difference does not establish cause.':'Recent change not established: two qualified full one-hour windows are required.';
+  const labels={low:'Under 25% recorded',moderate:'25–75% recorded',high:'75% or more recorded',unknown:'Execution unmeasured'};
+  for(const band of p.execution_bands){const row=make('tr');for(const text of [labels[band.id],duration(band.seconds),VpsView.percent(band.accounted_mean),VpsView.percent(band.pressure_mean),duration(band.pressure_seconds)])row.append(make('td',text));byId('time-execution-rows').append(row)}
+ }
+
  function renderAgent(value){
   const r=value.agent_runtime;
   byId('agent-state').textContent=r.state.replaceAll('_',' ');
@@ -198,12 +230,13 @@ const VpsOperator=(()=>{
   const activeIds=new Set(value.operator.items.map(i=>i.id));
   acknowledged=new Set([...acknowledged].filter(id=>activeIds.has(id)));
   try{sessionStorage.setItem(storageKey,JSON.stringify([...acknowledged]))}catch{}
-  renderInbox(value);renderSetup(value);renderProviders(value);renderRibbon(value);renderAgent(value);renderDiagnostics();notifyNew(value);
+  renderInbox(value);renderSetup(value);renderProviders(value);renderRibbon(value);renderAgent(value);renderDiagnostics();renderTime(value);notifyNew(value);
   if(active&&byId(active)&&!byId(active).disabled)byId(active).focus({preventScroll:true});
  }
  byId('open-inbox').onclick=()=>{setView('attention');location.hash='attention'};
  byId('enable-notifications').onclick=enableNotifications;
  byId('provider-filter').onchange=()=>renderProviders(lastState);
+ byId('time-node').onchange=event=>chooseNode(event.target.value);
  byId('copy-setup').onclick=()=>copyText('Read the installed vps-health/SKILL.md and references/agent-workflow.md. '+routes[setupMode].task+' Ask me only for missing scope, authentication or consequential approval. Do not contact a provider, run active probes, expose the viewer publicly or weaken host permissions.');
  document.querySelectorAll('[data-setup]').forEach(b=>b.onclick=()=>{setupMode=b.dataset.setup;renderSetup(lastState)});
  byId('copy-draft-instructions').onclick=()=>copyText('Read references/correspondence.md in the installed vps-health skill. First verify the exact provider, plan, service impact and UTC evidence window. Only after my explicit drafting request, run draft-email with --approve-draft and --impact. Use --example for synthetic or incomplete evidence. Ask one concise question, distinguish observations from inference, and never send the message or authorize a reboot/migration.');

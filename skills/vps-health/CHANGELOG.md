@@ -1,5 +1,19 @@
 # VPS Health changelog
 
+## 0.10.0 — Complete the evidence-to-review path
+
+Show contextual mean denominators, sparse/stale qualification, full-window duration
+bands and gap-separated shortfall runs in the actual workbench. The pinned review
+and agent handoff preserve the same per-channel values; malformed/legacy evidence
+never becomes reassuring data. No new measurement rubric or chart service.
+
+The existing export/verify commands now complete a coherent private-summary round
+trip. One SQLite snapshot supplies summary and capture index; complete output is
+staged with retained failures and bounded retry storage. Verification checks its
+own summary format and distinguishes integrity from unavailable raw replay and
+independent attestation. Existing raw-capture replay is unchanged.
+
+
 ## 0.9.5 — An explicit first step and portable support scope
 
 SKILL.md now locates the actual executable before naming operations, without
