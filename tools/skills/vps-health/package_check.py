@@ -7,7 +7,7 @@ from urllib.parse import unquote,urlsplit
 def validate_files(files):
     required={'SKILL.md','scripts/vps_health.py','scripts/vps_workspace.py','assets/chart-adapter.js',
               'assets/workspace-dashboard.html','assets/view-model.js','assets/workbench.js','references/dashboard.md','references/providers.md','tests/test_provider_reference.py','assets/vendor/uplot/manifest.json','assets/vendor/uplot/LICENSE','LICENSE',
-              'references/support-scope.md','evals/evals.json','evals/trigger-evals.json','references/agent-actions.md','scripts/vps_evidence.py','references/time-evidence.md','scripts/vps_ops.py','assets/operator.js','assets/operator.css','assets/provider-catalog.json',
+              'tests/test_workspace_export.py','references/support-scope.md','evals/evals.json','evals/trigger-evals.json','references/agent-actions.md','scripts/vps_evidence.py','references/time-evidence.md','scripts/vps_ops.py','assets/operator.js','assets/operator.css','assets/provider-catalog.json',
               'references/first-hour.md','references/operator-playbook.md','references/support.md','references/workspace-recovery.md','tests/test_private_workspace.py',
               'scripts/vps_agent.py','scripts/vps_forensics.py','references/forensics.md','references/agent-workflow.md','references/agent-connectors.md'}
     if not required<=set(files):raise ValueError('installable skill is missing required runtime/license files')
@@ -55,6 +55,11 @@ def cold_check(target):
         if any(marker in html for marker in ('/*WORKBENCH_JS*/','/*VIEW_MODEL*/')):
             raise ValueError('unresolved workbench script in actual archive')
         subprocess.run([sys.executable,entry,'export','--workspace',str(workspace),'--out',str(Path(temp)/'report')],check=True,stdout=subprocess.DEVNULL,timeout=60)
+        verified_summary=json.loads(subprocess.check_output([sys.executable,'-S',entry,'verify',str(Path(temp)/'report')],text=True,timeout=30))
+        if (verified_summary.get('artifact_kind')!='workspace-summary' or verified_summary.get('integrity')!='PASS'
+                or verified_summary.get('replay')!='NOT_AVAILABLE' or verified_summary.get('raw_data_included') is not False):
+            raise ValueError('the actual exported summary did not verify with honest replay scope')
+
         doctor=subprocess.run([sys.executable,entry,'doctor','--workspace',str(workspace)],capture_output=True,text=True,timeout=30)
         if doctor.returncode!=1 or not json.loads(doctor.stdout)['read_only']:raise ValueError('exported doctor did not preserve diagnosis semantics')
         brief=json.loads(subprocess.check_output([sys.executable,entry,'brief','--workspace',str(workspace)],text=True,timeout=30))

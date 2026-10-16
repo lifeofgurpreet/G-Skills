@@ -656,17 +656,123 @@ def markdown_summary(value):
     return ('\n'.join(lines)+'\n').encode()
 
 
+SUMMARY_FILES={'status.json','dashboard.html','report.md','capture-index.json'}
+MAX_SUMMARY_BATCHES=50000
+
+
 def export(root,out):
-    root,cfg=config_load(root);value=status(root);out=Path(out)
-    if out.exists():fail('export destination exists; choose a new directory to preserve evidence')
-    out.mkdir(parents=True,mode=0o700)
-    atomic(out/'status.json',core.canonical(value));atomic(out/'dashboard.html',page(value));atomic(out/'report.md',markdown_summary(value))
+    """Publish a private summary from one retained-data snapshot."""
+    root=public_path(root);out=public_path(out)
+    if out==root or root in out.parents:fail('export outside the retained observation workspace')
+    if out.exists() or out.is_symlink():fail('export destination exists; choose a new directory')
+    root,cfg=config_load(root)
     with database(root,True) as db:
-        refs=[dict(r) for r in db.execute('SELECT hash,observed,bytes FROM captures ORDER BY observed,hash')]
-    atomic(out/'capture-index.json',core.canonical(refs))
-    atomic(out/'manifest.json',core.canonical({'schema':'g-skills.workspace-export.v1','files':{p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in out.iterdir() if p.is_file()},
-                        'note':'summary export; full replay requires the private workspace database. Hashes are not independent attestation.'}))
-    return {'out':str(out),'files':5,'contains_credentials':False,'private':True}
+        db.execute('BEGIN')
+        value=status(root,_read_db=db)
+        if value['configuration_sha256']!=core.digest(cfg):fail('configuration changed during export; retry a fresh read')
+        refs=[dict(row) for row in db.execute('SELECT hash,observed,bytes FROM captures ORDER BY observed,hash LIMIT ?', (MAX_SUMMARY_BATCHES+1,))]
+        if len(refs)>MAX_SUMMARY_BATCHES:fail('summary index exceeds its bound; retain the private database for archival')
+    if len(refs)!=value['stored_captures'] or sum(row['bytes'] for row in refs)!=value['stored_bytes']:
+        fail('summary/index counts disagree; no export published')
+    out.parent.mkdir(parents=True,mode=0o700,exist_ok=True)
+    with initialization_lock(out):
+        if out.exists() or out.is_symlink():fail('export destination appeared; nothing there was replaced')
+        prefix='.'+out.name+'.exporting-'
+        if sum(1 for _ in out.parent.glob(glob.escape(prefix)+'*'))>=4:
+            fail('four interrupted export stages retained; inspect or archive them explicitly before retrying')
+        stage=Path(tempfile.mkdtemp(prefix=prefix,dir=out.parent))
+        try:
+            payloads={'status.json':core.canonical(value),'capture-index.json':core.canonical(refs)}
+            for name,data in payloads.items():
+                if len(data)>core.MAX_BYTES:fail('summary file exceeds the bounded size')
+                atomic(stage/name,data)
+            payloads.update({'dashboard.html':page(value),'report.md':markdown_summary(value)})
+            for name in ('dashboard.html','report.md'):
+                if len(payloads[name])>core.MAX_BYTES:fail('summary file exceeds the bounded size')
+                atomic(stage/name,payloads[name])
+            manifest={'schema':'g-skills.workspace-export.v1',
+                'files':{name:hashlib.sha256(payloads[name]).hexdigest() for name in sorted(SUMMARY_FILES)},
+                'snapshot':{'version':value['version'],'configuration_sha256':value['configuration_sha256'],
+                            'as_of':value['as_of'],'capture_batches':len(refs),'retained_raw_bytes':value['stored_bytes']},
+                'raw_data_included':False,
+                'note':'Summary from one database read snapshot. Runtime metadata is observed separately. Full replay needs the private database; hashes are not attestation.'}
+            atomic(stage/'manifest.json',core.canonical(manifest))
+            verify_export(stage);sync_directory(stage)
+            if out.exists() or out.is_symlink():fail('destination appeared; existing files were preserved')
+            os.rename(stage,out);sync_directory(out.parent)
+        except Exception as exc:
+            retained=stage if stage.exists() else out
+            raise core.InvalidEvidence('export needs inspection; files retained at '+str(retained)+
+                                       '; no existing evidence was removed') from exc
+    return {'out':str(out),'files':5,'contains_credentials':False,'private':True,
+            'artifact_kind':'workspace-summary','raw_data_included':False,
+            'next_operation':'verify','next_argument':str(out)}
+
+
+def verify_export(path):
+    """Check a summary's local bytes and declared snapshot, without raw replay."""
+    root=public_path(path);private_directory(root)
+    names=set()
+    for child in root.iterdir():
+        names.add(child.name)
+        if len(names)>5:fail('summary has extra files; review them separately')
+    if names!=SUMMARY_FILES|{'manifest.json'}:fail('summary needs its four files and manifest')
+    manifest=read_private_json(root/'manifest.json',max_bytes=16384)
+    if (not isinstance(manifest,dict) or manifest.get('schema')!='g-skills.workspace-export.v1'
+            or not isinstance(manifest.get('files'),dict) or set(manifest['files'])!=SUMMARY_FILES):
+        fail('invalid summary manifest')
+    if manifest.get('raw_data_included',False) is not False:fail('a summary cannot claim raw captures')
+    payloads={}
+    for name,checksum in manifest['files'].items():
+        if not isinstance(checksum,str) or not re.fullmatch('[a-f0-9]{64}',checksum):fail('invalid summary checksum')
+        private_file(root/name);raw=core.read_bytes(root/name)
+        if hashlib.sha256(raw).hexdigest()!=checksum:fail('summary integrity failed: '+name)
+        if name.endswith('.json'):payloads[name]=core.decode(raw)
+    value=payloads['status.json'];refs=payloads['capture-index.json']
+    if (not isinstance(value,dict) or value.get('schema')!='g-skills.workspace-status.v1'
+            or type(value.get('synthetic')) is not bool or value.get('contact_provider') is not False
+            or not isinstance(value.get('assets'),list) or len(value['assets'])>100):
+        fail('invalid summary status or action boundary')
+    if not isinstance(value.get('version'),str) or not re.fullmatch(r'\d+\.\d+\.\d+',value['version']):fail('invalid summary version')
+    if not isinstance(value.get('configuration_sha256'),str) or not re.fullmatch('[a-f0-9]{64}',value['configuration_sha256']):fail('invalid scope digest')
+    core.finite(value.get('as_of'),minimum=0)
+    integer(value.get('expected_assets'),0,100,'expected_assets')
+    if value['expected_assets']!=len(value['assets']):fail('subject count mismatch')
+    identities=[]
+    for node in value['assets']:
+        if not isinstance(node,dict):fail('invalid summary subject')
+        core.alias(node.get('id'));identities.append(node['id'])
+        if node.get('provider_cause_proven') is not False or node.get('send_authorized') is not False:
+            fail('summary subject changes the action boundary')
+    if len(identities)!=len(set(identities)):fail('duplicate summary subjects')
+    operator=value.get('operator')
+    if operator is not None and (not isinstance(operator,dict) or operator.get('automatic_actions') is not False
+                                or operator.get('service_health_verified') is not False):
+        fail('summary operator changes the action boundary')
+    if not isinstance(refs,list) or len(refs)>MAX_SUMMARY_BATCHES:fail('unbounded capture index')
+    hashes=set();total=0
+    for row in refs:
+        if not isinstance(row,dict) or set(row)!={'hash','observed','bytes'}:fail('invalid capture index row')
+        digest=row['hash']
+        if not isinstance(digest,str) or not re.fullmatch('[a-f0-9]{64}',digest) or digest in hashes:fail('invalid or duplicate capture digest')
+        hashes.add(digest);core.finite(row['observed'],minimum=0)
+        total+=integer(row['bytes'],0,MAX_STORE_BYTES,'capture bytes')
+    integer(value.get('stored_captures'),0,MAX_SUMMARY_BATCHES,'capture batches')
+    integer(value.get('stored_bytes'),0,MAX_STORE_BYTES,'retained bytes')
+    if value['stored_captures']!=len(refs) or value['stored_bytes']!=total:fail('summary/index counts disagree')
+    receipt=manifest.get('snapshot');receipt_state='NOT_RECORDED'
+    if receipt is not None:
+        expected={'version':value['version'],'configuration_sha256':value['configuration_sha256'],
+                  'as_of':value['as_of'],'capture_batches':len(refs),'retained_raw_bytes':total}
+        if receipt!=expected:fail('snapshot receipt does not match its payload')
+        receipt_state='MATCHES_PAYLOAD'
+    return {'schema':'g-skills.summary-verification.v1','artifact_kind':'workspace-summary',
+            'integrity':'PASS','snapshot_receipt':receipt_state,'source_version':value['version'],
+            'subjects':len(identities),'capture_batches_indexed':len(refs),'synthetic':value['synthetic'],
+            'replay':'NOT_AVAILABLE','raw_data_included':False,'measurements_recomputed':False,
+            'independent_attestation':False,'content_safety_certified':False,'provider_cause_proven':False,
+            'service_health_verified':False,'contact_authorized':False,'read_only':True,
+            'limits':'Checks use this unsigned local manifest. Full measurement replay needs the private database and matching source. HTML was not executed; integrity does not certify content safety or public sharing.'}
 
 
 def make_server(root,port=8765):

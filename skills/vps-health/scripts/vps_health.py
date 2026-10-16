@@ -569,7 +569,10 @@ def main(argv=None):
             for path in args.captures:
                 d=read_json(path);captures.extend(d if isinstance(d,list) else [d])
             result=report(captures,args.out)
-        elif args.cmd=='verify':result=verify_bundle(args.bundle)
+        elif args.cmd=='verify':
+            manifest=read_json(args.bundle/'manifest.json')
+            result=(workspace.verify_export(args.bundle) if isinstance(manifest,dict)
+                    and manifest.get('schema')=='g-skills.workspace-export.v1' else verify_bundle(args.bundle))
         elif args.cmd=='learn':result=workspace.learning_proposal(args.bundle,args.out) if (args.bundle/'workspace.json').exists() else lesson_proposal(args.bundle,args.out)
         else:result=compare(args.before,args.after)
         print(json.dumps(result,indent=2,allow_nan=False))
