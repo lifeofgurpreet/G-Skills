@@ -1,0 +1,67 @@
+{
+  "schema": "g-skills.export-gap-reproduction.v1",
+  "source": "7dc945065fe488185cb625d2db3893a220f235b0",
+  "published_release": "vps-health/v0.9.5",
+  "tests": 9,
+  "failed_acceptance_cases": 7,
+  "passing_controls": 2,
+  "errors": 0,
+  "failed_cases": [
+    "test_capture_arriving_during_export_does_not_disagree_with_saved_summary",
+    "test_changed_configuration_is_not_mixed_into_an_export",
+    "test_existing_cli_can_verify_its_own_workspace_export_without_claiming_raw_replay",
+    "test_existing_destination_is_rejected_before_a_status_read",
+    "test_export_cannot_add_derived_files_inside_its_observation_workspace",
+    "test_render_failure_does_not_publish_a_success_shaped_partial_destination",
+    "test_summary_and_capture_index_use_one_read_transaction"
+  ],
+  "raw_capture_replay_unchanged": true,
+  "summary_checksums_present": true,
+  "synthetic_only": true,
+  "new_collector_started": false,
+  "runtime_fix_applied": false,
+  "blocked_write_retried_through_another_route": false,
+  "owning_bead": "gs-2uh.18",
+  "initial_cli_result": [
+    {
+      "operation": "bootstrap",
+      "exit": 0,
+      "stderr": ""
+    },
+    {
+      "operation": "export",
+      "exit": 0,
+      "stderr": ""
+    },
+    {
+      "operation": "verify",
+      "exit": 2,
+      "stderr": "ERROR: InvalidEvidence: invalid manifest"
+    }
+  ],
+  "pilot_read_only": {
+    "checked_at": "2026-10-16T00:30:00.473362+00:00",
+    "version": "0.8.0",
+    "state": "RUNNING",
+    "process_verified": true,
+    "cycles": 288,
+    "failed_cycles": 0,
+    "observed_hours": 23.970120731989542,
+    "coverage": 0.9985896644081057,
+    "decision": "WATCH",
+    "deadline_utc": "2026-10-18T00:29:45Z",
+    "holds": [
+      "identity_plan_and_service_impact_not_independently_verified",
+      "controlled_repeats_not_established",
+      "workload_limits_unknown"
+    ],
+    "modified": false,
+    "completed_72_hours": false
+  },
+  "native_client_preflight": {
+    "client": "Claude Code 2.1.301",
+    "logged_in": false,
+    "native_trials_dispatched": 0
+  },
+  "publication_state": "DRAFT_REPRODUCTIONS_ONLY"
+}
