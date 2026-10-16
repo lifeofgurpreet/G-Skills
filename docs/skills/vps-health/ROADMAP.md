@@ -29,7 +29,7 @@ This is one skill within G-Skills. Its work does not define the whole collection
 | `gs-2uh.8` Validate multi-day operation and measurement usefulness | in_progress | 1 | field-verification-agent | 2026-11-14 | `gs-2uh.2`, `gs-2uh.3` |
 | `gs-8cq.1` Retain aligned passive storage, memory and network context | closed | 1 | Unassigned | — | — |
 | `gs-8cq.2` Compare guest traits without false physical-migration proof | closed | 1 | Unassigned | — | `gs-8cq.1` |
-| `gs-2uh.7` Cover heterogeneous estates and non-Linux agent hosts | open | 2 | runtime-and-estate-agent | 2026-12-07 | `gs-2uh.1` |
+| `gs-2uh.7` Cover heterogeneous estates and non-Linux agent hosts | in_progress | 2 | runtime-and-estate-agent | 2026-12-07 | `gs-2uh.1` |
 | `gs-2uh.9` Make self-improvement a reviewed evidence-to-regression loop | open | 2 | quality-maintainer | 2027-01-07 | `gs-2uh.6`, `gs-2uh.8` |
 | `gs-8cq.3` Design approved active CPU, memory and storage experiments | open | 2 | experiment-method-agent | 2026-12-07 | `gs-8cq.1` |
 | `gs-8cq.4` Qualify authorized SSH fleet and bounded path diagnostics | open | 2 | fleet-verification-agent | 2027-01-07 | `gs-2uh.7` |
@@ -74,7 +74,7 @@ flowchart LR
   gs_8cq_1["gs-8cq.1: closed"]
   gs_8cq_2["gs-8cq.2: closed"]
   gs_8cq_1 --> gs_8cq_2
-  gs_2uh_7["gs-2uh.7: open"]
+  gs_2uh_7["gs-2uh.7: in_progress"]
   gs_2uh_1 --> gs_2uh_7
   gs_2uh_9["gs-2uh.9: open"]
   gs_2uh_6 --> gs_2uh_9
