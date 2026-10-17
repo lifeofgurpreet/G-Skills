@@ -11,7 +11,7 @@ description: >-
 license: MIT
 compatibility: Python 3.10+ and SQLite. Managed lifecycle and passive local collection currently qualify Linux; demo/offline/foreground views remain portable. Use the terminal agent's actual authorized host, browser and connector tools. No bundled OAuth service, provider sender, root service or public dashboard exposure.
 metadata:
-  version: "0.11.1"
+  version: "0.11.2"
   author: lifeofgurpreet
 ---
 

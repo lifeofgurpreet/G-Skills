@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Query evaluation spacing must not enlarge the source's five-minute window."""
 from pathlib import Path
-import copy,hashlib,http.server,json,math,subprocess,sys,tempfile,threading,unittest
+import copy,gzip,hashlib,http.server,json,math,subprocess,sys,tempfile,threading,unittest,urllib.parse
 from types import SimpleNamespace
 from unittest import mock
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'scripts'))
@@ -123,6 +123,110 @@ class ResponseBoundaryTest(unittest.TestCase):
             values=core.collect_prometheus(profile,'https://example.invalid',START,START+3600,3600)
         get.assert_not_called();self.assertEqual(len(values),100)
         self.assertTrue(all(not c['samples'] and c['errors'] for c in values))
+
+
+class OptionalSourceBoundaryTest(unittest.TestCase):
+    profile={'assets':[{'id':'one','instance':'one.invalid:9100','loki_selector':'{app="one"}'},
+                       {'id':'two','instance':'two.invalid:9100','loki_selector':'{app="two"}'}]}
+
+    @staticmethod
+    def logs(count=2):
+        values=[[str((START+3600)*10**9-i-1),'synthetic log'] for i in range(count)]
+        return {'status':'success','data':{'resultType':'streams','result':[{'stream':{'app':'one'},'values':values}] if count else []}}
+
+    def assert_preserved(self,values):
+        self.assertEqual([c['subject']['id'] for c in values],['one','two'])
+        for c in values:
+            self.assertEqual(len(c['samples']),13)
+            self.assertTrue(all(p['cpu_accounted_ratio']==.96 for p in c['samples']))
+        self.assertEqual(values[1]['errors'],[])
+
+    def test_unrepresentable_json_numbers_raise_invalid_evidence(self):
+        for value in (10**400,-10**400):
+            with self.subTest(value_sign=value>0),self.assertRaises(core.InvalidEvidence):core.finite(value)
+
+    def test_huge_optional_metric_timestamp_keeps_cpu_raw_data_and_next_subject(self):
+        bad=matrix();bad['data']['result'][0]['values'][0][0]=10**400
+        def get(base,path,params,*args,**kwargs):
+            return bad if 'one.invalid:9100' in params['query'] and 'node_pressure_cpu_waiting' in params['query'] else matrix()
+        with mock.patch.object(core,'get_json',side_effect=get):
+            values=core.collect_prometheus(self.profile,'https://example.invalid',START,START+3600)
+        self.assert_preserved(values);self.assertEqual(len(values[0]['errors']),1)
+        self.assertTrue(all('cpu_pressure_ratio' not in p for p in values[0]['samples']))
+        self.assertEqual(values[0]['raw']['cpu_pressure_ratio']['response'],bad)
+
+    def test_malformed_loki_containers_are_optional_errors_not_fleet_failures(self):
+        cases=[]
+        for result in ([None],{},[{'stream':None,'values':[]}],[{'stream':{},'values':'not a list'}],
+                       [{'stream':{},'values':[None]}],[{'stream':{},'values':[['not a timestamp','line']]}],
+                       [{'stream':{},'values':[[str(START*10**9),{}]]}],
+                       [{'stream':{},'values':[[str(START*10**9)]]}]):
+            body=self.logs();body['data']['result']=result;cases.append(body)
+        body=self.logs();body['data']['resultType']='matrix';cases.append(body)
+        for index,bad in enumerate(cases):
+            def get(base,path,params,*args,**kwargs):
+                return bad if path.startswith('/loki/') and params['query']=='{app="one"}' else self.logs() if path.startswith('/loki/') else matrix()
+            with self.subTest(case=index),mock.patch.object(core,'get_json',side_effect=get):
+                values=core.collect_prometheus(self.profile,'https://example.invalid',START,START+3600,loki='https://logs.invalid')
+                self.assert_preserved(values)
+                self.assertEqual(values[0]['errors'],['Loki unavailable or invalid; no silent fallback'])
+                self.assertFalse(any(note.startswith('Loki supplied') for note in values[0]['notes']))
+                self.assertEqual(values[0]['raw']['loki']['response'],bad)
+
+    def test_loki_time_order_range_and_total_line_budget_are_enforced(self):
+        cases=[self.logs(501)]
+        for stamp in (str(START*10**9-1),str((START+3600)*10**9),'9'*401):
+            body=self.logs(1);body['data']['result'][0]['values'][0][0]=stamp;cases.append(body)
+        body=self.logs();body['data']['result'][0]['values'].reverse();cases.append(body)
+        for index,bad in enumerate(cases):
+            def get(base,path,params,*args,**kwargs):
+                return bad if path.startswith('/loki/') and params['query']=='{app="one"}' else self.logs() if path.startswith('/loki/') else matrix()
+            with self.subTest(case=index),mock.patch.object(core,'get_json',side_effect=get):
+                values=core.collect_prometheus(self.profile,'https://example.invalid',START,START+3600,loki='https://logs.invalid')
+                self.assert_preserved(values)
+                self.assertEqual(values[0]['errors'],['Loki unavailable or invalid; no silent fallback'])
+                self.assertFalse(any(note.startswith('Loki supplied') for note in values[0]['notes']))
+
+    def test_valid_empty_duplicate_time_and_limited_loki_results_remain_usable(self):
+        duplicate=self.logs();duplicate['data']['result'][0]['values'][1][0]=duplicate['data']['result'][0]['values'][0][0]
+        for body,count in ((self.logs(0),0),(duplicate,2),(self.logs(500),500)):
+            def get(base,path,params,*args,**kwargs):return body if path.startswith('/loki/') else matrix()
+            with self.subTest(count=count),mock.patch.object(core,'get_json',side_effect=get):
+                values=core.collect_prometheus(self.profile,'https://example.invalid',START,START+3600,loki='https://logs.invalid')
+                self.assertEqual([c['subject']['id'] for c in values],['one','two'])
+                for c in values:
+                    self.assertTrue(any(note.startswith(f'Loki supplied {count} diagnostic log lines;') for note in c['notes']))
+                    self.assertEqual(c['errors'],['Loki result limit reached; log history incomplete'] if count==500 else [])
+
+    def test_real_http_malformed_optional_sources_survive_capture_and_ingestion(self):
+        bad_metric=matrix();bad_metric['data']['result'][0]['values'][0][0]=10**400
+        bad_loki={'status':'success','data':{'resultType':'streams','result':[None]}}
+        requests=[];good_logs=self.logs()
+        class Handler(http.server.BaseHTTPRequestHandler):
+            def log_message(self,*args):pass
+            def do_GET(self):
+                requests.append(self.path);url=urllib.parse.urlsplit(self.path);query=urllib.parse.parse_qs(url.query)['query'][0]
+                if url.path.startswith('/loki/'):body=bad_loki if query=='{app="one"}' else good_logs
+                else:body=bad_metric if 'one.invalid:9100' in query and 'node_pressure_cpu_waiting' in query else matrix()
+                raw=json.dumps(body).encode();self.send_response(200);self.send_header('Content-Type','application/json')
+                self.send_header('Content-Length',str(len(raw)));self.end_headers();self.wfile.write(raw)
+        server=http.server.ThreadingHTTPServer(('127.0.0.1',0),Handler);thread=threading.Thread(target=server.serve_forever,daemon=True);thread.start()
+        try:
+            endpoint='http://127.0.0.1:'+str(server.server_port)
+            values=core.collect_prometheus(self.profile,endpoint,START,START+3600,loki=endpoint)
+            self.assert_preserved(values);self.assertEqual(len(values[0]['errors']),2);self.assertEqual(len(requests),16)
+            with tempfile.TemporaryDirectory() as temp:
+                base=Path(temp);root=base/'workspace';profile=base/'profile.json'
+                core.save_json(profile,{'schema':'g-skills.vps-profile.v1',**self.profile})
+                ws.bootstrap(SimpleNamespace(workspace=root,mode='prometheus',profile=profile,url=endpoint,node='example',
+                    interval=300,loki_url=endpoint,token_env=None,loki_token_env=None,allow_http=False,acceptable=.9,investigate_below=.8))
+                cfg=ws.config_load(root)[1];ws.ingest(root,cfg,values,START+3600)
+                with ws.database(root,True) as db:raw=core.decode(gzip.decompress(db.execute('SELECT body FROM captures').fetchone()['body']))
+                self.assertEqual(raw[0]['raw']['loki']['response'],bad_loki)
+                self.assertEqual(raw[0]['raw']['cpu_pressure_ratio']['response'],bad_metric)
+                self.assertEqual(raw,values)
+                self.assertEqual(len(ws.status(root,now=START+3600)['assets']),2)
+        finally:server.shutdown();server.server_close();thread.join(3)
 
 class RetainedWindowTest(unittest.TestCase):
     def setUp(self):

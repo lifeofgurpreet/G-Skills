@@ -226,4 +226,97 @@ class ReportTest(unittest.TestCase):
             self.assertAlmostEqual(d['observed_seconds'],weight)
             self.assertEqual(ws.weighted(rows,0,6000)['means']['cpu_accounted_ratio'],mean)
 
+
+class ReportBoundaryTest(unittest.TestCase):
+    setUp=ContextCoverageTest.setUp
+    hashes=ReportTest.hashes
+
+    def retain(self,rows,start=NOW-600,end=NOW):
+        cap=capture(start=start,end=end,ratio=.5);cap['samples']=rows
+        ws.ingest(self.root,self.cfg,[cap],end)
+        return cap
+
+    def report(self,start,end):
+        import vps_evidence as e
+        return e.report(self.root,'example-node',start,end)
+
+    def test_cli_window_inside_retained_interval_keeps_measured_time_and_provenance(self):
+        row=point(NOW,.5);self.retain([row]);before=self.hashes()
+        command=[sys.executable,str(Path(core.__file__)),'evidence-report','--workspace',str(self.root),
+                 '--node','example-node','--start',core.iso(NOW-200),'--end',core.iso(NOW-100)]
+        result=subprocess.run(command,cwd=self.temp.name,capture_output=True,text=True,check=True,timeout=20)
+        value=json.loads(result.stdout);profile=value['profile']
+        self.assertEqual(profile['window_seconds'],100)
+        self.assertEqual(profile['observed_seconds'],100)
+        self.assertEqual(profile['missing_seconds'],0)
+        self.assertEqual(profile['channels']['accounted']['mean'],.5)
+        self.assertEqual(value['observation_hashes'],[core.digest(row)])
+        self.assertEqual(self.hashes(),before)
+
+    def test_end_overlap_is_clipped_once_without_future_chart_or_freshness(self):
+        self.retain([point(NOW-300,.95),point(NOW,.5),point(NOW+100,.9)],end=NOW+100)
+        value=ws.status(self.root,now=NOW-50,window_start=NOW-300)['assets'][0]
+        profile=value['evidence_profile']
+        self.assertEqual(profile['observed_seconds'],250)
+        self.assertEqual(profile['bands']['investigate_seconds'],250)
+        self.assertEqual(profile['episodes']['longest_seconds'],250)
+        self.assertEqual(profile['channels']['accounted']['mean'],.5)
+        self.assertEqual(value['last_sample'],NOW-50)
+        self.assertEqual(value['age_seconds'],0)
+        self.assertTrue(all(NOW-300<=row['t']<=NOW-50 for row in value['history']))
+
+    def test_future_interval_that_does_not_overlap_stays_unobserved(self):
+        self.retain([point(NOW,.5)])
+        value=self.report(NOW-600,NOW-301)
+        self.assertEqual(value['profile']['observed_seconds'],0)
+        self.assertEqual(value['profile']['unobserved_seconds'],299)
+        self.assertEqual(value['observation_hashes'],[])
+
+    def test_nonoverlapping_future_row_keeps_its_existing_interval_ownership(self):
+        rows=[point(NOW+50,.95,duration=10),point(NOW+100,.5)]
+        self.retain(rows,end=NOW+100)
+        import vps_evidence as e
+        direct=e.summarize(rows,NOW-150,NOW,self.cfg['policy'],300)
+        value=self.report(NOW-150,NOW)
+        self.assertEqual(direct['observed_seconds'],0)
+        self.assertEqual(value['profile']['observed_seconds'],direct['observed_seconds'])
+        self.assertEqual(value['profile']['unobserved_seconds'],150)
+        self.assertEqual(value['observation_hashes'],[])
+        containing=self.report(NOW-150,NOW+100)
+        self.assertEqual(containing['profile']['observed_seconds'],60)
+
+    def test_legacy_prometheus_duration_cannot_reach_back_past_five_minutes(self):
+        self.retain([point(NOW,.5)])
+        with ws.database(self.root) as db,db:db.execute('UPDATE points SET duration=3600')
+        before=self.hashes();value=self.report(NOW-800,NOW-400)
+        self.assertEqual(value['profile']['observed_seconds'],0)
+        self.assertEqual(value['observation_hashes'],[])
+        inside=self.report(NOW-200,NOW-100)
+        self.assertEqual(inside['profile']['observed_seconds'],100)
+        self.assertEqual(self.hashes(),before)
+
+    def test_invalid_crossing_interval_remains_invalid_instead_of_a_gap(self):
+        row=point(NOW,.5,quality=['counter_reset']);self.retain([row])
+        value=self.report(NOW-200,NOW-100)
+        self.assertEqual(value['profile']['observed_seconds'],0)
+        self.assertEqual(value['profile']['invalid_seconds'],100)
+        self.assertEqual(value['profile']['unobserved_seconds'],0)
+        self.assertEqual(value['observation_hashes'],[core.digest(row)])
+
+    def test_conflicting_crossing_interval_cannot_supply_measurement(self):
+        original=self.retain([point(NOW,.5)])
+        other=copy.deepcopy(original);other['samples'][0]['cpu_accounted_ratio']=.95
+        ws.ingest(self.root,self.cfg,[other],NOW)
+        value=self.report(NOW-200,NOW-100)
+        self.assertEqual(value['profile']['observed_seconds'],0)
+        self.assertEqual(value['profile']['invalid_seconds'],100)
+        self.assertIn('conflicting_sample_values',value['limitations'])
+
+    def test_live_status_does_not_read_observations_after_its_cutoff(self):
+        self.retain([point(NOW,.5)])
+        value=ws.status(self.root,now=NOW-100)['assets'][0]
+        self.assertEqual(value['points'],0)
+        self.assertIsNone(value['last_sample'])
+        self.assertEqual(value['evidence_profile']['observed_seconds'],0)
+
 if __name__=='__main__':unittest.main()

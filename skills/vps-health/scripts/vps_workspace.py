@@ -31,7 +31,7 @@ import uuid
 
 import vps_health as core
 
-VERSION = '0.11.1'
+VERSION = '0.11.2'
 SCHEMA = 'g-skills.workspace.v1'
 SELF_HASH = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
 MAX_STORE_BYTES = 256 * 1024 * 1024
@@ -495,7 +495,7 @@ def chart_history(points, cadence, limit=600):
     return result
 
 
-def status(root,now=None,days=None,*,window_start=None,_read_db=None):
+def status(root,now=None,days=None,*,window_start=None,_read_db=None,_report_hashes=None):
     import vps_ops as ops
     root,cfg=config_load(root);now=time.time() if now is None else now
     days=integer(days if days is not None else cfg['history_days'],1,14,'history days')
@@ -509,15 +509,29 @@ def status(root,now=None,days=None,*,window_start=None,_read_db=None):
         for asset in cfg['assets']:
             node=asset['id'];latest=get_state(db,'latest:'+node,{})
             epoch_changed=bool(latest) and (latest.get('owner_epoch','initial')!=asset.get('epoch','initial') or latest.get('binding')!=subject_binding(cfg,node))
-            sql='''SELECT p.body,p.duration,CASE WHEN c.ts IS NULL THEN 0 ELSE 1 END AS conflict FROM points p
+            # A historical window can end inside a retained observation. Read
+            # bounded future candidates in order, including rows that do not
+            # overlap: removing one could change the interval owner's cursor.
+            until=now+core.represented_duration(3600,latest.get('kind')) if window_start is not None else now
+            sql='''SELECT p.body,p.duration,p.hash,CASE WHEN c.ts IS NULL THEN 0 ELSE 1 END AS conflict FROM points p
             LEFT JOIN conflicts c ON c.subject=p.subject AND c.epoch=p.epoch AND c.ts=p.ts
             WHERE p.subject=? AND p.epoch=? AND p.ts>=? AND p.ts<=? ORDER BY p.ts LIMIT 100001'''
-            rows=db.execute(sql,(node,'' if epoch_changed else latest.get('epoch',''),begin,now)).fetchall()
+            rows=db.execute(sql,(node,'' if epoch_changed else latest.get('epoch',''),begin,until)).fetchall()
             if len(rows)>100000:fail('too many points for dashboard window; reduce history_days')
             # Old releases stored query step as duration even when the fixed
             # five-minute rate window covered less time. Re-project on read;
             # never rewrite the original row/hash or raw capture to fix display.
             points=[dict(core.decode(r['body']),duration_seconds=core.represented_duration(r['duration'],latest.get('kind')),conflict=bool(r['conflict'])) for r in rows]
+            if window_start is not None:
+                # Project through the existing interval owner before chart and
+                # freshness derivation. Later-ending samples contribute only
+                # their overlap, never a future timestamp or duplicate time.
+                segments=list(evidence.intervals(points,begin,now))
+                if _report_hashes is not None and node in _report_hashes:
+                    hashes={point['timestamp']:row['hash'] for point,row in zip(points,rows)}
+                    _report_hashes[node]=sorted({hashes[point['timestamp']] for _,_,point in segments})[:4097]
+                points=[dict(point,timestamp=right,duration_seconds=right-left)
+                        for left,right,point in segments]
             start=begin if window_start is not None else max(begin,min((p['timestamp']-p['duration_seconds'] for p in points),default=now))
             w=weighted(points,start,now);means=w['means'];mean=means.get('cpu_accounted_ratio');span=now-start
             coverage=w['represented']/span if span>0 else 0

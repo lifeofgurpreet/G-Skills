@@ -19,6 +19,13 @@ draft and reconciliation of an unknown email delivery outcome. All inputs are
 explicitly synthetic. The expected files and fields are specified in the prompt;
 a grader must not penalize reasonable output based on hidden requirements.
 
+Artifact contract revision 2 makes machine fields explicit: the support decision
+includes `diagnostic_checks`, a category-to-state object copied from the supplied
+minimal report; the mail decision selects `required_capability` from the values
+listed in its prompt. The prompt specifies choices without prescribing which
+capability to choose. Draft prose can use ordinary language. The grader does not
+require internal diagnostic identifiers or issue keywords in that prose.
+
 **Trigger selection:** `evals/trigger-evals.json` has 20 realistic positive and
 adjacent-negative queries. They exercise the discovery description, not the
 runtime's CPU policy. These queries have not yet been executed as a trigger
@@ -37,6 +44,13 @@ workspaces with identical tasks, inputs, tools, permissions and budgets; use the
 old skill for a baseline when improving an existing skill. Keep the grader and
 held-out tasks outside the executor's accessible inputs. Excluding tests/evals
 from the executor snapshot should be identical in both conditions and recorded.
+
+Use the same contract revision, prompts, fixtures and grader for both conditions.
+The grader records the revision and suite hash. Unversioned historical suites are
+revision 1; use their archived grader for any completed historical task. Do not
+regrade old free-form outputs against the new structured requirements or compare
+scores across these changed prompts. Failed/no-inference traces retain their
+original status and no behavioral score even when their contract is older.
 
 Use the user's existing authorized model/client route. Do not change accounts,
 copy credentials, weaken the sandbox or grant a tool merely to obtain a pass.
@@ -70,6 +84,9 @@ BLOCKED_OR_NO_INFERENCE with no behavioral summary; a run that used inference bu
 INCOMPLETE_EXECUTION. Neither may be silently discarded. Successful artifact checks
 still require semantic review: did the explanation invent facts, hand routine
 work back to the human, confuse the recipient, or pretend a tool ran?
+For the support task, inspect whether the actual draft describes the supplied
+problem, accurately explains the diagnostics and asks a useful question. A correct
+JSON mapping and a nonempty draft do not establish those prose outcomes.
 
 The grader's expectations use `text`, `passed` and `evidence`, compatible with the
 official skill-creator review workflow. Preserve failed/blocked trials in the

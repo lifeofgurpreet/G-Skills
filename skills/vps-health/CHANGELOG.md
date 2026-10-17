@@ -1,5 +1,28 @@
 # VPS Health changelog
 
+## 0.11.2 — Complete retained windows and resilient optional sources
+
+Historical reports include the supported overlap of retained intervals ending after
+the requested end. Analysis and original sample provenance share one interval
+selection and read transaction; ordinary live status and private stored bytes stay
+unchanged. A second independent review caught an ordering edge case before release;
+the retained regression preserves the existing conservative interval ownership.
+
+Malformed optional Loki responses and unrepresentable JSON timestamps become
+retained source errors rather than aborting valid CPU evidence or later subjects.
+Raw responses remain available privately. Installed runtime recipes work from an
+unrelated directory, and the legacy guide accurately describes summary verification
+and passive guest-context reads.
+
+The optional maintainer artifact evals now declare their structured diagnostic and
+capability contracts. Readable prose is reviewed semantically; hidden literal tokens
+no longer decide those checks. Contract revision and suite hash prevent silent
+comparison with older prompts. This is not a native-client benchmark.
+
+Technical preview: native client, connector, broader platform and representative
+multi-day qualification remain separately open. No pilot restart or host change is
+part of this source update.
+
 ## 0.11.1 — Query spacing no longer inflates measured time
 
 Cap stock Prometheus observations at their fixed five-minute rate window, not an

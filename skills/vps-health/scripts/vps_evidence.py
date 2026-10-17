@@ -146,21 +146,20 @@ def report(workspace,subject,start,end):
         raise core.InvalidEvidence('subject is not in the declared workspace')
     core.finite(start,minimum=0);core.finite(end,minimum=start,maximum=start+14*86400)
     if end<=start:raise core.InvalidEvidence('choose a nonempty report window')
+    hashes={subject:[]}
     with ws.database(root,True) as db:
         db.execute('BEGIN')  # Summary and provenance read the same immutable snapshot.
-        value=ws.status(root,now=end,window_start=start,_read_db=db)
+        value=ws.status(root,now=end,window_start=start,_read_db=db,_report_hashes=hashes)
         if value['configuration_sha256']!=core.digest(cfg):
             raise core.InvalidEvidence('workspace configuration changed during report; retry a fresh read')
         selected=next(item for item in value['assets'] if item['id']==subject)
-        rows=db.execute('SELECT DISTINCT hash FROM points WHERE subject=? AND epoch=? AND ts>=? AND ts<=? ORDER BY hash LIMIT 4097',
-                        (subject,'' if 'epoch_changed_collect_new_evidence' in selected['holds'] else selected['epoch'] or '',start,end)).fetchall()
     return {'schema':'g-skills.time-report.v1','subject':subject,'synthetic':value['synthetic'],
             'requested_window':{'start':core.iso(start),'end':core.iso(end)},'active_epoch':selected['epoch'],
             'profile':selected['evidence_profile'],'accounting_decision':selected['decision'],
             'workload_context':selected['context'],'limitations':selected['holds'],
             'configuration_sha256':value['configuration_sha256'],'code_hashes':value['code_hashes'],
-            'observation_hashes':[row['hash'] for row in rows[:4096]],'observation_hashes_truncated':len(rows)>4096,
-            'source_semantics':'Stored sample-payload hashes, not raw capture hashes; effective durations and conflict markers remain in the database. Active retained epoch only. Current source/ingestion holds are not a reconstruction of what the monitor reported in the past. Interval averages are clipped at window edges, not remeasured sub-intervals.',
+            'observation_hashes':hashes[subject][:4096],'observation_hashes_truncated':len(hashes[subject])>4096,
+            'source_semantics':'Stored sample-payload hashes, not raw capture hashes; effective durations and conflict markers remain in the database. Active retained epoch only. Current source/ingestion holds are not a reconstruction of what the monitor reported in the past. Retained intervals ending after the requested window contribute only their overlap. Interval averages are clipped at window edges, not remeasured sub-intervals.',
             'read_only':True,'new_measurements':False,'provider_cause_proven':False,'contact_authorized':False,
             'privacy':'Contains a private node label, UTC window and observation summaries. Not a minimal support report or a raw evidence archive.'}
 
