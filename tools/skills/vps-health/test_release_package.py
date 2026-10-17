@@ -5,6 +5,8 @@ import copy
 import hashlib
 import io
 import json
+import re
+import shlex
 import sys
 import subprocess
 import tempfile
@@ -79,6 +81,49 @@ class PackageTest(unittest.TestCase):
         for target in ('../private.txt','/private.txt','../../another-skill/SKILL.md'):
             files=self.fixture();files['SKILL.md']+=('\n[Invalid]('+target+')\n').encode()
             with self.subTest(target=target),self.assertRaises(ValueError):check.validate_files(files)
+
+    def test_repository_relative_runtime_recipes_fail_package_acceptance(self):
+        files=self.fixture()
+        files['references/bootstrap.md']+=b'\n```bash\npython3 skills/vps-health/scripts/vps_health.py capabilities\n```\n'
+        with self.assertRaisesRegex(ValueError,'repository-relative runtime command'):
+            check.validate_files(files)
+
+    def test_documented_demo_and_learning_work_outside_the_installed_folder(self):
+        files=self.fixture()
+        with tempfile.TemporaryDirectory() as temp:
+            base=Path(temp);unrelated=base/'another working folder';unrelated.mkdir()
+            installation=base/'installed skill with spaces'
+            with zipfile.ZipFile(io.BytesIO(package.zip_payload(files,'vps-health/'))) as archive:
+                archive.extractall(installation)
+            entry=installation/'vps-health/scripts/vps_health.py'
+            workspace=base/'synthetic workspace';proposal=base/'lesson.json'
+            replacements={'$VPS_HEALTH_CLI':str(entry),'/tmp/vps-demo':str(workspace),
+                          '$HOME/vps-health':str(workspace),'$HOME/vps-lesson-001.json':str(proposal)}
+
+            def documented_command(guide,verb):
+                # Select only the two authorized synthetic recipes; never execute
+                # arbitrary shell text or the guides' real collection examples.
+                blocks=re.findall(r'^```bash\n(.*?)^```',files[guide].decode(),re.S|re.M)
+                commands=[]
+                for block in blocks:
+                    for line in block.replace('\\\n',' ').splitlines():
+                        argv=shlex.split(line)
+                        if len(argv)>2 and argv[0]=='python3' and argv[2]==verb:
+                            if verb=='bootstrap' and argv[argv.index('--mode')+1]!='demo':continue
+                            commands.append([replacements.get(arg,arg) for arg in argv[1:]])
+                self.assertEqual(len(commands),1)
+                return [sys.executable,'-B','-S',*commands[0]]
+
+            demo=json.loads(subprocess.check_output(documented_command('references/bootstrap.md','bootstrap'),
+                cwd=unrelated,text=True,timeout=30))
+            self.assertEqual(demo['mode'],'demo');self.assertTrue((workspace/'dashboard.html').is_file())
+            before={p.name:p.read_bytes() for p in workspace.iterdir() if p.is_file()}
+            lesson=json.loads(subprocess.check_output(documented_command('references/improvement.md','learn'),
+                cwd=unrelated,text=True,timeout=30))
+            self.assertEqual(lesson['state'],'PROPOSED_NOT_APPLIED')
+            self.assertEqual(json.loads(proposal.read_text()),lesson)
+            self.assertEqual(before,{p.name:p.read_bytes() for p in workspace.iterdir() if p.is_file()})
+            self.assertEqual(list(unrelated.iterdir()),[])
 
     def test_real_cli_entry_does_not_depend_on_working_directory_or_site_packages(self):
         files=self.fixture()

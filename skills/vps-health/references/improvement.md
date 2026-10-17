@@ -37,10 +37,14 @@ Jeffrey's public [skill description](https://www.jeffreys-skills.md/) demonstrat
 ## Persistent workspace proposals
 
 The same command now accepts either an original verified report bundle or a
-workspace. For example:
+workspace. Resolve the actual installed folder as described in
+[SKILL.md](../SKILL.md), then substitute it below. The executing agent chooses the
+existing private workspace and new proposal path; these commands work from any
+working directory:
 
 ```bash
-python3 skills/vps-health/scripts/vps_health.py learn "$HOME/vps-health" --out "$HOME/vps-lesson-001.json"
+VPS_HEALTH_CLI="<absolute-skill-folder>/scripts/vps_health.py"
+python3 "$VPS_HEALTH_CLI" learn "$HOME/vps-health" --out "$HOME/vps-lesson-001.json"
 ```
 
 Workspace proposals contain only fixed decision/gap categories and content

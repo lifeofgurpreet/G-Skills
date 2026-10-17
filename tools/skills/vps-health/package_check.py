@@ -17,7 +17,12 @@ def validate_files(files):
     # This is not a full Markdown parser or an external URL/anchor availability check.
     for name,raw in files.items():
         if not name.endswith('.md'):continue
-        text=re.sub(r'^```[^\n]*\n.*?^```\s*$','',raw.decode(),flags=re.S|re.M)
+        guide=raw.decode()
+        # Installed runtime recipes cannot depend on the collection's parent
+        # directories. Check command text before removing fences for link checks.
+        if re.search(r"(?m)^\s*python3\s+['\"]?skills/vps-health/scripts/",guide):
+            raise ValueError('repository-relative runtime command in installed guide: '+name)
+        text=re.sub(r'^```[^\n]*\n.*?^```\s*$','',guide,flags=re.S|re.M)
         for link in re.findall(r'\[[^\]]*\]\(([^\s)]+)(?:\s+"[^"]*")?\)',text):
             parts=urlsplit(link)
             if parts.scheme or parts.netloc or not parts.path:continue

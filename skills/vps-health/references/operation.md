@@ -1,13 +1,21 @@
 > For persistent monitoring, start with [bootstrap.md](bootstrap.md). This reference
 > retains the original one-off capture/report CLI. These two routes share the
 > collector but have different retention formats: immutable report bundles versus
-> a private workspace database. Do not pass a summary export to original `verify`.
+> a private workspace database. The current `verify` command recognizes both formats; a verified summary
+> reports integrity separately from raw replay availability. See [exports.md](exports.md).
 
 # Operating the skill
 
 ## Installation
 
-Clone the repository and explicitly ask the agent to read `skills/vps-health/SKILL.md`. This works without assuming a vendor-specific discovery directory. To use an agent's native skill menu, copy or link the entire `vps-health` folder into that agent's documented skill root. Do not place only the Markdown file there. Do not modify a package-managed installed copy while another agent is using it.
+Install the complete `vps-health` release folder and ask the agent to read its `SKILL.md`. To use an agent's native skill menu, place the entire folder in that client's documented skill root. Do not install only the Markdown file or modify an installed copy while an owned consumer is running. A repository checkout is optional.
+
+The agent resolves the installed executable from [SKILL.md](../SKILL.md), substitutes its actual absolute path below and checks capabilities. Keep the assignment with each recipe in the same shell invocation, or pass the resolved executable directly through the authorized tool.
+
+```bash
+VPS_HEALTH_CLI="<absolute-skill-folder>/scripts/vps_health.py"
+python3 "$VPS_HEALTH_CLI" capabilities
+```
 
 This is a standard skill directory, not an MCP server or an automatic permission grant. Consult the [Agent Skills specification](https://agentskills.io/specification) and your client documentation. Automatic invocation is not qualified for every client by this repository's tests.
 
@@ -16,12 +24,12 @@ This is a standard skill directory, not an MCP server or an automatic permission
 Copy `assets/profile.example.json` to a private workspace. Replace each synthetic `instance` with the exact exporter label for an expected machine. Use aliases that are meaningful locally; raw captures can contain real instance labels and therefore remain private.
 
 ```bash
-python3 scripts/vps_health.py collect-prometheus \
+python3 "$VPS_HEALTH_CLI" collect-prometheus \
   --profile /private/workspace/vps-profile.json \
   --url https://prometheus.example.org \
   --from 2026-10-01T00:00:00Z --to 2026-10-02T00:00:00Z \
   --out /private/workspace/capture.json
-python3 scripts/vps_health.py report /private/workspace/capture.json \
+python3 "$VPS_HEALTH_CLI" report /private/workspace/capture.json \
   --out /private/workspace/report-2026-10-02
 ```
 
@@ -35,16 +43,16 @@ The profile can include an explicit `loki_selector` per asset. Add `--loki-url h
 
 Collection permits 1–100 explicit assets, a 1-hour–14-day range, a 60–3600 second step and at most 4,033 points per metric. Each GET has a maximum 15-second timeout; the entire collection has a 120-second request budget. Remaining assets are preserved with collection errors after the budget is spent. The HTTP client refuses redirects, embedded URL credentials, remote plaintext HTTP without explicit opt-in and bearer credentials over plaintext. It never changes the server.
 
-Local reads are limited to `/proc/stat`, pressure counters, boot fingerprint and process CPU affinity. No public IP discovery, process command-line capture, environment dump, stress workload, SSH connection or service installation occurs. A boot fingerprint is still local operational data; keep captures private.
+Passive local collection reads guest CPU accounting and pressure, boot/affinity identity, disk and network counters, memory activity, and selected guest-visible CPU, clock, DMI, mitigation and root-mount traits. The [forensic method](forensics.md) documents their scope and limitations. No public IP discovery, process command-line capture, environment dump, stress workload, SSH connection or service installation occurs. Guest traits and raw captures remain private; they do not attest the physical host.
 
 New evidence files/directories must not already exist. Do not overwrite yesterday's report. CLI exit 0 means the command completed; inspect `state` and `holds` for interpretation. Exit 2 means invalid input or an execution failure. Collection errors are retained inside captures/reports even when the command produced a usable artifact. No exit code certifies the provider or service.
 
 ## Replay and compare
 
 ```bash
-python3 scripts/vps_health.py report saved/capture.json --out /tmp/replayed
-python3 scripts/vps_health.py verify /tmp/replayed
-python3 scripts/vps_health.py compare /private/day-one /private/day-two
+python3 "$VPS_HEALTH_CLI" report saved/capture.json --out /tmp/replayed
+python3 "$VPS_HEALTH_CLI" verify /tmp/replayed
+python3 "$VPS_HEALTH_CLI" compare /private/day-one /private/day-two
 ```
 
 Comparison requires the same analyzer, policy and subject set. It still does not prove causality, matched hardware or identical workloads. Re-run both captures with one analyzer version before comparing across releases. Checksums detect artifact changes; a user who rewrites both evidence and hashes can replace them, so they are not independent attestation.
