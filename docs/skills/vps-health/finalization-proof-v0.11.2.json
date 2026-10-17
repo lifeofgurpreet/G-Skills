@@ -1,0 +1,936 @@
+{
+  "schema": "g-skills.finalization-acceptance.v1",
+  "skill": "vps-health",
+  "version": "0.11.2",
+  "bead": "gs-2uh.21",
+  "receipt_date": "2026-10-17",
+  "support_level": "Technical Preview",
+  "synthetic_only": true,
+  "synthetic_scope": "All public fixtures and new agent walkthrough evidence; this flag is not a claim about the unchanged private original pilot.",
+  "verdict": {
+    "technical_candidate_acceptance": "PASS",
+    "scope": "Documented Technical Preview with separate native-client and sustained-field outcome gates.",
+    "publication": "PENDING",
+    "fresh_lifecycle_review": "ACTUAL_RUNTIME_OUTCOMES_REVIEWED",
+    "broader_promotion": "NOT_QUALIFIED"
+  },
+  "source": {
+    "runtime_commit": "08f78f5b070d60678678b01b479b6a7637ac7fcf",
+    "installed_documentation_commit": "09be2cc2bd2a415215226105f2c9bffb397c6611",
+    "public_main_pushed": true,
+    "commit_url": "https://github.com/lifeofgurpreet/G-Skills/commit/08f78f5b070d60678678b01b479b6a7637ac7fcf",
+    "ci": {
+      "url": "https://github.com/lifeofgurpreet/G-Skills/actions/runs/39019013695",
+      "source_commit": "08f78f5b070d60678678b01b479b6a7637ac7fcf",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "jobs": [
+        {
+          "role": "verify",
+          "python": "3.10",
+          "conclusion": "SUCCESS"
+        },
+        {
+          "role": "verify",
+          "python": "3.12",
+          "conclusion": "SUCCESS"
+        },
+        {
+          "role": "catalog",
+          "conclusion": "SUCCESS"
+        },
+        {
+          "role": "VPS Health JavaScript",
+          "conclusion": "SUCCESS"
+        },
+        {
+          "role": "VPS Health browser",
+          "conclusion": "SUCCESS"
+        }
+      ],
+      "publication_verification": false
+    },
+    "python_total": 671,
+    "python_groups": 26,
+    "python_group_counts": [
+      11,
+      12,
+      8,
+      6,
+      36,
+      10,
+      82,
+      46,
+      30,
+      56,
+      25,
+      10,
+      35,
+      44,
+      17,
+      17,
+      18,
+      49,
+      29,
+      39,
+      28,
+      6,
+      14,
+      13,
+      21,
+      9
+    ],
+    "whole_collection_gate": "PASS",
+    "new_python_tests": 22,
+    "new_tests_by_scope": {
+      "historical_time_boundaries": 8,
+      "optional_source_parser_and_real_http_ingestion": 6,
+      "installed_package": 2,
+      "artifact_grader": 6
+    },
+    "log": {
+      "name": "full-validation.log",
+      "bytes": 5459,
+      "sha256": "3b6c4ad4fa1167a07639b01ab3167a51009f828c425e72d9e65214b206745912"
+    },
+    "source_checks_are_native_model_qualification": false
+  },
+  "candidate_package": {
+    "state": "EXTRACTED_ACCEPTANCE_PASS",
+    "manifest": {
+      "commit": "08f78f5b070d60678678b01b479b6a7637ac7fcf",
+      "files": {
+        "vps-health-v0.11.2.zip": {
+          "bytes": 298588,
+          "sha256": "7c6e92f1e3cb6e0b9cf4f4088efe46dd8acf21b1155c81ba69b97919f929c360"
+        }
+      },
+      "schema": "g-skills.skill-release.v1",
+      "skill": "vps-health",
+      "skill_files": 72,
+      "tag": "vps-health/v0.11.2",
+      "verification": "actual selected archive extraction and owning committed acceptance",
+      "version": "0.11.2"
+    },
+    "archive_hash_independently_recomputed": "7c6e92f1e3cb6e0b9cf4f4088efe46dd8acf21b1155c81ba69b97919f929c360",
+    "manifest_artifact": {
+      "name": "manifest.json",
+      "bytes": 450,
+      "sha256": "30d5bbe0fbec1c079a8d55499191a015b10d4c6c760d80a88ba24102d55bf1d6"
+    },
+    "acceptance_log": {
+      "name": "package-validation.log",
+      "bytes": 545,
+      "sha256": "2f46e01f4bf903dd9774a2a93f7c149f88e99f4bd14063ed6e6adc36bcbe7e5f"
+    },
+    "actual_archive_extracted": true,
+    "owning_committed_acceptance": "PASS",
+    "checks": [
+      "isolated installed CLI",
+      "owned stop",
+      "interrupted initialization recovery"
+    ],
+    "manifest_tag_is_publication_proof": false,
+    "second_build": {
+      "state": "EXTRACTED_ACCEPTANCE_PASS",
+      "execution_scope": "separate authorized native Git host",
+      "archive_sha256": "7c6e92f1e3cb6e0b9cf4f4088efe46dd8acf21b1155c81ba69b97919f929c360",
+      "matches_first_build": true,
+      "evidence": "root reviewer confirmed the actual second build and extracted acceptance"
+    }
+  },
+  "release": {
+    "intended_tag": "vps-health/v0.11.2",
+    "publication_state": "PENDING",
+    "release_url": null,
+    "published_archive_verified": false
+  },
+  "historical_and_optional_archive_replay": {
+    "schema": "g-skills.finalization-boundary-replay.v1",
+    "synthetic_only": true,
+    "old_archive_sha256": "920ddfb799fd3ba99ba7ea9a7a3ff450340452ad150594ae8b364be3194e6c69",
+    "candidate_archive_sha256": "7c6e92f1e3cb6e0b9cf4f4088efe46dd8acf21b1155c81ba69b97919f929c360",
+    "same_retained_workspace": true,
+    "retained_file_count": 6,
+    "seed": {
+      "sample_hash": "6ac61c06b0edf1e73bd406faaa8b9e2fb05bdfcc0d683d03a37f9481b4bc611a",
+      "source_version": "0.11.1"
+    },
+    "historical_window": {
+      "published_v0.11.1": {
+        "window_seconds": 100.0,
+        "observed_seconds": 0.0,
+        "mean": null,
+        "observation_hashes": [],
+        "workspace_unchanged": true
+      },
+      "candidate_v0.11.2": {
+        "window_seconds": 100.0,
+        "observed_seconds": 100.0,
+        "mean": 0.5,
+        "observation_hashes": [
+          "6ac61c06b0edf1e73bd406faaa8b9e2fb05bdfcc0d683d03a37f9481b4bc611a"
+        ],
+        "workspace_unchanged": true
+      }
+    },
+    "optional_channel_replay": {
+      "published_v0.11.1": {
+        "huge_optional_timestamp": {
+          "state": "exception",
+          "exception_type": "OverflowError"
+        },
+        "null_loki_stream": {
+          "state": "exception",
+          "exception_type": "AttributeError"
+        }
+      },
+      "candidate_v0.11.2": {
+        "huge_optional_timestamp": {
+          "state": "returned",
+          "subjects": [
+            "one",
+            "two"
+          ],
+          "valid_cpu_samples": [
+            13,
+            13
+          ],
+          "errors": [
+            [
+              "cpu_pressure_ratio: InvalidEvidence"
+            ],
+            []
+          ]
+        },
+        "null_loki_stream": {
+          "state": "returned",
+          "subjects": [
+            "one",
+            "two"
+          ],
+          "valid_cpu_samples": [
+            13,
+            13
+          ],
+          "errors": [
+            [
+              "Loki unavailable or invalid; no silent fallback"
+            ],
+            []
+          ]
+        }
+      }
+    },
+    "optional_transport": "controlled get_json responses; separate test_prometheus_windows regression exercises real loopback HTTP and raw SQLite ingestion",
+    "not_claimed": [
+      "live server behavior",
+      "native agent triggering",
+      "provider cause",
+      "full underlying scrape coverage"
+    ]
+  },
+  "historical_interval_contract": {
+    "owner": "existing vps_evidence.intervals ordered projection",
+    "explicit_historical_windows_only": true,
+    "future_candidates": "bounded maximum represented duration after requested end; nonoverlapping cursor barriers retained in order",
+    "summary_and_provenance_same_read_transaction": true,
+    "observation_hashes_from_selected_segments": true,
+    "ordinary_live_cutoff_preserved": true,
+    "legacy_prometheus_five_minute_limit_preserved": true,
+    "invalid_and_conflicting_overlap_remains_invalid": true,
+    "future_chart_timestamps_or_freshness_invented": false,
+    "raw_evidence_rewritten": false,
+    "interval_average_clipping_is_subinterval_remeasurement": false,
+    "tests": "skills/vps-health/tests/test_time_evidence.py",
+    "rejected_first_fix": {
+      "state": "FAILED_REGRESSION",
+      "filter": "per-row overlap before interval ownership",
+      "omitted": "nonoverlapping future cursor barrier",
+      "incorrect_observed_seconds": 150,
+      "expected_observed_seconds": 0,
+      "disposition": "added eighth boundary regression; retain bounded ordered candidates before projection"
+    }
+  },
+  "optional_source_real_transport": {
+    "state": "PASS",
+    "test": "test_real_http_malformed_optional_sources_survive_capture_and_ingestion",
+    "file": "skills/vps-health/tests/test_prometheus_windows.py",
+    "transport": "actual loopback HTTP",
+    "requests": 16,
+    "synthetic_subjects": [
+      "one",
+      "two"
+    ],
+    "valid_cpu_samples_per_subject": [
+      13,
+      13
+    ],
+    "malformed_optional_inputs": [
+      "unrepresentably large optional metric timestamp",
+      "null Loki stream"
+    ],
+    "both_errors_preserved_for_first_subject": true,
+    "second_subject_errors": [],
+    "compressed_sqlite_capture_readback_matches_returned_capture": true,
+    "malformed_raw_bodies_retained": true,
+    "declared_subjects_retained_after_ingestion": true,
+    "controlled_archive_parser_replay_is_this_test": false,
+    "live_customer_endpoint": false,
+    "promql_engine_semantics_test": false,
+    "loki_validation": [
+      "success and no partial-result warnings",
+      "stream and values containers",
+      "string labels",
+      "entry shape and string log text",
+      "bounded nanosecond timestamp string",
+      "requested half-open time range",
+      "backward timestamp ordering",
+      "500-line total requested budget"
+    ],
+    "valid_edge_cases": [
+      "empty stream results",
+      "duplicate timestamps",
+      "500 lines with explicit incomplete-history error"
+    ],
+    "log_text_authorizes_actions": false
+  },
+  "installed_recipes": {
+    "state": "PASS",
+    "tests": "tools/skills/vps-health/test_release_package.py",
+    "quoted_absolute_cli_variable": "VPS_HEALTH_CLI",
+    "install_path_contains_spaces": true,
+    "unrelated_working_directory": true,
+    "python_site_packages_disabled": true,
+    "executed_documented_synthetic_commands": [
+      "bootstrap --mode demo",
+      "learn"
+    ],
+    "dashboard_exists": true,
+    "learning_result": "PROPOSED_NOT_APPLIED",
+    "retained_workspace_bytes_unchanged": true,
+    "unrelated_working_directory_unchanged": true,
+    "package_checker_scans_command_text_inside_fences": true,
+    "operations_guidance_corrected": [
+      "verify accepts workspace summaries and distinguishes integrity from raw replay availability",
+      "passive guest diagnostics include storage, memory and network context"
+    ],
+    "real_collection_examples_executed_by_recipe_test": false
+  },
+  "browser": {
+    "state": "PASS",
+    "javascript_contracts": 45,
+    "actual_browser_groups": 58,
+    "counts_are_all_new_checks": false,
+    "local_automation_version": "Playwright 1.57",
+    "local_browser": "official Chrome for Testing 143.0.7499.4",
+    "local_executable_selection": "existing documented environment configuration",
+    "hosted_standard_browser_job": "SUCCESS",
+    "log": {
+      "name": "browser-validation.log",
+      "bytes": 14958,
+      "sha256": "d1615a413478257a18dffc3bd823188815007fc00029de97223feddd52a7e76f"
+    },
+    "receipt": {
+      "schema": "g-skills.browser-proof.v1",
+      "template_sha256": "7822c62c637fdc6729bf793149deb09f52e8cc870baf22127b74f0b2a20f2e80",
+      "chart_vendor_sha256": "19c8d4c6ad88929a79f4ae49d6f7161566dfd0ba3d15cc495e974f787eb78f1f",
+      "chart_adapter_sha256": "e949c498daf5eb625c444f3852cc16c62363eb568b49cc10cd789945599fa554",
+      "operator_js_sha256": "c801bd1032bd1fde4e3b2e374fc0b5f5cd66070d9505763992c6d6d2ee7624e5",
+      "operator_css_sha256": "bb54a5499613422735c0225c08c27a8dcb2787a45554e2a1fda7a33327733764",
+      "view_model_sha256": "78841dac1cdbf11c02827a2289a833be6cefc6645f94d92a96e4908f432c872b",
+      "workbench_sha256": "789a1984c61a82a6d0f357df84da3bf71f39246eeb56e915eafe91b9c69fad69",
+      "checks": [
+        "actual server, three subjects, derived counts and selected history",
+        "guest diagnostics retain missing latency and reject malformed data without changing the CPU decision",
+        "operator briefing and interval ribbon render without requesting notification permission",
+        "row/dropdown selection and keyboard sample inspection",
+        "linked library charts, exact context readout, channel toggle and persistent range without policy changes",
+        "drag zoom and reset inspect history without altering assessment",
+        "real PNG and bounded CSV downloads plus keyboard-accessible observation table",
+        "acknowledgment changes unread state without clearing HOLD or altering measurements",
+        "resolved findings reappear unread instead of inheriting an old acknowledgment",
+        "single-host, existing-monitoring and demo setup routes expose commands with their boundaries",
+        "provider references preserve allocation/allowance distinction without fetching external policies",
+        "new provider choices render their dated purchased-product distinctions without fetching services",
+        "existing provider diagnostics are visible with their date and separate active-probe permission boundary",
+        "old source dates stay visible, current diagnostics do not refresh them, and selected-provider age is independent",
+        "mismatched provider diagnostics cannot replace valid references; unidentified products stay unknown",
+        "desktop permission is explicit and simulated notifications deduplicate repeated findings",
+        "evidence ribbon changes only the displayed interval, not the decision",
+        "search and filters round trip with explicit empty state",
+        "navigation changes actual evidence/collection views and returns",
+        "live refresh preserves selected subject and expanded limitations",
+        "real download contains synthetic summary and provenance, not endpoints",
+        "real minimal-support download omits identities and handles unavailable service without an upload",
+        "in-flight refresh is visibly busy and cannot silently swallow another click",
+        "disconnect freezes last known values and recovery clears the warning",
+        "zero-subject refresh removes prior charts and clean recovery rebuilds only two",
+        "malformed history does not partially replace the last valid view",
+        "malformed operator context cannot partially replace a valid screen",
+        "desktop/tablet/phone/minimum-width layout and touch target dimensions",
+        "keyboard order and visible focus",
+        "main text and status text contrast at least 4.5 to 1",
+        "100-subject fixture keeps search and selection usable",
+        "touch-context time controls and channel toggles against the actual viewer",
+        "actual managed worker, connector handoff distinction and cooperative stop shown in the viewer",
+        "overview and inbox use the same canonical finding and next action",
+        "open provider context survives refresh and provider filtering",
+        "setup gives the agent the task and managed lifecycle, not manual configuration homework",
+        "command menu searches actual nodes, handles empty results and restores focus on one Escape",
+        "pausing the view stops polling only; explicit refresh updates once without resuming",
+        "pausing during an in-flight request cannot replace the pinned readings",
+        "review pins the full-window evidence and exact task across refresh, with local clipboard fallback",
+        "mobile navigation, local search and review dialogs remain reachable without horizontal overflow",
+        "standalone offline workbench keeps review and navigation without offering live-only controls",
+        "real sparse-context source changes the existing workbench finding and private snapshot, not the accounting policy",
+        "channel denominators agree with the CLI and full assessment survives chart zoom and detail refresh",
+        "evidence selection exposes source shortfall runs and execution bands without a new verdict",
+        "pinned review and copied agent task retain contextual denominators while newer source observations arrive",
+        "short observed pressure remains visible without becoming complete context or changing retained evidence",
+        "malformed temporal payload freezes prior evidence; legacy absence remains visibly unqualified",
+        "320-pixel evidence view preserves node selection, missingness and readable bounded tables",
+        "actual verified summary opens the same time-qualified workbench offline with no new collection",
+        "real cross-site user link opens the forwarded dashboard with native Fetch Metadata and unchanged CSP",
+        "forwarded workbench review, refresh and private support download preserve retained evidence",
+        "browser-initiated data navigation, embedding and cross-site subresource reads stay refused",
+        "disconnect and reconnect restore the same browser investigation without a second collector",
+        "stopped source cannot pass viewing-machine verification and no owned worker survives the test",
+        "coarse five-minute query windows stay six observed hours, HOLD and visible gaps in real workbench and pinned handoff",
+        "time report, verified summary and offline dashboard preserve the same coarse gaps without changing source observations",
+        "no JavaScript errors or external asset requests"
+      ],
+      "result": "PASS",
+      "synthetic_only": true,
+      "route": "actual loopback workspace HTTP handler",
+      "not_claimed": [
+        "physical phone validation",
+        "independent model review",
+        "production fleet qualification"
+      ]
+    },
+    "physical_phone_validation": false,
+    "arbitrary_native_os_browser_qualification": false
+  },
+  "agent_evaluation_contract": {
+    "revision": 2,
+    "suite_sha256": "7dfd18556497b79f6a3dd18babef6c51bf846037b2ac918945db8fb0f4c47243",
+    "prompt_source": "skills/vps-health/evals/evals.json",
+    "grader_source": "tools/skills/vps-health/grade_agent_eval.py",
+    "support_diagnostic_mapping_explicit_in_prompt": true,
+    "hidden_diagnostic_identifier_or_issue_keyword_required_in_prose": false,
+    "mail_capability_enum_explicit_in_prompt": [
+      "mail.read",
+      "mail.draft",
+      "mail.send",
+      null
+    ],
+    "ambiguous_send_expected_next_capability": "mail.read",
+    "mail_read_substring_match_permitted": false,
+    "semantic_review_still_required": true,
+    "contract_identity_records_revision_and_suite_hash": true,
+    "unversioned_historical_revision": 1,
+    "completed_historical_tasks": "matching archived grader required; no silent regrading against revision 2",
+    "blocked_or_no_inference": {
+      "expectations": [],
+      "score": null,
+      "original_state_retained": true
+    },
+    "cross_revision_model_score_claim": false
+  },
+  "fresh_chatgpt_file_walkthrough": {
+    "state": "ACTUAL_ARTIFACTS_SEMANTICALLY_REVIEWED",
+    "agent_route": "fresh ChatGPT subagent with explicit skill entry",
+    "native_codex_or_claude_trial": false,
+    "synthetic_only": true,
+    "context_separation": "fresh logical context with copied installed skill and supplied task fixtures; shared execution environment",
+    "excluded_from_executor_snapshot": [
+      "tests",
+      "eval definitions",
+      "grader implementation"
+    ],
+    "operating_system_isolation": false,
+    "grader_leak_claimed": false,
+    "actual_read_only_cli_commands": [
+      "capabilities",
+      "--help",
+      "support-draft --help"
+    ],
+    "reported_installed_version": "0.11.2",
+    "cli_reported_email_sender": false,
+    "input_artifacts": [
+      {
+        "name": "tasks.json",
+        "bytes": 1841,
+        "sha256": "283cd779b1484db310cc733d6f64af303a1aa1275af3a879eada36e47acd7c0e"
+      },
+      {
+        "name": "sparse-context.json",
+        "bytes": 505,
+        "sha256": "6fed7edca8925d5363472ef7312ad0620149ccc31c466aed30f07214343fe6e5"
+      },
+      {
+        "name": "software-support.json",
+        "bytes": 621,
+        "sha256": "197347a5e325d7faa59bd2c025651b9011cb951a5438b9a15493df262b17ff26"
+      },
+      {
+        "name": "uncertain-send.json",
+        "bytes": 551,
+        "sha256": "d58cb9ce427d7974e3fa0b9d0132a01fded427464e5043ab2765ab467e6a240d"
+      }
+    ],
+    "inputs_byte_unchanged": true,
+    "outputs": [
+      {
+        "case_id": 1,
+        "decision": {
+          "summary": "The supplied CPU accounting mean is 0.96 (96%) over a stated 72-hour window, with an accounting decision of WITHIN_TOLERANCE. Zero pressure and zero CFS throttling each describe only 300 observed seconds (five minutes), approximately 0.11574% of that window. Those quiet observations do not clear our own workload as a possible cause; 71 hours and 55 minutes per channel remain unobserved. No service-impact evidence is supplied, so the accounting result does not establish application health or provider responsibility.",
+          "accounting_decision": "WITHIN_TOLERANCE",
+          "workload_context": "CONTEXT_INCOMPLETE",
+          "pressure_coverage_percent": 0.11574074074074073,
+          "next_action": "Keep workload attribution unresolved. The next useful evidence would be already-retained pressure, throttling, execution/demand and service-impact observations aligned to the same assessment window, with sufficient per-channel coverage and freshness. The supplied fixture cannot provide that evidence. Do no new measurement or external action under the current request.",
+          "provider_cause_proven": false,
+          "send_email": false
+        },
+        "semantic_review": {
+          "reviewer": "parent ChatGPT agent",
+          "state": "REVIEWED",
+          "finding": "Correctly preserves WITHIN_TOLERANCE accounting and CONTEXT_INCOMPLETE workload context, computes approximately 0.11574074% channel coverage and makes no provider-cause or email claim."
+        },
+        "artifacts": [
+          {
+            "name": "case-1/decision.json",
+            "bytes": 1128,
+            "sha256": "459217d29206b757c821693389d096bd2e1da0e74dd507766a690823407fa79d"
+          }
+        ]
+      },
+      {
+        "case_id": 2,
+        "decision": {
+          "draft_created": true,
+          "recipient_kind": "skill_maintainer",
+          "sent": false,
+          "connector_needed_for_local_draft": false,
+          "attachments": [],
+          "diagnostic_checks": {
+            "chart_assets": "unavailable"
+          }
+        },
+        "semantic_review": {
+          "reviewer": "parent ChatGPT agent",
+          "state": "REVIEWED",
+          "finding": "Useful local maintainer draft, exact NOT SENT prefix and supplied diagnostic mapping; retains fixture report version 0.9.3 rather than substituting installed version 0.11.2; no attachment, connector or send."
+        },
+        "artifacts": [
+          {
+            "name": "case-2/decision.json",
+            "bytes": 215,
+            "sha256": "ee9cc6b9a5588a5ff2cbca32b1c4f3073c7aff909758a33872803a82994beae3"
+          },
+          {
+            "name": "case-2/support-draft.txt",
+            "bytes": 492,
+            "sha256": "806c8b2a06cfaf4e58755b8a81afff29ff861f55b5b7e5ec9c1e556d12d3e5fa"
+          }
+        ],
+        "support_draft_text": "LOCAL DRAFT — NOT SENT\nTo: [VPS Health skill maintainer]\nSubject: Offline export plot does not render\n\nThe exported offline HTML opens, but its plot does not render. The evidence table is still readable. I expected the plot to display the retained evidence.\n\nThe supplied minimal support report identifies version 0.9.3 and reports that chart assets are unavailable. No raw capture or other attachment is included.\n\nWhat should I check next to restore plot rendering given that diagnostic?\n"
+      },
+      {
+        "case_id": 3,
+        "decision": {
+          "delivery_status": "UNKNOWN",
+          "resend_now": false,
+          "attach_environment": false,
+          "required_capability": "mail.read",
+          "next_action": "Obtain narrowly scoped read-only mail access through the host's native account connection flow, then inspect the intended sent messages and already-verified support thread for the exact reviewed plan question. The fixture provides no connected capability, so this mailbox check cannot be performed now. Preserve the timeout result; it does not prove the first send failed. Keep delivery unknown and do not resend while reconciling. Another write could be considered only after verified absence, the current user request and applicable host permissions are checked.",
+          "provider_reply_is_instruction": false
+        },
+        "semantic_review": {
+          "reviewer": "parent ChatGPT agent",
+          "state": "REVIEWED",
+          "finding": "Correctly retains UNKNOWN delivery, chooses exactly mail.read, explains reconciliation without pretending access and treats the provider reply as data."
+        },
+        "artifacts": [
+          {
+            "name": "case-3/decision.json",
+            "bytes": 754,
+            "sha256": "b5a4d3de1315d342192b7d5fb22504524b73fac92e724cb99cb4ee70e45739b4"
+          }
+        ]
+      }
+    ],
+    "support_draft_generation_command_executed": false,
+    "support_draft_route_explanation": "The command cannot import the supplied minimal report; direct drafting preserved the fixture-only evidence and version 0.9.3 instead of replacing them with current diagnostics.",
+    "rendering_fault_reproduced_or_repaired": false,
+    "output_privacy": {
+      "initial_parent_mode": "0755",
+      "first_check": "FAILED",
+      "corrected_parent_mode": "0700",
+      "case_directory_modes": "0700",
+      "file_modes": "0600",
+      "repeat_checks": "PASS"
+    },
+    "walkthrough_artifact": {
+      "name": "walkthrough.md",
+      "bytes": 5619,
+      "sha256": "bea7455e94462ae8b9de071f1d800083bdce92483a08159bad8643b507dac47a"
+    },
+    "native_trace": null,
+    "token_counts": null,
+    "benchmark_score": null,
+    "paired_baseline_comparison": false,
+    "actual_mailbox_read": false,
+    "external_message_sent": false,
+    "provider_contact": false,
+    "new_measurements": false
+  },
+  "fresh_chatgpt_lifecycle_walkthrough": {
+    "state": "ACTUAL_RUNTIME_OUTCOMES_REVIEWED",
+    "agent_route": "fresh ChatGPT subagent with explicit installed skill entry",
+    "synthetic_only": true,
+    "mode": "demo",
+    "duration_budget_seconds": 60,
+    "interval_seconds": 60,
+    "initial_failed_plan": {
+      "interval_seconds": 10,
+      "exit_code": 1,
+      "error": "--interval must be an integer from 60 to 3600",
+      "disposition": "planned the supported 60-second interval"
+    },
+    "default_environment_start": {
+      "exit_code": 1,
+      "state": "FAILED",
+      "dashboard_available": false,
+      "separate_loopback_probe": {
+        "success": false,
+        "error_type": "PermissionError",
+        "errno": 1
+      }
+    },
+    "retry": "authorized synthetic loopback execution using a current plan after failed run",
+    "successful_run_id": "2a8d07a53005435ca592e7a203d28afe",
+    "started_at": "2026-10-17T08:49:47Z",
+    "deadline_utc": "2026-10-17T08:50:47Z",
+    "plan_sha256": "dcdfc42b70f9e2185b2836585cb61a6179e2669c8c3f7612e3cdf7dc02eac148",
+    "initial_status": {
+      "state": "RUNNING",
+      "process_verified": true,
+      "evidence_ready": false,
+      "cycles": 0,
+      "failed_cycles": 0
+    },
+    "initial_viewer_verification": {
+      "state": "VERIFIED",
+      "http_verified": true,
+      "process_verified": true,
+      "service_health_verified": false,
+      "synthetic": true,
+      "expected_subjects": 3,
+      "stored_captures": 1,
+      "read_only": true
+    },
+    "resume_identity_matches": {
+      "run_id": true,
+      "pid": true,
+      "started_at": true,
+      "deadline_utc": true,
+      "plan_sha256": true
+    },
+    "deadline_renewed_on_resume": false,
+    "explicit_stop_at": "2026-10-17T08:50:42Z",
+    "final_status": {
+      "state": "STOPPED",
+      "process_verified": false,
+      "evidence_ready": false,
+      "cycles": 0,
+      "failed_cycles": 0
+    },
+    "after_stop_verification": {
+      "state": "NOT_READY",
+      "reason": "owned_worker_not_running",
+      "process_verified": false,
+      "http_verified": false,
+      "exit_code": 1
+    },
+    "history": "preseeded synthetic observations; no newly completed collection cycles",
+    "new_collection_cycles": 0,
+    "seventy_two_hour_observation_claimed": false,
+    "outcome_inferred_from_other_tests": false,
+    "native_codex_or_claude_trial": false,
+    "native_client_qualification": false,
+    "browser_interaction_assessment": "separate actual-browser suite; this walkthrough verified CLI HTTP readback",
+    "benchmark_score": null,
+    "native_trace": null,
+    "inferred_tokens": null,
+    "reviewer": "parent ChatGPT agent inspected the retained command results and identity comparison",
+    "artifacts": [
+      {
+        "name": "plan-attempt-default.json",
+        "bytes": 2321,
+        "sha256": "bb230a40a12b5e6cae1986a301c48659168ffb02d7f1592dc76bc4e787083a35"
+      },
+      {
+        "name": "plan-attempt-60-default.json",
+        "bytes": 3057,
+        "sha256": "d55a790c96ba40bde3be8525ea8dbd99cbdae68274add3d97b571915de9492a1"
+      },
+      {
+        "name": "start-attempt-default.json",
+        "bytes": 1699,
+        "sha256": "f13f1405125a5ab37d057b24903c764cbbced1af562086af47540dc8b0fffcc8"
+      },
+      {
+        "name": "bind-probe-default.json",
+        "bytes": 223,
+        "sha256": "db1587e023585a7a795d226aa7c0066f061ca82f4834b1f2f8068baae0806976"
+      },
+      {
+        "name": "failed-status-before-retry.json",
+        "bytes": 1484,
+        "sha256": "b401bfd643e61cb50d116108e4ac333150bf2de06cba1c8948235c34b083f709"
+      },
+      {
+        "name": "retry-plan.json",
+        "bytes": 3133,
+        "sha256": "9e391fa34a91fb0231e6b96bdf37ff1e2786cd6aff871c1cead58831d6eff587"
+      },
+      {
+        "name": "retry-start.json",
+        "bytes": 1724,
+        "sha256": "d1034416e4e7d13627e1b5c141726991c7a16569a371331efb5c70c4a81b99ae"
+      },
+      {
+        "name": "initial-status.json",
+        "bytes": 1510,
+        "sha256": "44b7774b13f0cb0aa21f335adc9092b58f3da404295100457278c533a111c181"
+      },
+      {
+        "name": "initial-verify.json",
+        "bytes": 1119,
+        "sha256": "09997bcfb63032b752cacd1e36af90dd42b7f205e05982541a00a6e48d2500cb"
+      },
+      {
+        "name": "resume-HANDOFF.md",
+        "bytes": 2747,
+        "sha256": "7cbf00ff84d37dbc5191d4e23b2d4657800a67041ef9df8ef110e273bf6a60e7"
+      },
+      {
+        "name": "resume-status.json",
+        "bytes": 1510,
+        "sha256": "a3d4ade6d211c271bc4a78d35be0ba81e0c84b25b786d69983a4b894150841a0"
+      },
+      {
+        "name": "resume-doctor.json",
+        "bytes": 7832,
+        "sha256": "332fe72ac44cd4f7d1ed8260a0e679200fafb643e2eb37291f6379cbf7ba8e97"
+      },
+      {
+        "name": "resume-brief.json",
+        "bytes": 3607,
+        "sha256": "dd841c710a09ddcb72f7924578420fe4ba2bd414722cd134edc3b2746600ca35"
+      },
+      {
+        "name": "resume-start.json",
+        "bytes": 1724,
+        "sha256": "2afb26c24ae0efb145e670e4f273d651952b9ab51ab21344e5a1d6de9b8713c7"
+      },
+      {
+        "name": "resume-identity-comparison.json",
+        "bytes": 104,
+        "sha256": "63fcb07f3c6f3edf49cc602b0084d54b28b75d95fc46765ecc0cb1e2e8abafbe"
+      },
+      {
+        "name": "stop-request.json",
+        "bytes": 1684,
+        "sha256": "209a370a6f98c89b1f18c871e397462fc0cd2e7c0c48d1acaa8e341ec28a7a21"
+      },
+      {
+        "name": "final-status.json",
+        "bytes": 1598,
+        "sha256": "d2ec7882b0c05793031a68c487536b7bd5a85853f5f010d106891ffb7fc6e45c"
+      },
+      {
+        "name": "after-stop-verify.json",
+        "bytes": 741,
+        "sha256": "fa7227826c69954c8e22782f3d723cc6a95ecc867e780e7b0ee5266f10878db4"
+      }
+    ]
+  },
+  "guidance": {
+    "local_method": "docs/skill-improvement-method.md",
+    "jsm": [
+      {
+        "entry": "agent-ergonomics-and-intuitiveness-maximization-for-cli-tools",
+        "read_lines": [
+          1,
+          400
+        ],
+        "entry_total_lines": 1561,
+        "entire_entry_read": false,
+        "current_installed_sha256": null,
+        "applied": [
+          "first invocation through actual CLI",
+          "actionable errors",
+          "structured outputs"
+        ]
+      },
+      {
+        "entry": "readme-writing",
+        "read_lines": [
+          1,
+          185
+        ],
+        "entry_total_lines": 185,
+        "entire_entry_read": true,
+        "current_installed_sha256": null,
+        "applied": [
+          "practical benefit-led documentation",
+          "honest support limits"
+        ]
+      },
+      {
+        "entry": "reality-check",
+        "state": "INDEXED_NOT_READ",
+        "applied": false
+      }
+    ],
+    "installed_hash_status": "later remote request did not return; no historical hashes reused",
+    "flora_skill_creator": {
+      "read": "ENTIRE_ENTRY",
+      "reader": "root ChatGPT agent",
+      "applied": [
+        "progressive disclosure",
+        "inspect actual artifacts",
+        "fresh minimal-context behavioral tasks",
+        "keep grader outside supplied executor inputs",
+        "separate benchmark boundaries"
+      ],
+      "legacy_quick_validator": {
+        "state": "REJECTED_VALID_COMPATIBILITY_FIELD",
+        "counted_as_pass": false,
+        "resolution": "preserved metadata permitted by official Agent Skills specification; repository frontmatter gate passes"
+      }
+    },
+    "rejected_proposals": [
+      "unnecessary wrappers",
+      "numeric quality scorecards",
+      "change quotas",
+      "repeat intake",
+      "silent target or budget changes",
+      "curl installers",
+      "unverified comparisons",
+      "arbitrary document-length cuts"
+    ],
+    "proprietary_skill_text_copied": false,
+    "primary_references": [
+      {
+        "url": "https://agentskills.io/specification",
+        "use": "compatibility field and progressive disclosure"
+      },
+      {
+        "url": "https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents",
+        "use": "distinguish task, transcript, artifact and environment outcome; review grader limitations"
+      },
+      {
+        "url": "https://grafana.com/docs/loki/latest/reference/loki-http-api/#query-logs-within-a-range-of-time",
+        "use": "bounded stream query shapes, timestamp order and requested limits"
+      }
+    ]
+  },
+  "retained_nonpassing_attempts": [
+    {
+      "scope": "first overlap implementation",
+      "result": "per-row filter removed future ownership barrier and invented 150 observed seconds",
+      "disposition": "added failing regression and fixed existing interval projection"
+    },
+    {
+      "scope": "default execution environment loopback",
+      "result": "localhost bind blocked",
+      "disposition": "authorized synthetic loopback rerun passed"
+    },
+    {
+      "scope": "first full gate after version bump",
+      "result": "generated roadmap drift",
+      "disposition": "regenerated native task-derived graph/roadmaps and full collection rerun passed"
+    },
+    {
+      "scope": "Playwright 1.57 CDN browser installation",
+      "result": "corrupt/empty ZIP or gateway failure",
+      "disposition": "official matching Chrome for Testing executable through existing documented configuration; real local and hosted standard browser checks passed"
+    },
+    {
+      "scope": "legacy Skill Creator quick validator",
+      "result": "valid compatibility field rejected",
+      "disposition": "preserved official-spec metadata; repository frontmatter acceptance passed; legacy validator remains nonpassing"
+    },
+    {
+      "scope": "GitHub Git Data create_tree",
+      "result": "HTTP 403 integration response; no repository change",
+      "disposition": "existing authorized native Git checkout fast-forwarded clean main and pushed; no credential/account changes"
+    },
+    {
+      "scope": "fresh file-task parent output permission check",
+      "result": "0755 parent output directory failed private-mode assertion",
+      "disposition": "corrected output directory to 0700 and verified directories/files"
+    },
+    {
+      "scope": "current installed-guidance hashes",
+      "result": "later remote request did not return",
+      "disposition": "current hashes remain unknown; historical hashes not substituted"
+    },
+    {
+      "scope": "fresh lifecycle first plan and default start",
+      "result": "10-second interval rejected by 60-second minimum; corrected plan start FAILED and separate default loopback bind probe returned PermissionError",
+      "disposition": "retained failed attempts; authorized retry with current plan ran, reused its identity/deadline on resume and stopped with zero new cycles"
+    },
+    {
+      "scope": "documentation structure gate in default environment",
+      "result": "test_output_is_private_and_never_overwritten refused its temporary output location",
+      "disposition": "same unmodified structure gate passed in the already-authorized full-validation environment; no test or source workaround"
+    }
+  ],
+  "boundaries": {
+    "auto_review_rejection": false,
+    "current_native_codex_claude_qualification": false,
+    "native_trigger_benchmark_score": null,
+    "native_token_counts_inferred": false,
+    "representative_72_hour_field_qualification": false,
+    "original_v0_8_pilot": {
+      "modified": false,
+      "fresh_read_in_this_pass": false,
+      "owner_supplied_deadline_utc": "2026-10-18T00:29:45Z",
+      "deadline_is_future_on_receipt_date": true,
+      "completion_claimed": false,
+      "fresh_performance_claim": false
+    },
+    "open_outcome_gates": [
+      {
+        "bead": "gs-2uh.6",
+        "scope": "native Codex and Claude user journeys",
+        "status_at_exercised_source": "in_progress"
+      },
+      {
+        "bead": "gs-2uh.8",
+        "scope": "representative sustained multi-day field observation",
+        "status_at_exercised_source": "in_progress"
+      },
+      {
+        "bead": "gs-2uh.13",
+        "scope": "broader promotion",
+        "status_at_exercised_source": "open"
+      }
+    ],
+    "production_system_changed": false,
+    "new_production_probe": false,
+    "provider_contact": false,
+    "external_message_sent": false,
+    "account_or_credentials_changed": false,
+    "social_post_published": false,
+    "provider_cause_proven": false,
+    "physical_host_identity_attested": false,
+    "complete_application_or_disk_or_network_health_certified": false,
+    "underlying_prometheus_scrape_coverage_certified": false
+  }
+}
