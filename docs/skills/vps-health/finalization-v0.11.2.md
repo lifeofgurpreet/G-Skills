@@ -3,8 +3,10 @@
 Owning task: `gs-2uh.21`. Receipt date: 2026-10-17. **Technical Preview remains
 the support level.** The candidate repairs reproduced historical and optional-source failures,
 makes installed recipes executable, and makes the agent artifact contract fair
-and explicit. Source, extracted-package and browser acceptance pass. Release
-publication is pending; the manifest's intended tag is not a publication receipt.
+and explicit. Source, extracted-package and browser acceptance pass.
+[VPS Health v0.11.2](https://github.com/lifeofgurpreet/G-Skills/releases/tag/vps-health/v0.11.2)
+was published as a Technical Preview on 2026-10-17 at 09:12:53 UTC. The downloaded
+published ZIP and manifest match the tested candidate byte for byte.
 
 The exercised source is
 [`08f78f5b070d60678678b01b479b6a7637ac7fcf`](https://github.com/lifeofgurpreet/G-Skills/commit/08f78f5b070d60678678b01b479b6a7637ac7fcf),
@@ -14,8 +16,7 @@ Both are on public `main`.
 [Exact-source CI](https://github.com/lifeofgurpreet/G-Skills/actions/runs/39019013695)
 completed successfully: Python 3.10 verification, Python 3.12 verification,
 catalog, VPS Health JavaScript and VPS Health browser jobs. This receipt binds
-that source to the actual candidate ZIP; it does not substitute those checks for
-later publication verification. The adjacent
+that source to the tested ZIP and to the separately downloaded published bytes. The adjacent
 [machine proof](finalization-proof-v0.11.2.json) contains hashes, counts, retained
 synthetic decisions and explicit evidence boundaries.
 
@@ -190,6 +191,9 @@ cycles and zero failed cycles. The subsequent `agent-verify` correctly exited
 viewer readback, idempotent resumption and owned stop. The history was seeded
 synthetically: no new collection cycle or 72-hour observation is claimed. This
 short ChatGPT walkthrough does not close a native Codex/Claude journey gate.
+After those process results were available, the parent ended optional follow-up
+exploration and requested a concise handoff; that intervention is part of this
+walkthrough's record.
 
 ## Acceptance by evidence layer
 
@@ -204,7 +208,7 @@ short ChatGPT walkthrough does not close a native Codex/Claude journey gate.
 | Fresh ChatGPT artifacts | Three synthetic decisions and one draft semantically reviewed | Explicit-entry reading, evidence interpretation, useful local drafting and honest access boundaries |
 | Fresh ChatGPT lifecycle | Actual synthetic start, verify, same-identity resume and owned stop reviewed | A 60-second approved run reused its identity/deadline and stopped; seeded history and zero new cycles remain explicit |
 | Native agent and field qualification | Remains open | No current-version native Codex/Claude qualification or representative completed 72-hour field claim |
-| Release publication | Pending | Candidate ZIP and manifest exist; release publication still requires verification |
+| Release publication | Published and downloaded bytes verified | Release 415694740 targets the exercised source; ZIP and manifest equal the tested candidate, with 72 extracted files and an actual no-site-packages capability invocation reporting 0.11.2 |
 
 The actual candidate ZIP is 298,588 bytes, with SHA-256
 `7c6e92f1e3cb6e0b9cf4f4088efe46dd8acf21b1155c81ba69b97919f929c360`.
@@ -260,9 +264,9 @@ invented rating of the skill or its agents.
 
 ## Release verdict and remaining work
 
-The candidate is ready for the documented Technical Preview scope, subject to
-the final publication step. Its source changes and technical acceptance are
-concrete and reviewable. The
+Version 0.11.2 is published within the documented Technical Preview scope.
+Its source changes, technical acceptance and downloaded release bytes are
+recorded here; the release retains its prerelease flag. The
 [installed support scope](../../../skills/vps-health/references/support-scope.md)
 and [native task roadmap](ROADMAP.md) retain the remaining outcome gates:
 `gs-2uh.6` for native Codex/Claude journeys, `gs-2uh.8` for representative

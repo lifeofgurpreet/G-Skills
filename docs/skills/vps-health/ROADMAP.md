@@ -23,7 +23,7 @@ This is one skill within G-Skills. Its work does not define the whole collection
 | `gs-2uh.19` Create local software-support drafts from minimal diagnostics without mailbox access | closed | 1 | support-workflow-agent | 2026-11-07 | — |
 | `gs-2uh.2` Manage collector and viewer beyond a terminal-agent session | closed | 1 | Unassigned | — | `gs-2uh.1` |
 | `gs-2uh.20` Preserve Prometheus rate-window coverage and bound malformed range responses | closed | 1 | measurement-contract-agent | 2026-11-07 | — |
-| `gs-2uh.21` Finalize installed workflows, historical evidence and evaluation contracts with shareable guidance | in_progress | 1 | finalization-review-agent | 2026-11-07 | — |
+| `gs-2uh.21` Finalize installed workflows, historical evidence and evaluation contracts with shareable guidance | closed | 1 | finalization-review-agent | 2026-11-07 | — |
 | `gs-2uh.3` Expose agent progress and recovery in the dashboard | closed | 1 | Unassigned | — | `gs-2uh.2` |
 | `gs-2uh.4` Discover host-native connector capabilities only when needed | in_progress | 1 | connector-agent | 2026-11-28 | `gs-2uh.1` |
 | `gs-2uh.5` Bind external actions to reviewed content and verified results | open | 1 | connector-verification-agent | 2026-12-07 | `gs-2uh.4` |
@@ -61,7 +61,7 @@ flowchart LR
   gs_2uh_2["gs-2uh.2: closed"]
   gs_2uh_1 --> gs_2uh_2
   gs_2uh_20["gs-2uh.20: closed"]
-  gs_2uh_21["gs-2uh.21: in_progress"]
+  gs_2uh_21["gs-2uh.21: closed"]
   gs_2uh_3["gs-2uh.3: closed"]
   gs_2uh_2 --> gs_2uh_3
   gs_2uh_4["gs-2uh.4: in_progress"]
@@ -211,6 +211,8 @@ The released stock adapter uses fixed five-minute rates but records query step a
 Deep finalization review using installed JSM guidance and skill-creator evaluation principles found concrete historical-window, optional-input, installed-recipe and grading-contract gaps. Apply focused changes to VPS Health only; preserve the existing pilot, client/auth state and all open field/native gates. Keep licensed study sources private and publish only independently written findings.
 
 **Acceptance:** Reproduce historical end-boundary omissions and malformed optional-source crashes against published v0.11.1; preserve original evidence and valid subjects after correction. Execute installed documentation from an unrelated directory. Make artifact grader requirements visible and versioned. Run full source, browser, extracted-package acceptance and fresh explicit-entry agent tasks; record outcomes separately from native-client and sustained-field qualification. Prepare a sourced sharing article and synthetic product visuals.
+
+**Receipt:** Published VPS Health v0.11.2 Technical Preview from source 08f78f5 after 671 Python tests (22 new), 45 JavaScript contracts, 58 actual-browser groups and all five exact-source hosted CI jobs passed. Actual published v0.11.1/v0.11.2 archive replay confirms 100-second historical overlap, original hashes and unchanged retained files; malformed optional pressure/Loki responses preserve both subjects and valid CPU. Verified installed recipes, explicit versioned artifact contracts and separate fresh ChatGPT file/process walkthroughs. Downloaded ZIP and manifest match two tested 72-file candidate builds. Prepared the sourced article, X drafts and synthetic visuals. See finalization-v0.11.2.md and its proof JSON. Native-client, sustained-field and broader-promotion gates remain open; original pilot and accounts untouched.
 
 ### gs-2uh.3 — Expose agent progress and recovery in the dashboard
 

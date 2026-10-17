@@ -10,7 +10,7 @@
   "verdict": {
     "technical_candidate_acceptance": "PASS",
     "scope": "Documented Technical Preview with separate native-client and sustained-field outcome gates.",
-    "publication": "PENDING",
+    "publication": "PUBLISHED_AND_DOWNLOADED_BYTES_VERIFIED",
     "fresh_lifecycle_review": "ACTUAL_RUNTIME_OUTCOMES_REVIEWED",
     "broader_promotion": "NOT_QUALIFIED"
   },
@@ -141,9 +141,29 @@
   },
   "release": {
     "intended_tag": "vps-health/v0.11.2",
-    "publication_state": "PENDING",
-    "release_url": null,
-    "published_archive_verified": false
+    "publication_state": "PUBLISHED_AND_DOWNLOADED_BYTES_VERIFIED",
+    "release_url": "https://github.com/lifeofgurpreet/G-Skills/releases/tag/vps-health/v0.11.2",
+    "release_id": 415694740,
+    "published_at": "2026-10-17T09:12:53Z",
+    "source_commit": "08f78f5b070d60678678b01b479b6a7637ac7fcf",
+    "draft": false,
+    "prerelease": true,
+    "published_archive_verified": true,
+    "downloaded_assets": {
+      "manifest.json": {
+        "bytes": 450,
+        "sha256": "30d5bbe0fbec1c079a8d55499191a015b10d4c6c760d80a88ba24102d55bf1d6",
+        "matches_tested_candidate": true
+      },
+      "vps-health-v0.11.2.zip": {
+        "bytes": 298588,
+        "sha256": "7c6e92f1e3cb6e0b9cf4f4088efe46dd8acf21b1155c81ba69b97919f929c360",
+        "matches_tested_candidate": true
+      }
+    },
+    "extracted_files": 72,
+    "installed_capabilities_version": "0.11.2",
+    "verification": "Downloaded published bytes equal tested candidate; archive CRC and installed capabilities pass."
   },
   "historical_and_optional_archive_replay": {
     "schema": "g-skills.finalization-boundary-replay.v1",
@@ -756,7 +776,8 @@
         "bytes": 741,
         "sha256": "fa7227826c69954c8e22782f3d723cc6a95ecc867e780e7b0ee5266f10878db4"
       }
-    ]
+    ],
+    "parent_followup": "After successful process evidence was available, the parent ended optional follow-up exploration and requested a concise handoff; no unassisted task-completion benchmark is claimed."
   },
   "guidance": {
     "local_method": "docs/skill-improvement-method.md",
