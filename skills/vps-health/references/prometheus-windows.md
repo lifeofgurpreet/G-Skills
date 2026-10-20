@@ -52,6 +52,15 @@ the rest of the expected-node list. Empty valid matrices and non-finite values
 remain missing, not zero. Ambiguous series, malformed pairs, off-grid/duplicate/
 unordered times and out-of-domain ratios are refused with raw source context retained.
 
+Pressure history can span exporter pod replacements. The adapter combines these
+rows only when the configured instance and every label except `pod` agree, pod
+identities are distinct and their full returned time spans do not overlap. Each
+row and the combined evaluation grid retain the same bounds and validation.
+Missing/non-finite points remain missing. Overlapping or interleaved epochs,
+changed targets/jobs and malformed rows still fail that optional channel; raw
+responses remain retained. Scalar CPU queries keep their single-series rule.
+This correction does not infer continuity through a rollout or certify raw scrapes.
+
 The agent performs the queries and interpretation through the installed skill;
 the user should not have to rewrite PromQL or configure a second monitoring system.
 No version upgrade or query success grants permission for host changes, active

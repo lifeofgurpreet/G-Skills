@@ -125,6 +125,64 @@ class ResponseBoundaryTest(unittest.TestCase):
         self.assertTrue(all(not c['samples'] and c['errors'] for c in values))
 
 
+class ExporterEpochTest(unittest.TestCase):
+    @staticmethod
+    def epochs():
+        body=matrix(value='.02');row=body['data']['result'][0]
+        row['metric']={'instance':'example.invalid:9100','job':'node-exporter','pod':'exporter-old'}
+        newer=copy.deepcopy(row);newer['metric']['pod']='exporter-new'
+        newer['values']=newer['values'][7:];row['values']=row['values'][:7]
+        body['data']['result'].append(newer)
+        return body
+
+    def collect_epochs(self,body):
+        def get(base,path,params,*args,**kwargs):
+            return body if 'node_pressure_' in params['query'] else matrix()
+        with mock.patch.object(core,'get_json',side_effect=get):
+            return core.collect_prometheus(PROFILE,'https://example.invalid',START,START+3600)[0]
+
+    def test_disjoint_pod_epochs_preserve_all_three_pressure_channels_and_raw_response(self):
+        body=self.epochs();body['data']['result'].reverse();before=copy.deepcopy(body)
+        capture=self.collect_epochs(body)
+        self.assertEqual(capture['errors'],[])
+        self.assertEqual(len(capture['samples']),13)
+        for name in ('cpu_pressure_ratio','io_pressure_ratio','memory_pressure_ratio'):
+            self.assertTrue(all(p[name]==.02 for p in capture['samples']))
+            self.assertEqual(capture['raw'][name]['response'],before)
+        self.assertEqual(body,before)
+
+    def test_missing_and_nonfinite_pressure_points_are_not_filled(self):
+        body=self.epochs();body['data']['result'][0]['values'].pop()
+        body['data']['result'][1]['values'][0][1]='NaN'
+        capture=self.collect_epochs(body);self.assertEqual(capture['errors'],[])
+        missing=[p for p in capture['samples'] if 'cpu_pressure_ratio' not in p]
+        self.assertEqual([p['timestamp'] for p in missing],[START+1800,START+2100])
+        self.assertTrue(all(p['cpu_accounted_ratio']==.96 for p in missing))
+
+    def test_ambiguous_or_incompatible_epochs_fail_only_optional_pressure(self):
+        cases=[]
+        for label,value in (('instance','other.invalid:9100'),('job','other-exporter'),('pod','exporter-old')):
+            body=self.epochs();body['data']['result'][1]['metric'][label]=value;cases.append(body)
+        body=self.epochs();body['data']['result'][1]['metric'].pop('pod');cases.append(body)
+        for value in ('.02','NaN'):
+            body=self.epochs();body['data']['result'][1]['values'].insert(0,[START+1800,value]);cases.append(body)
+        # Distinct evaluation times still cannot establish separate epochs when
+        # their time spans interleave.
+        body=self.epochs();body['data']['result'][0]['values'].append([START+2400,'.02'])
+        body['data']['result'][1]['values']=[pair for pair in body['data']['result'][1]['values'] if pair[0]!=START+2400]
+        cases.append(body)
+        body=self.epochs();body['data']['result'][1]['values']=[[START+2100]];cases.append(body)
+        body=self.epochs();body['data']['result'][1]['histograms']=[];cases.append(body)
+        for index,body in enumerate(cases):
+            with self.subTest(case=index):
+                capture=self.collect_epochs(body)
+                self.assertEqual(len(capture['errors']),3)
+                self.assertTrue(all(p['cpu_accounted_ratio']==.96 and 'cpu_pressure_ratio' not in p for p in capture['samples']))
+
+    def test_scalar_cpu_queries_do_not_gain_multi_series_merging(self):
+        with self.assertRaises(core.InvalidEvidence):core.range_samples(self.epochs(),START,START+3600,300)
+
+
 class OptionalSourceBoundaryTest(unittest.TestCase):
     profile={'assets':[{'id':'one','instance':'one.invalid:9100','loki_selector':'{app="one"}'},
                        {'id':'two','instance':'two.invalid:9100','loki_selector':'{app="two"}'}]}

@@ -1,5 +1,16 @@
 # VPS Health changelog
 
+## 0.11.3 — Preserve pressure history across exporter pod replacements
+
+Accept strictly non-overlapping pressure-series epochs for the configured target
+when only the exporter pod label changes. Previously, any replacement within a
+historical range discarded the whole pressure channel. Keep original responses,
+missing points and query-grid bounds; refuse overlapping/interleaved epochs,
+changed target/job labels and malformed data. Scalar CPU queries remain strict.
+
+This is an adapter correction. It does not establish physical-host fault,
+continuous raw-scrape coverage, deployed monitoring changes or provider consent.
+
 ## 0.11.2 — Complete retained windows and resilient optional sources
 
 Historical reports include the supported overlap of retained intervals ending after

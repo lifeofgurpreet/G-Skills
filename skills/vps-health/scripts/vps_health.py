@@ -21,7 +21,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-VERSION = '0.11.2'
+VERSION = '0.11.3'
 SCHEMA = 'g-skills.vps-capture.v1'
 ROOT = Path(__file__).resolve().parents[1]
 MAX_BYTES = 8 * 1024 * 1024
@@ -328,8 +328,8 @@ def represented_duration(duration,source_kind,interval=None):
     return min(value,PROMETHEUS_RATE_WINDOW_SECONDS) if source_kind=='prometheus' else value
 
 
-def range_samples(body,start,end,step):
-    """Validate one bounded scalar range series before adding any of its values.
+def range_samples(body,start,end,step,pressure_instance=None):
+    """Validate a bounded range, optionally joining disjoint pressure pod epochs.
 
     Preserve empty/non-finite samples as missing. Reject irregular point shapes
     per channel instead of crashing the remaining expected-subject collection.
@@ -339,13 +339,40 @@ def range_samples(body,start,end,step):
         raise InvalidEvidence('range response failed or contains partial-result warnings')
     data=body.get('data')
     if not isinstance(data,dict) or data.get('resultType')!='matrix':raise InvalidEvidence('expected range matrix')
-    rows=data.get('result')
-    if not isinstance(rows,list) or len(rows)>1:raise InvalidEvidence('ambiguous metric series')
+    rows=data.get('result');limit=min(MAX_POINTS,int(math.floor((end-start)/step))+1)
+    if not isinstance(rows,list):raise InvalidEvidence('ambiguous metric series')
+    if len(rows)>1:
+        # Only pressure queries retain exporter labels. A rollout may replace
+        # pod while instance and every other label remain identical. Validate
+        # each original row, then require disjoint time spans before combining.
+        # Scalar CPU queries and simultaneous exporters remain ambiguous.
+        if pressure_instance is None or len(rows)>limit:raise InvalidEvidence('ambiguous metric series')
+        epochs=[];stable=None;pods=set();count=0
+        for epoch in rows:
+            if not isinstance(epoch,dict) or not isinstance(epoch.get('metric'),dict):
+                raise InvalidEvidence('invalid exporter epoch')
+            labels=epoch['metric'];values=epoch.get('values')
+            if (any(not isinstance(k,str) or not isinstance(v,str) for k,v in labels.items())
+                or labels.get('instance')!=pressure_instance or not labels.get('pod')
+                or labels['pod'] in pods or not isinstance(values,list) or not values):
+                raise InvalidEvidence('ambiguous exporter epoch identity')
+            identity={k:v for k,v in labels.items() if k!='pod'}
+            if stable is not None and identity!=stable:raise InvalidEvidence('exporter labels changed beyond pod')
+            stable=identity;pods.add(labels['pod']);count+=len(values)
+            if count>limit:raise InvalidEvidence('range values exceed requested evaluation grid')
+            single={'status':'success','data':{'resultType':'matrix','result':[epoch]}}
+            range_samples(single,start,end,step)
+            epochs.append(values)
+        epochs.sort(key=lambda values:values[0][0])
+        if any(left[-1][0]>=right[0][0] for left,right in zip(epochs,epochs[1:])):
+            raise InvalidEvidence('overlapping exporter epochs')
+        combined={'metric':stable,'values':[pair for values in epochs for pair in values]}
+        return range_samples({'status':'success','data':{'resultType':'matrix','result':[combined]}},start,end,step)
     if not rows:return []
     row=rows[0]
     if not isinstance(row,dict) or not isinstance(row.get('metric'),dict) or 'histograms' in row:
         raise InvalidEvidence('expected one float series, not histogram or malformed data')
-    values=row.get('values');limit=min(MAX_POINTS,int(math.floor((end-start)/step))+1)
+    values=row.get('values')
     if not isinstance(values,list) or len(values)>limit:raise InvalidEvidence('range values exceed requested evaluation grid')
     result=[];previous=None
     for pair in values:
@@ -440,7 +467,8 @@ def collect_prometheus(profile, base, start, end, step=300, token=None, loki=Non
                 if remaining <= 0: raise InvalidEvidence('collection time budget exhausted')
                 body = get_json(base, '/api/v1/query_range', {'query':query,'start':start,'end':end,'step':step}, token, timeout=min(15,remaining))
                 capture['raw'][name]['response'] = body
-                samples=range_samples(body,start,end,step)
+                pressure_instance=asset['instance'] if name in ('cpu_pressure_ratio','io_pressure_ratio','memory_pressure_ratio') else None
+                samples=range_samples(body,start,end,step,pressure_instance)
                 for ts,value in samples:
                     points.setdefault(ts,{'timestamp':ts,'duration_seconds':represented_duration(step,'prometheus'),'quality':[]})[name]=value
             except (InvalidEvidence,KeyError,TypeError) as exc:
