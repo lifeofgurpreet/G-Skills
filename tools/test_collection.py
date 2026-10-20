@@ -5,10 +5,12 @@ import copy
 import contextlib
 import io
 import json
+import subprocess
 import tempfile
 import unittest
 from unittest import mock
 import collection
+import validate
 
 
 class CollectionTest(unittest.TestCase):
@@ -97,5 +99,46 @@ class CollectionTest(unittest.TestCase):
 
     def test_catalog_is_deterministic(self):
         self.new();self.assertEqual(collection.catalog(collection.discover(self.root)),collection.catalog(collection.discover(self.root)))
+
+class SourcePrivacyTest(unittest.TestCase):
+    def setUp(self):
+        self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup);self.root=Path(self.temp.name)
+        subprocess.run(['git','init','-q',str(self.root)],check=True)
+        (self.root/'.gitignore').write_text('.beads/runtime.db*\n.beads/.br_recovery/\noutside.db\n.ruff_cache/\n')
+        (self.root/'.beads').mkdir()
+        self.runtime=self.root/'.beads/runtime.db'
+        self.runtime.write_bytes(b'\xff\x00private SQLite runtime')
+
+    def test_ignored_untracked_beads_database_is_not_published_source(self):
+        (self.root/'.beads/runtime.db-fsqlite-ns-use').write_bytes(b'\xff\x00private sidecar')
+        validate.privacy(self.root)
+
+    def test_forced_tracked_database_still_fails(self):
+        subprocess.run(['git','-C',str(self.root),'add','-f','.beads/runtime.db'],check=True)
+        with self.assertRaisesRegex(ValueError,'generated/private artifact'):validate.privacy(self.root)
+
+    def test_unignored_beads_database_still_fails(self):
+        self.runtime.rename(self.root/'.beads/private.db')
+        with self.assertRaisesRegex(ValueError,'generated/private artifact'):validate.privacy(self.root)
+
+    def test_ignored_linter_cache_is_not_published_source(self):
+        cache=self.root/'.ruff_cache';cache.mkdir();(cache/'index').write_bytes(b'\xff\x00private cache')
+        validate.privacy(self.root)
+
+    def test_ignored_database_outside_beads_is_checked_when_force_added(self):
+        self.runtime.unlink();(self.root/'outside.db').write_bytes(b'\xff\x00private runtime')
+        subprocess.run(['git','-C',str(self.root),'add','-f','outside.db'],check=True)
+        with self.assertRaisesRegex(ValueError,'generated/private artifact'):validate.privacy(self.root)
+
+    def test_unignored_private_database_outside_beads_is_checked(self):
+        self.runtime.unlink();(self.root/'public.db').write_bytes(b'\xff\x00private runtime')
+        with self.assertRaisesRegex(ValueError,'generated/private artifact'):validate.privacy(self.root)
+
+    def test_no_git_archive_cannot_hide_private_files_with_gitignore(self):
+        archive=self.root/'archive';archive.mkdir();(archive/'.beads').mkdir()
+        (archive/'.gitignore').write_text('.beads/runtime.db\n')
+        (archive/'.beads/runtime.db').write_bytes(b'\xff\x00private runtime')
+        with self.assertRaisesRegex(ValueError,'generated/private artifact'):validate.privacy(archive)
+
 
 if __name__=='__main__':unittest.main()

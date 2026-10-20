@@ -4,6 +4,7 @@ from pathlib import Path
 import argparse
 import ipaddress
 import json
+import os
 import re
 import subprocess
 import sys
@@ -13,7 +14,14 @@ ROOT=Path(__file__).resolve().parents[1]
 
 
 def privacy(root=ROOT):
-    for path in root.rglob('*'):
+    # Native trackers/linters create ignored databases and binary caches. Check
+    # publication candidates, including force-added files and unignored new work.
+    # Extracted trees without Git still check every file, irrespective of ignores.
+    paths=root.rglob('*')
+    if (root/'.git').exists():
+        names=subprocess.check_output(['git','ls-files','-z','--cached','--others','--exclude-standard'],cwd=root,timeout=10)
+        paths=(root/os.fsdecode(name) for name in sorted(set(names.split(b'\0'))-{b''}))
+    for path in paths:
         relative=path.relative_to(root)
         if any(p in ('.git','__pycache__') for p in relative.parts) or not path.is_file():continue
         if path.is_symlink():raise ValueError('symlink is not portable: '+str(relative))

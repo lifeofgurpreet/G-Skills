@@ -20,6 +20,7 @@ This repository hosts independent public skills. Root work is catalog/distributi
 | `gs-nah.5` Implement reversible selected-skill installation with preserved recovery state | closed | 1 | distribution-agent | 2026-10-28 | — |
 | `gs-nah.6` Produce verified community launch video and share-ready assets | closed | 1 | community-media-agent | 2026-10-16 | — |
 | `gs-nah.7` Validate actual skill discovery YAML before a public release | closed | 1 | skill-quality-agent | 2026-11-07 | — |
+| `gs-ss8` Check publishable source without scanning ignored tracker and linter caches | closed | 2 | collection-maintainer | 2026-10-21 | — |
 
 ## Skill programmes
 
@@ -119,6 +120,14 @@ Anthropic skill-creator quick_validate and a real YAML parser reject the publish
 **Acceptance:** Failure-first malformed/duplicate/type/version cases pass; all current skills parse without modifying unrelated skill code; CI installs a pinned development-only YAML parser and the extracted VPS package header passes. No end-user YAML dependency is introduced.
 
 **Receipt:** Actual public v0.9.3 header rejected by Anthropic quick_validate; candidate exported archive passes. Ten metadata regressions, collection checks and isolated no-site-packages bootstrap pass. Dev-only YAML dependency does not enter user runtime. Exact-head hosted checks remain the release gate; other client triggering is not inferred.
+
+### gs-ss8 — Check publishable source without scanning ignored tracker and linter caches
+
+Native br and UBS create ignored SQLite/WAL/recovery and Ruff binary cache files in the shared checkout. The privacy walker treated these local artifacts as publishable source. Use the actual Git index plus unignored new work in a checkout; extracted no-Git archives still scan every file. Forced tracked and unignored private files remain checked.
+
+**Acceptance:** Ignored tracker/linter runtime does not fail source validation. Force-added/unignored private files are still refused, and extracted archives cannot use gitignore to hide artifacts. Failing-before Beads regression, observed Ruff cache failure, and shared structure acceptance pass.
+
+**Receipt:** Falling-before native Beads regression and observed Ruff cache failure corrected with a Git publication inventory. All19 collection tests and shared structure acceptance pass in the actual shared checkout containing its ignored runtime. Force-added/unignored private files and no-Git archives remain refused. Installed skill and vendor files unchanged.
 
 A second unrelated skill must be discoverable, independently validated and packaged without inheriting another skill's browser, runtime or safety policy. Draft scaffolds are not completed products.
 
