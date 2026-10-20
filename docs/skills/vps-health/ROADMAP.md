@@ -24,7 +24,7 @@ This is one skill within G-Skills. Its work does not define the whole collection
 | `gs-2uh.2` Manage collector and viewer beyond a terminal-agent session | closed | 1 | Unassigned | — | `gs-2uh.1` |
 | `gs-2uh.20` Preserve Prometheus rate-window coverage and bound malformed range responses | closed | 1 | measurement-contract-agent | 2026-11-07 | — |
 | `gs-2uh.21` Finalize installed workflows, historical evidence and evaluation contracts with shareable guidance | closed | 1 | finalization-review-agent | 2026-11-07 | — |
-| `gs-2uh.22` Preserve pressure history across non-overlapping exporter pod epochs | in_progress | 1 | MaroonSeal | — | — |
+| `gs-2uh.22` Preserve pressure history across non-overlapping exporter pod epochs | in_progress | 1 | MaroonSeal | 2026-10-21 | — |
 | `gs-2uh.3` Expose agent progress and recovery in the dashboard | closed | 1 | Unassigned | — | `gs-2uh.2` |
 | `gs-2uh.4` Discover host-native connector capabilities only when needed | in_progress | 1 | connector-agent | 2026-11-28 | `gs-2uh.1` |
 | `gs-2uh.5` Bind external actions to reviewed content and verified results | open | 1 | connector-verification-agent | 2026-12-07 | `gs-2uh.4` |
