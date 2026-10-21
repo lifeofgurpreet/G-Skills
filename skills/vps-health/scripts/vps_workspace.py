@@ -224,6 +224,19 @@ def _epoch(cfg,capture):
                         'method':capture['source'].get('tool_sha256','unknown'),'boot':boot})
 
 
+def _compatible_point_enrichment(previous, current):
+    """Return whether two observations agree where both contain a field.
+
+    Exporter upgrades can add a pressure channel to an otherwise identical
+    sample. Treat that as enrichment, while keeping a changed value or changed
+    existing field a real conflict. The caller still records the newest union
+    so later status reads can use the newly available channel.
+    """
+    if not isinstance(previous, dict) or not isinstance(current, dict):return False
+    shared=set(previous).intersection(current)
+    return all(previous[key]==current[key] for key in shared)
+
+
 def ingest(root,cfg,captures,observed=None):
     """Atomic, idempotent capture import; overlapping scrapes do not add hours."""
     now=time.time() if observed is None else core.finite(observed,minimum=0)
@@ -258,7 +271,15 @@ def ingest(root,cfg,captures,observed=None):
                 observed_duration=min(core.represented_duration(point['duration_seconds'],capture['source']['kind'],capture['interval_seconds']),max(0,min(ts,end)-capture_start))
                 prior=db.execute('SELECT hash FROM points WHERE subject=? AND epoch=? AND ts=?',(node,epoch,ts)).fetchone()
                 if prior and prior[0]!=h:
-                    db.execute('INSERT OR IGNORE INTO conflicts VALUES (?,?,?)',(node,epoch,ts))
+                    old_row=db.execute('SELECT body FROM points WHERE subject=? AND epoch=? AND ts=?',(node,epoch,ts)).fetchone()
+                    old_point=core.decode(old_row['body']) if old_row else None
+                    if _compatible_point_enrichment(old_point,point):
+                        merged={**old_point,**point}
+                        merged_body=core.canonical(merged).decode()
+                        db.execute('UPDATE points SET hash=?,body=?,duration=MAX(duration,?) WHERE subject=? AND epoch=? AND ts=?',
+                                   (core.digest(merged),merged_body,observed_duration,node,epoch,ts))
+                    else:
+                        db.execute('INSERT OR IGNORE INTO conflicts VALUES (?,?,?)',(node,epoch,ts))
                 elif not prior:
                     db.execute('INSERT INTO points VALUES (?,?,?,?,?,?)',(node,epoch,ts,observed_duration,h,body))
                 else:

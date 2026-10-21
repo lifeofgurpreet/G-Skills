@@ -98,6 +98,26 @@ class WorkspaceTest(unittest.TestCase):
         self.assertIn('conflicting_sample_values',row['holds']);self.assertEqual(row['decision'],'HOLD')
         self.assertLess(row['coverage'],1)
 
+    def test_compatible_point_enrichment_is_not_a_conflict(self):
+        cfg=self.setup_real();first=capture();
+        for point in first['samples']:point.pop('cpu_pressure_ratio');point.pop('cfs_throttled_periods_ratio')
+        w.ingest(self.root,cfg,[first],NOW)
+        enriched=capture();w.ingest(self.root,cfg,[enriched],NOW)
+        row=w.status(self.root,NOW)['assets'][0]
+        self.assertNotIn('conflicting_sample_values',row['holds'])
+        self.assertNotEqual(row['decision'],'HOLD')
+        with w.database(self.root,True) as db:
+            body=db.execute('SELECT body FROM points ORDER BY ts LIMIT 1').fetchone()['body']
+        self.assertEqual(c.decode(body)['cpu_pressure_ratio'],.01)
+
+    def test_changed_existing_point_field_remains_a_conflict_after_enrichment(self):
+        cfg=self.setup_real();first=capture();
+        for point in first['samples']:point.pop('cpu_pressure_ratio');point.pop('cfs_throttled_periods_ratio')
+        w.ingest(self.root,cfg,[first],NOW)
+        changed=capture();changed['samples'][0]['cpu_accounted_ratio']=.99;w.ingest(self.root,cfg,[changed],NOW)
+        row=w.status(self.root,NOW)['assets'][0]
+        self.assertIn('conflicting_sample_values',row['holds']);self.assertEqual(row['decision'],'HOLD')
+
     def test_stale_is_not_last_good_value_forever(self):
         cfg=self.setup_real();w.ingest(self.root,cfg,[capture(ratio=.99)],NOW)
         row=w.status(self.root,NOW+3600)['assets'][0]
