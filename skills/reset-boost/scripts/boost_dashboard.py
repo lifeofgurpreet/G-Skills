@@ -246,7 +246,7 @@ def summary(event):
 
 PAGE = """<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="refresh" content="60"><title>Reset Boost</title>
+<meta http-equiv="refresh" content="60"><title>Codex Clanker Cranker</title>
 <style>
 :root{--bg:#f6f7f9;--card:#fff;--ink:#16181d;--muted:#667085;--line:#e4e7ec;--ok:#067647;--warn:#b54708;--bad:#b42318;--accent:#5b3fd6;--boost:#efe9ff;--cool:#e6f4ff;--idle:#eef2f6;--barbg:#eaecf0}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1115;--card:#171a21;--ink:#e6e8ec;--muted:#98a2b3;--line:#2a2f3a;--ok:#47cd89;--warn:#fdb022;--bad:#f97066;--accent:#9e8cff;--boost:#241d3d;--cool:#14283a;--idle:#1b1f27;--barbg:#2a2f3a}}
@@ -276,7 +276,7 @@ button{font:inherit;font-size:12px;padding:2px 10px;border-radius:6px;border:1px
 .timeline{list-style:none;padding:0;margin:0}.timeline li{padding:4px 0;border-bottom:1px dashed var(--line)}
 details summary{cursor:pointer;color:var(--muted);margin:4px 0}
 </style></head>
-<body><main data-phase="{{PHASE}}"><header><h3>Reset Boost</h3><span class="muted small">Generated {{GENERATED}} · refreshes every minute</span></header>
+<body><main data-phase="{{PHASE}}"><header><h3>Codex Clanker Cranker</h3><span class="muted small">Generated {{GENERATED}} · refreshes every minute</span></header>
 {{BODY}}
 </main>
 <script>

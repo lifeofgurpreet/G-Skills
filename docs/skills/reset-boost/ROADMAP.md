@@ -1,4 +1,4 @@
-# Reset Boost roadmap
+# Codex Clanker Cranker roadmap
 
 This is one skill within G-Skills. Its work does not define the whole collection. State is generated from the shared native graph using the `skill:reset-boost` label.
 

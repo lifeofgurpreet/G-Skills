@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Reset Boost package acceptance on an extracted skill folder; never imposed on other skills.
+"""Codex Clanker Cranker package acceptance on an extracted skill folder; never imposed on other skills.
 
 The cold check drives the real CLI from the exported folder against a synthetic
 usage file and a zero-host estate, so it never reads or changes this machine's
@@ -79,7 +79,7 @@ def panel_check(entry, env, state_dir):
         if "rows" not in snapshot.get("sessions", {}) or snapshot.get("credit_guard", {}).get("enabled") is not True:
             raise ValueError("control panel state lacks session telemetry or the credit guard")
         status, body = get("/")
-        if status != 200 or b"Reset Boost" not in body or b'href="/operator-ui.css"' not in body:
+        if status != 200 or b"Codex Clanker Cranker" not in body or b'href="/operator-ui.css"' not in body:
             raise ValueError("control panel page did not load")
         status, body = get("/operator-ui.css")
         if status != 200 or b"--ui-accent" not in body:
@@ -143,7 +143,7 @@ def cold_check(target):
             raise ValueError("status disagrees with the recorded phase")
         page = Path(run(entry, env, "dashboard").strip())
         html = page.read_text()
-        if page.parent != temp / "state" or "Reset Boost" not in html or "<script src" in html:
+        if page.parent != temp / "state" or "Codex Clanker Cranker" not in html or "<script src" in html:
             raise ValueError("dashboard missing, outside the state directory or not self-contained")
         events = [json.loads(line)["event"] for line in (temp / "state/boost-events.jsonl").read_text().splitlines()]
         if events[0] != "boost" or "done" not in events or events[-1] != "idle":
@@ -166,7 +166,7 @@ def main():
              if f.is_file() and "__pycache__" not in f.parts}
     validate_files(files)
     cold_check(options.skill_dir)
-    print("PASS: isolated Reset Boost package: boost, failed-usage hold, reset auto-down, cooling, dashboard, event log, observe and control panel")
+    print("PASS: isolated Codex Clanker Cranker package: boost, failed-usage hold, reset auto-down, cooling, dashboard, event log, observe and control panel")
 
 
 if __name__ == "__main__":

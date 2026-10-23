@@ -1,7 +1,7 @@
 {
   "schema": "g-skills.skill.v1",
   "name": "reset-boost",
-  "title": "Reset Boost",
+  "title": "Codex Clanker Cranker",
   "summary": "Turn every Codex session up for a provider usage reset and back down when it lands, from a live panel that reads each session's status line, with a credit guard.",
   "version": "0.3.0",
   "category": "agent-operations",

@@ -8,7 +8,7 @@ metadata:
   author: lifeofgurpreet
 ---
 
-# Reset Boost
+# Codex Clanker Cranker
 
 Providers periodically reset usage limits. Quota that is about to be reset is
 free to spend, so before a reset you turn every Codex session up (stronger

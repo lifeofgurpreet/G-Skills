@@ -1,4 +1,7 @@
-# Reset Boost
+# Codex Clanker Cranker
+
+The product name is **Codex Clanker Cranker**. The `reset-boost` skill folder,
+release tags and `reset_boost.py` command remain compatible.
 
 **One skill in the [G-Skills collection](https://github.com/lifeofgurpreet/G-Skills).**
 Give this folder to your coding agent to run a fleet of Codex sessions through
