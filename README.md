@@ -24,6 +24,12 @@ with a credit guard and agent hand-off for what the buttons could not fix.
 It is a preview: tested with synthetic fleets, not yet qualified on other
 people's estates.
 
+**AutoQA:** [Witnessed journey verification](skills/autoqa/SKILL.md) — exercise a
+product through its real entry points, distinguish completed journeys from safe
+fallbacks, retain version-bound evidence, and verify authorized fixes. Includes
+an offline evidence validator and focused profiles for mobile interfaces,
+metered tools and asynchronous work. [Qualification and limits](skills/autoqa/evals/RESULTS.md).
+
 Skills that serve an operator page can share one look: the
 [operator-ui design kit](docs/design/guide.md).
 

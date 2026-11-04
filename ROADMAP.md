@@ -24,6 +24,7 @@ This repository hosts independent public skills. Root work is catalog/distributi
 
 ## Skill programmes
 
+- [AutoQA](docs/skills/autoqa/ROADMAP.md): 2 open implementation/acceptance tasks; independent version 0.1.0.
 - [Codex Clanker Cranker](docs/skills/reset-boost/ROADMAP.md): 2 open implementation/acceptance tasks; independent version 0.3.0.
 - [VPS Health](docs/skills/vps-health/ROADMAP.md): 9 open implementation/acceptance tasks; independent version 0.11.3.
 

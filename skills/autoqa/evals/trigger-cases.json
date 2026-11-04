@@ -1,0 +1,45 @@
+[
+  {
+    "query": "Use autoqa to verify this branch's account-to-saved-result journey.",
+    "should_trigger": true
+  },
+  {
+    "query": "Can we ship this? Check the running candidate and show the evidence.",
+    "should_trigger": true
+  },
+  {
+    "query": "Verify this mobile gallery bug with an old saved session.",
+    "should_trigger": true
+  },
+  {
+    "query": "QA the changed worker retries and make sure persisted results are correct.",
+    "should_trigger": true
+  },
+  {
+    "query": "Fix the broken booking flow and verify it end to end.",
+    "should_trigger": true
+  },
+  {
+    "query": "Where are we against the overall product vision? Write a strategic gap analysis.",
+    "should_trigger": false,
+    "route": "reality-check-for-project"
+  },
+  {
+    "query": "Coordinate five NTM browser testers with separate sessions.",
+    "should_trigger": false,
+    "route": "browser-testing-with-ntm"
+  },
+  {
+    "query": "Explain what this unit test does.",
+    "should_trigger": false
+  },
+  {
+    "query": "Review this function's naming, without running the product.",
+    "should_trigger": false
+  },
+  {
+    "query": "Deploy the already verified release using our release train.",
+    "should_trigger": false,
+    "route": "repository release workflow"
+  }
+]

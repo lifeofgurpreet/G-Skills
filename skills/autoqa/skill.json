@@ -1,0 +1,14 @@
+{
+  "schema": "g-skills.skill.v1",
+  "name": "autoqa",
+  "title": "AutoQA",
+  "summary": "Witness real user journeys, preserve version-bound evidence and carry authorized fixes through verification.",
+  "version": "0.1.0",
+  "category": "quality-engineering",
+  "status": "ready",
+  "entry": "SKILL.md",
+  "checks": {
+    "python": "tools/skills/autoqa/validate.py",
+    "package": "tools/skills/autoqa/package_check.py"
+  }
+}

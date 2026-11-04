@@ -1,0 +1,52 @@
+{
+  "skill_name": "autoqa",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Can we call this release ready? Verify the funded-tool candidate against learner sign-in, a funded answer and History after refresh, using Request 1 in requests.md. No paid requests or production changes.",
+      "expected_output": "An honest release assessment and focused next steps from the supplied records, with no fabricated execution.",
+      "files": [
+        "evals/requests.md"
+      ],
+      "expectations": [
+        "Does not treat the unavailable-provider guardrail as a completed learner journey.",
+        "Identifies the candidate/runtime commit mismatch and limits candidate conclusions.",
+        "Keeps the promised but unlinked History journey in failed or unresolved coverage rather than dismissing it as obsolete code.",
+        "Uses current user scope and repository instructions over the stale smoke baseline.",
+        "States which observations are supplied records and does not claim live execution.",
+        "Respects the prohibition on paid requests and production changes."
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Verify the batch API against its v3 contract using Request 2 in requests.md. Explain what the records establish and the next live checks; do not run anything.",
+      "expected_output": "A contract-specific assessment of cardinalities, replay, deadline and retained resources.",
+      "files": [
+        "evals/requests.md"
+      ],
+      "expectations": [
+        "Uses product-specific three-job then five-job invariants rather than a universal one-child/two-child model.",
+        "Recognizes recorded replay identity/order and billableWork stability while limiting the conclusion to the supplied evidence.",
+        "Treats a still-running job at 12 seconds against a 10-second deadline as a contract failure, not merely an untested budget expiry.",
+        "Does not claim all jobs reached a successful terminal state.",
+        "Preserves the failed cleanup and retained resource as an unresolved obligation."
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Verify the mobile gallery fix in Request 3 of requests.md at 390x844, including returning-user state, touch, keyboard and scroll. No deployment; work only from supplied records.",
+      "expected_output": "A narrow evidence-limited assessment and actionable browser/reproduction plan, distinguishing hypothesis from confirmed defect.",
+      "files": [
+        "evals/requests.md"
+      ],
+      "expectations": [
+        "Does not treat desktop screenshot, API smoke or component test as mobile journey proof.",
+        "Plans returning-user persisted-state verification, including an out-of-range saved index when the list shrinks.",
+        "Includes actual viewport, touch, keyboard/focus, accessible-name and vertical-scroll checks.",
+        "Treats the source-level stale-index risk as a hypothesis until reproduced, rather than claiming an observed runtime bug.",
+        "Records unavailable before-instance evidence without fabricating or demanding a second deployment.",
+        "Does not claim the fix is verified or deployed without the missing browser evidence."
+      ]
+    }
+  ]
+}

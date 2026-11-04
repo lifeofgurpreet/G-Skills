@@ -3,6 +3,17 @@
   "schema": "g-skills.catalog.v1",
   "skills": [
     {
+      "category": "quality-engineering",
+      "entry": "skills/autoqa/SKILL.md",
+      "name": "autoqa",
+      "path": "skills/autoqa",
+      "release_tag": "autoqa/v0.1.0",
+      "status": "ready",
+      "summary": "Witness real user journeys, preserve version-bound evidence and carry authorized fixes through verification.",
+      "title": "AutoQA",
+      "version": "0.1.0"
+    },
+    {
       "category": "agent-operations",
       "entry": "skills/reset-boost/SKILL.md",
       "name": "reset-boost",

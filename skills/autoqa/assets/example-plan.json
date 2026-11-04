@@ -1,0 +1,38 @@
+{
+  "schema": "autoqa.plan.v1",
+  "source": {
+    "commit": "1111111111111111111111111111111111111111",
+    "tree": "2222222222222222222222222222222222222222",
+    "worktree": "clean",
+    "dirty_summary": "Synthetic clean source for an offline example.",
+    "dirty_digest": null
+  },
+  "runtime": {
+    "instance": "synthetic-instance",
+    "build": "synthetic-build-1",
+    "source_commit": "1111111111111111111111111111111111111111",
+    "source_tree": "2222222222222222222222222222222222222222",
+    "dirty_digest": null,
+    "observation": "Synthetic fixture attestation; no real runtime was contacted."
+  },
+  "inventory": [
+    {
+      "id": "JOURNEY-1",
+      "title": "Create and read back a synthetic item",
+      "selected": true,
+      "required": true,
+      "kind": "journey",
+      "required_depth": "e2e"
+    }
+  ],
+  "cases": [
+    {
+      "id": "CASE-1",
+      "inventory_id": "JOURNEY-1",
+      "title": "Item reaches its terminal state",
+      "purpose": "journey",
+      "entry_point": "Synthetic local fixture",
+      "expected": "Created synthetic item is observable in its terminal state."
+    }
+  ]
+}
