@@ -8,12 +8,12 @@ This is one skill within G-Skills. Its work does not define the whole collection
 
 | Task | State | Priority | Owner role | Target | Blocking prerequisites |
 |---|---|---:|---|---|---|
-| `gs-v0b` Adapt AutoQA into witnessed journey verification | in_progress | 1 | quality-maintainer | 2026-11-05 | — |
+| `gs-v0b` Adapt AutoQA into witnessed journey verification | closed | 1 | quality-maintainer | 2026-11-05 | — |
 | `gs-05x` Qualify AutoQA on real project journeys | open | 2 | quality-maintainer | 2026-11-12 | — |
 
 ```mermaid
 flowchart LR
-  gs_v0b["gs-v0b: in_progress"]
+  gs_v0b["gs-v0b: closed"]
   gs_05x["gs-05x: open"]
 ```
 
@@ -24,6 +24,8 @@ flowchart LR
 User-selected adaptation of Parcha AutoQA into an independent G-Skills workflow, with explicit journey completion, source/runtime provenance, offline evidence validation, bounded repair and native installation.
 
 **Acceptance:** Implemented skill with attributed upstream review; passing meaningful ledger regressions, independent task evals, extracted-package check, current source published and installed on the requested host; remaining real-project qualification reported separately.
+
+**Receipt:** Published source 66bc2653e1e8de2ea7a200b7eb273973afe9e38f; 54 helper and 90 shared tests passed; blind comparison17/17 each; immutable archive checked and installed for Codex/Claude; native Codex discovery enabled with no loading errors. See docs/skills/autoqa/QUALIFICATION.md. Real-project trials remain gs-05x.
 
 ### gs-05x — Qualify AutoQA on real project journeys
 
