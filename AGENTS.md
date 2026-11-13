@@ -32,8 +32,10 @@ Never silently update vendor hashes to bypass integrity checks.
 
 Agents on one host share that host's single checkout of this repository, on `main`
 (`/data/projects/G-Skills`, or `~/projects/G-Skills` on a workstation). Reserve the
-files you edit, commit only your paths, `git pull --rebase --autostash origin main`
-and push `HEAD:main`; never switch, stash or reset that checkout. A separate worktree
+files you edit, commit only your paths, then land with `bbi-am land --mine --as <login>
+--author-name <Name>`, which replays only your commits on origin/main and pushes them with
+no stash (an autostash in a shared checkout stashes every agent's files); never switch,
+stash or reset that checkout. A separate worktree
 is only for packaging or verifying an exact commit, a bisect, or reviewing someone
 else's branch: create it under `/data/worktrees/G-Skills/<task>` and remove it in the
 same command (team-skills `project-layout/scripts/pinned-worktree.sh` does both).
